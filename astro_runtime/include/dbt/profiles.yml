@@ -1,0 +1,13 @@
+﻿gdv_general_dbt_dag:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      keyfile: /opt/airflow/include/sa.json
+      project: datagov-473122
+      dataset: gdv_ipm_sisben_raw
+      location: us-central1
+      threads: 4
+      priority: interactive
+      create_schema: true
