@@ -2,6 +2,7 @@
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
@@ -20,12 +21,17 @@ from modules.load_rawdata_ipmv2 import (
 
 # === CONFIGURACIÓN ===
 GCS_URI = "gs://gdv_ipm_dane/24/10/2025/2_IPM_DANE.xlsx"   # <--- cambia si es necesario
-DATASET_ID = "gdv_ipmv2_bronze"
+DATASET_ID_BRONZE = "gdv_ipmv2_bronze"
+DATASET_ID_SILVER = "gdv_ipmv2_silver"
 TABLE_NAME = "rawdata_ipmv2"
 SHEET_INDEX = 0
+DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
 
-def _ensure_dataset_task():
-    ensure_dataset(dataset_id=DATASET_ID)
+def _ensure_dataset_bronze_task():
+    ensure_dataset(dataset_id=DATASET_ID_BRONZE)
+
+def _ensure_dataset_silver_task():
+    ensure_dataset(dataset_id=DATASET_ID_SILVER)
 
 def _download_excel_task():
     return download_excel_from_gcs(gcs_uri=GCS_URI)
@@ -46,7 +52,7 @@ def _load_task(ti):
     if not pickle_path:
         raise ValueError("No se recibió la ruta del DataFrame transformado en XCom (task transform_dataframe).")
     df = pd.read_pickle(pickle_path)
-    load_dataframe_to_bq(df, dataset_id=DATASET_ID, table_name=TABLE_NAME)
+    load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME)
 
 def _cleanup_temp_files_task(ti):
     excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
@@ -71,7 +77,7 @@ with DAG(
     with TaskGroup(group_id="bronze") as bronze_group:
         t1_ensure_dataset = PythonOperator(
             task_id="ensure_dataset",
-            python_callable=_ensure_dataset_task,
+            python_callable=_ensure_dataset_bronze_task,
         )
 
         t2_download_excel = PythonOperator(
@@ -97,5 +103,67 @@ with DAG(
 
         t1_ensure_dataset >> t2_download_excel >> t3_transform_dataframe >> t4_load_to_bq >> t5_cleanup_temp_files
 
-    # Dependencias: start -> bronze
-    start >> bronze_group
+    # Grupo de tareas para la capa silver
+    with TaskGroup(group_id="silver") as silver_group:
+        s1_ensure_dataset = PythonOperator(
+            task_id="ensure_dataset",
+            python_callable=_ensure_dataset_silver_task,
+        )
+
+        # Tareas dbt para cada modelo
+        # Usamos la ruta completa del ejecutable dbt o lo buscamos en el PATH del usuario
+        s2_dbt_run_stg = BashOperator(
+            task_id="dbt_run_stg",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_stg || dbt run --select rawdata_ipmv2_stg",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s3_dbt_run_normalize_text = BashOperator(
+            task_id="dbt_run_normalize_text",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_normalize_text || dbt run --select rawdata_ipmv2_normalize_text",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s4_dbt_run_transform_types = BashOperator(
+            task_id="dbt_run_transform_types",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_transform_types || dbt run --select rawdata_ipmv2_transform_types",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s5_dbt_run_clean = BashOperator(
+            task_id="dbt_run_clean",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_clean || dbt run --select rawdata_ipmv2_clean",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s6_dbt_test = BashOperator(
+            task_id="dbt_test",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select rawdata_ipmv2_clean || dbt test --select rawdata_ipmv2_clean",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        # Dependencias: ensure_dataset -> stg -> normalize_text -> transform_types -> clean -> test
+        s1_ensure_dataset >> s2_dbt_run_stg >> s3_dbt_run_normalize_text >> s4_dbt_run_transform_types >> s5_dbt_run_clean >> s6_dbt_test
+
+    # Dependencias: start -> bronze -> silver
+    start >> bronze_group >> silver_group

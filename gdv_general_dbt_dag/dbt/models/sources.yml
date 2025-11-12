@@ -5,6 +5,11 @@ sources:
     tables:
       - name: ipm_sisben_clean
   
+  - name: bronze_ipmv2
+    schema: gdv_ipmv2_bronze
+    tables:
+      - name: rawdata_ipmv2
+  
   - name: dims
     schema: gdv_ipm_sisben_dims
     tables:
