@@ -1,7 +1,7 @@
 # dags/modules/rawdata_ipmv2.py
 from google.cloud import bigquery, storage
 import pandas as pd
-import os, re, tempfile
+import os, tempfile
 from datetime import datetime, timezone
 from typing import Iterable, Optional
 
@@ -37,9 +37,6 @@ def ensure_dataset(dataset_id: str, location: str = "us-central1"):
         ds.description = "Bronze layer para IPM v2"
         client.create_dataset(ds)
         print(f"[OK] Dataset creado: {ds_fqn} ({location})")
-
-_UNICODE_SPACES_RE = re.compile(r"[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF\u200E\u200F]")
-
 
 def download_excel_from_gcs(gcs_uri: str) -> str:
     """
@@ -98,58 +95,28 @@ def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
     df = df.iloc[:, :n_expected].copy()
     df.columns = expected_cols
 
-    # Limpiezas/Tipos
-    df["cod_mpio"] = _normalize_cod_mpio(df["cod_mpio"])
-    df = df[df["cod_mpio"].notna()].copy()
-    df["Municipio"] = df["Municipio"].astype(str).str.strip()
+    # Ajustes mínimos de tipos para respetar el esquema esperado
+    # (sin lógica adicional de limpieza)
+    df["cod_mpio"] = df["cod_mpio"].astype(str)
+    int_columns = [
+        "Total",
+        "IPM_Pobre_Abs",
+        "IPM_No_Pobre_Abs",
+    ] + [f"I{k}_{suffix}" for k in range(1, 16) for suffix in ("Con_Privacion_Abs", "Sin_Privacion_Abs")]
+    float_columns = [
+        "IPM_Pobre_Porc",
+        "IPM_No_Pobre_Porc",
+    ] + [f"I{k}_{suffix}" for k in range(1, 16) for suffix in ("Con_Privacion_Porc", "Sin_Privacion_Porc")]
 
-    # Numéricos
-    df["Total"] = df["Total"].map(_to_int_safe)
-    df["IPM_Pobre_Abs"] = df["IPM_Pobre_Abs"].map(_to_int_safe)
-    df["IPM_No_Pobre_Abs"] = df["IPM_No_Pobre_Abs"].map(_to_int_safe)
+    for col in int_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce").round().astype("Int64")
 
-    # Porcentajes: deja float (no int)
-    df["IPM_Pobre_Porc"] = pd.to_numeric(df["IPM_Pobre_Porc"], errors="coerce")
-    df["IPM_No_Pobre_Porc"] = pd.to_numeric(df["IPM_No_Pobre_Porc"], errors="coerce")
-
-    for k in range(1, 16):
-        df[f"I{k}_Con_Privacion_Abs"] = df[f"I{k}_Con_Privacion_Abs"].map(_to_int_safe)
-        df[f"I{k}_Sin_Privacion_Abs"] = df[f"I{k}_Sin_Privacion_Abs"].map(_to_int_safe)
-        df[f"I{k}_Con_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Con_Privacion_Porc"], errors="coerce")
-        df[f"I{k}_Sin_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Sin_Privacion_Porc"], errors="coerce")
+    for col in float_columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # (4) agregar timestamp de lectura (UTC)
     df["fecha_lectura"] = datetime.now(timezone.utc)
     return df
-
-def _normalize_cod_mpio(series: pd.Series) -> pd.Series:
-    """Limpia y deja el código DANE de 5 dígitos."""
-    s = series.astype(str)
-    s = s.apply(lambda x: _UNICODE_SPACES_RE.sub("", x))  # espacios invisibles
-    s = s.str.strip().str.replace(r"\s+", "", regex=True)
-    s = s.str.replace("’", "", regex=False).str.replace("'", "", regex=False).str.replace(",", "", regex=False)
-    s = s.str.replace(r"^(\d{2})\.(\d{3})$", r"\1\2", regex=True)  # 76.892 -> 76892
-    s = s.str.extract(r"(\d{5,})", expand=False).str[:5]
-    return s.where(s.str.fullmatch(r"\d{5}", na=False))
-
-def _to_int_safe(v):
-    """Convierte '1.178.409', '13.00', '  2 345 ' -> int; vacíos -> None."""
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return None
-    s = str(v).strip()
-    if s == "" or s.lower() in ("nan", "none"):
-        return None
-    s = s.replace(" ", "")
-    # miles con puntos
-    if re.fullmatch(r"\d{1,3}(\.\d{3})+", s):
-        return int(s.replace(".", ""))
-    # 1.234.00 o 13.00
-    s2 = s.replace(".", "") if s.count(".") > 1 else s
-    try:
-        return int(float(s2))
-    except Exception:
-        only_digits = re.sub(r"[^\d]", "", s)
-        return int(only_digits) if only_digits else None
 
 def _load_df_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
     client = _bq_client()
