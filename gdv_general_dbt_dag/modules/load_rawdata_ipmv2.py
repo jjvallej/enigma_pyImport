@@ -3,6 +3,7 @@ from google.cloud import bigquery, storage
 import pandas as pd
 import os, re, tempfile
 from datetime import datetime, timezone
+from typing import Iterable, Optional
 
 PROJECT_ID = "datagov-473122"
 SA_PATH = "/opt/airflow/include/sa.json"
@@ -38,6 +39,88 @@ def ensure_dataset(dataset_id: str, location: str = "us-central1"):
         print(f"[OK] Dataset creado: {ds_fqn} ({location})")
 
 _UNICODE_SPACES_RE = re.compile(r"[\u00A0\u1680\u2000-\u200B\u202F\u205F\u3000\uFEFF\u200E\u200F]")
+
+
+def download_excel_from_gcs(gcs_uri: str) -> str:
+    """
+    Descarga el archivo Excel desde GCS hacia un archivo temporal
+    y devuelve la ruta local generada.
+    """
+    gcs = _gcs_client()
+    bucket_name = gcs_uri.split("/")[2]
+    blob_name = "/".join(gcs_uri.split("/")[3:])
+    blob = gcs.bucket(bucket_name).blob(blob_name)
+
+    fd, tmp_path = tempfile.mkstemp(suffix=".xlsx")
+    os.close(fd)
+    blob.download_to_filename(tmp_path)
+    if DEBUG:
+        print(f"[DEBUG] Archivo descargado en {tmp_path}")
+    return tmp_path
+
+
+def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
+    """
+    Aplica las transformaciones esperadas al Excel de IPM.
+    Devuelve un DataFrame listo para cargarse a BigQuery.
+    """
+    df = pd.read_excel(local_path, sheet_name=sheet_index, header=0)
+
+    # (2) quitar primera fila (suele tener totales o una fila guía)
+    if len(df) > 0:
+        df = df.iloc[1:, :].reset_index(drop=True)
+
+    # Normaliza nombres actuales para inspección opcional
+    if DEBUG:
+        print("[DEBUG] Encabezados originales:", list(df.columns))
+
+    # (3) renombrado siguiendo el orden esperado:
+    expected_cols = ["cod_mpio", "Municipio", "Total",
+                     "IPM_Pobre_Abs", "IPM_No_Pobre_Abs", "IPM_Pobre_Porc", "IPM_No_Pobre_Porc"]
+    for k in range(1, 16):
+        expected_cols += [
+            f"I{k}_Con_Privacion_Abs",
+            f"I{k}_Sin_Privacion_Abs",
+            f"I{k}_Con_Privacion_Porc",
+            f"I{k}_Sin_Privacion_Porc",
+        ]
+
+    n_expected = len(expected_cols)
+    n_actual = df.shape[1]
+    if n_actual < n_expected:
+        raise ValueError(
+            f"El archivo trae {n_actual} columnas, pero se esperaban al menos {n_expected} "
+            f"para mapear todos los indicadores con _Abs/_Porc."
+        )
+    if n_actual > n_expected and DEBUG:
+        print(f"[WARN] El archivo tiene {n_actual} columnas; se tomarán las primeras {n_expected}.")
+
+    df = df.iloc[:, :n_expected].copy()
+    df.columns = expected_cols
+
+    # Limpiezas/Tipos
+    df["cod_mpio"] = _normalize_cod_mpio(df["cod_mpio"])
+    df = df[df["cod_mpio"].notna()].copy()
+    df["Municipio"] = df["Municipio"].astype(str).str.strip()
+
+    # Numéricos
+    df["Total"] = df["Total"].map(_to_int_safe)
+    df["IPM_Pobre_Abs"] = df["IPM_Pobre_Abs"].map(_to_int_safe)
+    df["IPM_No_Pobre_Abs"] = df["IPM_No_Pobre_Abs"].map(_to_int_safe)
+
+    # Porcentajes: deja float (no int)
+    df["IPM_Pobre_Porc"] = pd.to_numeric(df["IPM_Pobre_Porc"], errors="coerce")
+    df["IPM_No_Pobre_Porc"] = pd.to_numeric(df["IPM_No_Pobre_Porc"], errors="coerce")
+
+    for k in range(1, 16):
+        df[f"I{k}_Con_Privacion_Abs"] = df[f"I{k}_Con_Privacion_Abs"].map(_to_int_safe)
+        df[f"I{k}_Sin_Privacion_Abs"] = df[f"I{k}_Sin_Privacion_Abs"].map(_to_int_safe)
+        df[f"I{k}_Con_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Con_Privacion_Porc"], errors="coerce")
+        df[f"I{k}_Sin_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Sin_Privacion_Porc"], errors="coerce")
+
+    # (4) agregar timestamp de lectura (UTC)
+    df["fecha_lectura"] = datetime.now(timezone.utc)
+    return df
 
 def _normalize_cod_mpio(series: pd.Series) -> pd.Series:
     """Limpia y deja el código DANE de 5 dígitos."""
@@ -99,6 +182,24 @@ def _load_df_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
     job.result()
     print(f"[OK] Cargadas {len(df)} filas en {table_fqn}")
 
+
+def load_dataframe_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
+    """Función pública para cargar un DataFrame transformado."""
+    _load_df_to_bq(df, dataset_id=dataset_id, table_name=table_name)
+
+
+def cleanup_temp_paths(paths: Iterable[Optional[str]]):
+    """Elimina los archivos temporales indicados (ignora None o paths vacíos)."""
+    for path in paths:
+        if not path:
+            continue
+        try:
+            os.unlink(path)
+            if DEBUG:
+                print(f"[DEBUG] Archivo temporal eliminado: {path}")
+        except Exception as exc:
+            print(f"[WARN] No se pudo eliminar {path}: {exc}")
+
 # ---------------------------
 # Core ETL
 # ---------------------------
@@ -111,85 +212,9 @@ def process_and_load_from_gcs(gcs_uri: str, dataset_id: str, table_name: str, sh
     Paso 4: agrega columna TIMESTAMP 'fecha_lectura' (UTC).
     Paso 5: guarda en BigQuery (WRITE_TRUNCATE) => dataset.table.
     """
-    gcs = _gcs_client()
-    bucket_name = gcs_uri.split("/")[2]
-    blob_name = "/".join(gcs_uri.split("/")[3:])
-    blob = gcs.bucket(bucket_name).blob(blob_name)
-
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-        blob.download_to_filename(tmp.name)
-        local_path = tmp.name
-
+    local_path = download_excel_from_gcs(gcs_uri)
     try:
-        # Leemos la hoja 0 con pandas, tomando la primera fila como encabezado
-        df = pd.read_excel(local_path, sheet_name=sheet_index, header=0)
-
-        # (2) quitar primera fila (suele tener totales o una fila guía)
-        if len(df) > 0:
-            df = df.iloc[1:, :].reset_index(drop=True)
-
-        # Normaliza nombres actuales para inspección opcional
-        if DEBUG:
-            print("[DEBUG] Encabezados originales:", list(df.columns))
-
-        # (3) renombrado siguiendo el orden esperado:
-        #   A: 'cod mpio', B: 'Municipio', C: 'Total',
-        #   D-G: IPM_Pobre_Abs, IPM_No_Pobre_Abs, IPM_Pobre_Porc, IPM_No_Pobre_Porc,
-        #   luego 15 bloques de 4 columnas: ConAbs, SinAbs, ConPorc, SinPorc
-        #
-        # Para evitar depender de nombres reales del Excel, reconstruimos por POSICIÓN.
-        expected_cols = ["cod_mpio", "Municipio", "Total",
-                         "IPM_Pobre_Abs", "IPM_No_Pobre_Abs", "IPM_Pobre_Porc", "IPM_No_Pobre_Porc"]
-        for k in range(1, 16):
-            expected_cols += [
-                f"I{k}_Con_Privacion_Abs",
-                f"I{k}_Sin_Privacion_Abs",
-                f"I{k}_Con_Privacion_Porc",
-                f"I{k}_Sin_Privacion_Porc",
-            ]
-
-        # Si hay más columnas de las esperadas, nos quedamos con las primeras n esperadas.
-        # Si hay menos, lanzamos un error claro.
-        n_expected = len(expected_cols)
-        n_actual = df.shape[1]
-        if n_actual < n_expected:
-            raise ValueError(f"El archivo trae {n_actual} columnas, pero se esperaban al menos {n_expected} "
-                             f"para mapear todos los indicadores con _Abs/_Porc.")
-        if n_actual > n_expected:
-            if DEBUG:
-                print(f"[WARN] El archivo tiene {n_actual} columnas; se tomarán las primeras {n_expected}.")
-
-        df = df.iloc[:, :n_expected].copy()
-        df.columns = expected_cols
-
-        # Limpiezas/Tipos
-        df["cod_mpio"] = _normalize_cod_mpio(df["cod_mpio"])
-        df = df[df["cod_mpio"].notna()].copy()
-        df["Municipio"] = df["Municipio"].astype(str).str.strip()
-
-        # Numéricos
-        df["Total"] = df["Total"].map(_to_int_safe)
-        df["IPM_Pobre_Abs"] = df["IPM_Pobre_Abs"].map(_to_int_safe)
-        df["IPM_No_Pobre_Abs"] = df["IPM_No_Pobre_Abs"].map(_to_int_safe)
-
-        # Porcentajes: deja float (no int)
-        df["IPM_Pobre_Porc"] = pd.to_numeric(df["IPM_Pobre_Porc"], errors="coerce")
-        df["IPM_No_Pobre_Porc"] = pd.to_numeric(df["IPM_No_Pobre_Porc"], errors="coerce")
-
-        for k in range(1, 16):
-            df[f"I{k}_Con_Privacion_Abs"] = df[f"I{k}_Con_Privacion_Abs"].map(_to_int_safe)
-            df[f"I{k}_Sin_Privacion_Abs"] = df[f"I{k}_Sin_Privacion_Abs"].map(_to_int_safe)
-            df[f"I{k}_Con_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Con_Privacion_Porc"], errors="coerce")
-            df[f"I{k}_Sin_Privacion_Porc"] = pd.to_numeric(df[f"I{k}_Sin_Privacion_Porc"], errors="coerce")
-
-        # (4) agregar timestamp de lectura (UTC)
-        df["fecha_lectura"] = datetime.now(timezone.utc)
-
-        # (5) subir a BigQuery
+        df = transform_excel(local_path, sheet_index=sheet_index)
         _load_df_to_bq(df, dataset_id=dataset_id, table_name=table_name)
-
     finally:
-        try:
-            os.unlink(local_path)
-        except Exception:
-            pass
+        cleanup_temp_paths([local_path])
