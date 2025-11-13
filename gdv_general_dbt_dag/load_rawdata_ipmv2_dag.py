@@ -23,6 +23,7 @@ from modules.load_rawdata_ipmv2 import (
 GCS_URI = "gs://gdv_ipm_dane/24/10/2025/2_IPM_DANE.xlsx"   # <--- cambia si es necesario
 DATASET_ID_BRONZE = "gdv_ipmv2_bronze"
 DATASET_ID_SILVER = "gdv_ipmv2_silver"
+DATASET_ID_GOLD = "gdv_ipmv2_gold"
 TABLE_NAME = "rawdata_ipmv2"
 SHEET_INDEX = 0
 DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
@@ -32,6 +33,9 @@ def _ensure_dataset_bronze_task():
 
 def _ensure_dataset_silver_task():
     ensure_dataset(dataset_id=DATASET_ID_SILVER)
+
+def _ensure_dataset_gold_task():
+    ensure_dataset(dataset_id=DATASET_ID_GOLD)
 
 def _download_excel_task():
     return download_excel_from_gcs(gcs_uri=GCS_URI)
@@ -60,11 +64,11 @@ def _cleanup_temp_files_task(ti):
     cleanup_temp_paths([excel_path, pickle_path])
 
 with DAG(
-    dag_id="gdv_load_rawdata_ipmv2_dag",
+    dag_id="scr_planeacion_transf_ipm_manual",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
-    tags=["load", "ipm", "bronze", "ipmv2"],
+    tags=["planeacion", "transformacion", "ipm", "manual"],
     description="Lee Excel IPM desde GCS, quita primera fila, renombra columnas (_Abs/_Porc), agrega fecha_lectura y carga a BQ (gdv_ipmv2_bronze.rawdata_ipmv2).",
 ) as dag:
 
@@ -165,5 +169,36 @@ with DAG(
         # Dependencias: ensure_dataset -> stg -> normalize_text -> transform_types -> clean -> test
         s1_ensure_dataset >> s2_dbt_run_stg >> s3_dbt_run_normalize_text >> s4_dbt_run_transform_types >> s5_dbt_run_clean >> s6_dbt_test
 
-    # Dependencias: start -> bronze -> silver
-    start >> bronze_group >> silver_group
+    # Grupo de tareas para la capa gold
+    with TaskGroup(group_id="gold") as gold_group:
+        g1_ensure_dataset = PythonOperator(
+            task_id="ensure_dataset",
+            python_callable=_ensure_dataset_gold_task,
+        )
+
+        # Tarea dbt para ejecutar el modelo gold
+        g2_dbt_run_gold = BashOperator(
+            task_id="dbt_run_gold",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_gold || dbt run --select rawdata_ipmv2_gold",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        g3_dbt_test = BashOperator(
+            task_id="dbt_test",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select rawdata_ipmv2_gold || dbt test --select rawdata_ipmv2_gold",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        # Dependencias: ensure_dataset -> dbt_run_gold -> dbt_test
+        g1_ensure_dataset >> g2_dbt_run_gold >> g3_dbt_test
+
+    # Dependencias: start -> bronze -> silver -> gold
+    start >> bronze_group >> silver_group >> gold_group

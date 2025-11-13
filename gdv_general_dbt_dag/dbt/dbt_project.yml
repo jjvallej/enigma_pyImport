@@ -27,3 +27,6 @@ models:
     staging:
       +materialized: view
       +database: datagov-473122
+    gold:
+      +materialized: table
+      +database: datagov-473122
