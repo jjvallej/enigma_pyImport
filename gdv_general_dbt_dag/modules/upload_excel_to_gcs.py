@@ -88,7 +88,7 @@ def get_public_download_url(file_id: str) -> str:
     """
     return f"https://drive.google.com/uc?export=download&id={file_id}"
 
-def download_file_from_public_link(drive_url: str, file_name: Optional[str] = None) -> str:
+def download_file_from_public_link(drive_url: str, file_name: Optional[str] = None) -> tuple[str, str]:
     """
     Descarga un archivo desde Google Drive usando un enlace público.
     
@@ -97,7 +97,7 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
         file_name: Nombre opcional para el archivo local
     
     Returns:
-        Ruta local del archivo descargado (archivo temporal)
+        Tupla con (ruta local del archivo descargado, nombre original del archivo)
     """
     # Extraer File ID de la URL
     file_id = extract_file_id_from_url(drive_url)
@@ -124,18 +124,26 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
     
     response.raise_for_status()
     
-    # Determinar nombre del archivo
-    if not file_name:
+    # Determinar nombre del archivo ANTES de crear el archivo temporal
+    original_file_name = file_name
+    if not original_file_name:
         # Intentar obtener el nombre del Content-Disposition header
         content_disposition = response.headers.get('Content-Disposition', '')
         if 'filename=' in content_disposition:
-            file_name = re.findall(r'filename="?([^"]+)"?', content_disposition)[0]
+            original_file_name = re.findall(r'filename="?([^"]+)"?', content_disposition)[0]
+            # Limpiar el nombre del archivo (remover caracteres problemáticos)
+            original_file_name = original_file_name.strip().replace('\n', '').replace('\r', '')
         else:
-            file_name = f"archivo_{file_id}.xlsx"
+            original_file_name = f"archivo_{file_id}.xlsx"
     
-    # Crear archivo temporal
-    fd, tmp_path = tempfile.mkstemp(suffix=f"_{file_name}")
+    # Crear archivo temporal con extensión pero sin prefijo en el nombre
+    # Usamos tempfile pero guardamos el nombre original para usarlo después
+    file_ext = os.path.splitext(original_file_name)[1] or '.xlsx'
+    fd, tmp_path = tempfile.mkstemp(suffix=file_ext)
     os.close(fd)
+    
+    # Guardar el nombre original en el contexto (se retornará junto con el path)
+    # Lo haremos retornando una tupla o modificando la función para retornar ambos
     
     # Descargar el archivo
     total_size = int(response.headers.get('Content-Length', 0))
@@ -153,14 +161,16 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
     
     if DEBUG:
         print(f"[OK] Archivo descargado desde enlace público: {tmp_path}")
+        print(f"[DEBUG] Nombre original del archivo: {original_file_name}")
     
-    return tmp_path
+    # Retornar tanto la ruta temporal como el nombre original
+    return tmp_path, original_file_name
 
 def download_file_from_drive_api(
     file_id: str, 
     file_name: Optional[str] = None,
     use_service_account: bool = True
-) -> str:
+) -> tuple[str, str]:
     """
     Descarga un archivo desde Google Drive usando la API (requiere autenticación).
     
@@ -170,7 +180,7 @@ def download_file_from_drive_api(
         use_service_account: Si es True, usa Service Account; si False, requeriría OAuth
     
     Returns:
-        Ruta local del archivo descargado (archivo temporal)
+        Tupla con (ruta local del archivo descargado, nombre original del archivo)
     """
     if not use_service_account:
         raise NotImplementedError("OAuth 2.0 no está implementado en esta versión. Usa enlace público o Service Account.")
@@ -181,22 +191,22 @@ def download_file_from_drive_api(
     file_metadata = drive_service.files().get(fileId=file_id, fields='name, mimeType').execute()
     original_name = file_metadata.get('name', 'downloaded_file')
     
-    # Determinar nombre del archivo
-    if not file_name:
-        file_name = original_name
+    # Determinar nombre del archivo (guardar el nombre original)
+    original_file_name = file_name if file_name else original_name
     
     # Asegurar extensión correcta
-    if not file_name.endswith(('.xlsx', '.xls')):
+    if not original_file_name.endswith(('.xlsx', '.xls')):
         mime_type = file_metadata.get('mimeType', '')
         if 'excel' in mime_type.lower() or 'spreadsheet' in mime_type.lower():
-            if not file_name.endswith('.xlsx'):
-                file_name = file_name.rsplit('.', 1)[0] + '.xlsx'
+            if not original_file_name.endswith('.xlsx'):
+                original_file_name = original_file_name.rsplit('.', 1)[0] + '.xlsx'
     
     # Descargar el archivo
     request = drive_service.files().get_media(fileId=file_id)
     
-    # Crear archivo temporal
-    fd, tmp_path = tempfile.mkstemp(suffix=f"_{file_name}")
+    # Crear archivo temporal (solo con extensión, sin prefijo en el nombre)
+    file_ext = os.path.splitext(original_file_name)[1] or '.xlsx'
+    fd, tmp_path = tempfile.mkstemp(suffix=file_ext)
     os.close(fd)
     
     # Descargar a archivo local
@@ -211,9 +221,9 @@ def download_file_from_drive_api(
     fh.close()
     
     if DEBUG:
-        print(f"[OK] Archivo descargado desde Drive API: {tmp_path} (original: {original_name})")
+        print(f"[OK] Archivo descargado desde Drive API: {tmp_path} (original: {original_file_name})")
     
-    return tmp_path
+    return tmp_path, original_file_name
 
 # ---------------------------
 # Funciones principales
@@ -222,7 +232,7 @@ def download_file_from_drive(
     drive_url_or_id: str, 
     file_name: Optional[str] = None,
     use_public_link: bool = True
-) -> str:
+) -> tuple[str, str]:
     """
     Descarga un archivo desde Google Drive.
     
@@ -233,7 +243,7 @@ def download_file_from_drive(
                         Si es False, usa API con Service Account (requiere compartir archivo)
     
     Returns:
-        Ruta local del archivo descargado (archivo temporal)
+        Tupla con (ruta local del archivo descargado, nombre original del archivo)
     """
     if use_public_link:
         return download_file_from_public_link(drive_url_or_id, file_name)
@@ -244,16 +254,19 @@ def download_file_from_drive(
 def upload_file_to_gcs(
     local_file_path: str,
     bucket_name: str,
-    destination_blob_name: str
+    destination_blob_name: str,
+    overwrite: bool = True
 ) -> str:
     """
     Sube un archivo local a Google Cloud Storage.
     Si la carpeta ya existe, usa esa carpeta. Si no existe, la crea automáticamente.
+    Si el archivo ya existe, lo sobrescribe (elimina el anterior y sube el nuevo).
     
     Args:
         local_file_path: Ruta local del archivo a subir
         bucket_name: Nombre del bucket en GCS
         destination_blob_name: Nombre del blob (ruta) en GCS (ej: 'data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx')
+        overwrite: Si es True, sobrescribe el archivo si ya existe. Si es False, mantiene el anterior.
     
     Returns:
         URI completa del archivo en GCS (gs://bucket/path)
@@ -280,6 +293,19 @@ def upload_file_to_gcs(
             print(f"[INFO] Carpeta '{folder_path}' no existe. Se creará automáticamente al subir el archivo.")
     
     blob = bucket.blob(destination_blob_name)
+    
+    # Verificar si el archivo ya existe
+    if blob.exists():
+        if overwrite:
+            if DEBUG:
+                print(f"[INFO] El archivo '{destination_blob_name}' ya existe. Se eliminará y se sobrescribirá con el nuevo.")
+            # Eliminar el archivo existente
+            blob.delete()
+            if DEBUG:
+                print(f"[INFO] Archivo anterior eliminado.")
+        else:
+            if DEBUG:
+                print(f"[WARN] El archivo '{destination_blob_name}' ya existe. Se mantendrá el anterior (overwrite=False).")
     
     # Subir el archivo (GCS crea automáticamente la "carpeta" si no existe)
     blob.upload_from_filename(local_file_path)
@@ -313,8 +339,8 @@ def move_file_from_drive_to_gcs(
     Returns:
         URI completa del archivo en GCS (gs://bucket/folder/file.xlsx)
     """
-    # Paso 1: Descargar desde Drive
-    local_file_path = download_file_from_drive(
+    # Paso 1: Descargar desde Drive (retorna tupla: path, nombre_original)
+    local_file_path, original_file_name = download_file_from_drive(
         drive_url_or_id, 
         destination_file_name,
         use_public_link=use_public_link
@@ -323,14 +349,8 @@ def move_file_from_drive_to_gcs(
     try:
         # Paso 2: Determinar nombre del archivo
         if not destination_file_name:
-            # Usar el nombre del archivo descargado (sin el path temporal)
-            downloaded_name = os.path.basename(local_file_path)
-            # Remover prefijo temporal si existe
-            if '_' in downloaded_name:
-                parts = downloaded_name.split('_', 1)
-                destination_file_name = parts[-1] if len(parts) > 1 else downloaded_name
-            else:
-                destination_file_name = downloaded_name
+            # Usar el nombre original del archivo extraído de Drive
+            destination_file_name = original_file_name
         
         # Paso 3: Construir ruta destino en GCS (folder/file.xlsx)
         # Normalizar rutas: eliminar barras duplicadas y espacios
