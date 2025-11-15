@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`gdv_ipmv2_gold`.`rawdata_ipmv2_gold`
+    create or replace table `datagov-473122`.`gold_dpt_planeacion_municipal_dev`.`gold_dpt_planeacion_municipal_dev_ipm`
       
     
     
@@ -49,6 +49,6 @@ SELECT
     i14_sin_privacion_abs AS I14_SIN_PRIVACION,
     i15_con_privacion_abs AS I15_CON_PRIVACION,
     i15_sin_privacion_abs AS I15_SIN_PRIVACION
-FROM `datagov-473122`.`gdv_ipmv2_silver`.`rawdata_ipmv2_clean`
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`silver_dpt_planeacion_municipal_dev_ipm`
     );
   

@@ -6,6 +6,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
+from airflow.models import Variable
 import os, sys, tempfile
 import pandas as pd
 
@@ -20,11 +21,15 @@ from modules.load_rawdata_ipmv2 import (
 )
 
 # === CONFIGURACIÓN ===
-GCS_URI = "gs://gdv_ipm_dane/24/10/2025/2_IPM_DANE.xlsx"   # <--- cambia si es necesario
-DATASET_ID_BRONZE = "gdv_ipmv2_bronze"
-DATASET_ID_SILVER = "gdv_ipmv2_silver"
-DATASET_ID_GOLD = "gdv_ipmv2_gold"
-TABLE_NAME = "rawdata_ipmv2"
+# GCS URI del archivo subido por el DAG anterior (scr_planeacion_inges_ipm)
+# Por defecto busca el archivo en la carpeta ipm, puede sobrescribirse con Variable de Airflow
+GCS_URI_DEFAULT = "gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/2_IPM_DANE.xlsx"
+DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
+DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
+DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
+TABLE_NAME_BRONZE = "bronze_dpt_planeacion_municipal_dev_ipm"
+TABLE_NAME_SILVER = "silver_dpt_planeacion_municipal_dev_ipm"
+TABLE_NAME_GOLD = "gold_dpt_planeacion_municipal_dev_ipm"
 SHEET_INDEX = 0
 DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
 
@@ -38,7 +43,17 @@ def _ensure_dataset_gold_task():
     ensure_dataset(dataset_id=DATASET_ID_GOLD)
 
 def _download_excel_task():
-    return download_excel_from_gcs(gcs_uri=GCS_URI)
+    # Usar GCS_URI desde Variables de Airflow si existe, sino usar el default hardcodeado
+    try:
+        gcs_uri = Variable.get("ipm_gcs_file_uri")
+        print(f"[INFO] Usando GCS URI desde Variable de Airflow: {gcs_uri}")
+    except:
+        # Si no existe la variable, usar el valor por defecto hardcodeado
+        gcs_uri = GCS_URI_DEFAULT
+        print(f"[INFO] Usando GCS URI por defecto hardcodeado: {gcs_uri}")
+    
+    print(f"[INFO] Descargando archivo desde GCS: {gcs_uri}")
+    return download_excel_from_gcs(gcs_uri=gcs_uri)
 
 def _transform_task(ti):
     local_excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
@@ -56,7 +71,7 @@ def _load_task(ti):
     if not pickle_path:
         raise ValueError("No se recibió la ruta del DataFrame transformado en XCom (task transform_dataframe).")
     df = pd.read_pickle(pickle_path)
-    load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME)
+    load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME_BRONZE)
 
 def _cleanup_temp_files_task(ti):
     excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
@@ -69,7 +84,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["planeacion", "transformacion", "ipm", "manual"],
-    description="Lee Excel IPM desde GCS, quita primera fila, renombra columnas (_Abs/_Porc), agrega fecha_lectura y carga a BQ (gdv_ipmv2_bronze.rawdata_ipmv2).",
+    description="Lee Excel IPM desde GCS (subido por scr_planeacion_inges_ipm), transforma y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.bronze_dpt_planeacion_municipal_dev_ipm",
 ) as dag:
 
     # Tarea inicial vacía

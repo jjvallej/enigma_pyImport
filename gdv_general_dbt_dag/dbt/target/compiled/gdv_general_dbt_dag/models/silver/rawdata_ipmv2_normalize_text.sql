@@ -73,4 +73,4 @@ SELECT
     i15_con_privacion_porc,
     i15_sin_privacion_porc,
     fecha_lectura
-FROM `datagov-473122`.`gdv_ipmv2_silver`.`rawdata_ipmv2_stg`
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`rawdata_ipmv2_stg`

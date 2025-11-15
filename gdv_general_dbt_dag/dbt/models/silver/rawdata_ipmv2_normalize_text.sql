@@ -1,7 +1,7 @@
 {{
   config(
     materialized='view',
-    schema='gdv_ipmv2_silver'
+    schema='silver_dpt_planeacion_municipal_dev'
   )
 }}
 

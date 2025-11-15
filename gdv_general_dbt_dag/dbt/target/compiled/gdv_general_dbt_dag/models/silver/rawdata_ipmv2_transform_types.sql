@@ -91,4 +91,4 @@ SELECT
     ROUND(CAST(i15_sin_privacion_porc AS FLOAT64), 2) AS i15_sin_privacion_porc,
     
     fecha_lectura
-FROM `datagov-473122`.`gdv_ipmv2_silver`.`rawdata_ipmv2_normalize_text`
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`rawdata_ipmv2_normalize_text`

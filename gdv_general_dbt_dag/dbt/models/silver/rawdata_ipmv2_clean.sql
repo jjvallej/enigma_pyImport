@@ -1,7 +1,8 @@
 {{
   config(
     materialized='table',
-    schema='gdv_ipmv2_silver'
+    schema='silver_dpt_planeacion_municipal_dev',
+    alias='silver_dpt_planeacion_municipal_dev_ipm'
   )
 }}
 

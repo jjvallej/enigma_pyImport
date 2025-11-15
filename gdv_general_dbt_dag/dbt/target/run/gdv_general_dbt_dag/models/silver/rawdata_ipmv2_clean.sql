@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`gdv_ipmv2_silver`.`rawdata_ipmv2_clean`
+    create or replace table `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`silver_dpt_planeacion_municipal_dev_ipm`
       
     
     
@@ -84,6 +84,6 @@ SELECT
     -- Fecha de lectura: convertir a DATE (YYYY-MM-DD) sin hora
     DATE(fecha_lectura) AS fecha_lectura
     
-FROM `datagov-473122`.`gdv_ipmv2_silver`.`rawdata_ipmv2_transform_types`
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`rawdata_ipmv2_transform_types`
     );
   
