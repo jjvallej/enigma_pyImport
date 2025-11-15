@@ -15,15 +15,17 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from modules.load_rawdata_ipmv2 import (
     ensure_dataset,
     download_excel_from_gcs,
+    get_latest_excel_from_gcs_folder,
     transform_excel,
     load_dataframe_to_bq,
     cleanup_temp_paths,
 )
 
 # === CONFIGURACIÓN ===
-# GCS URI del archivo subido por el DAG anterior (scr_planeacion_inges_ipm)
-# Por defecto busca el archivo en la carpeta ipm, puede sobrescribirse con Variable de Airflow
-GCS_URI_DEFAULT = "gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/2_IPM_DANE.xlsx"
+# Configuración para buscar el último archivo Excel en la carpeta ipm
+# El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
+GCS_BUCKET_NAME = "datalake_gdv"
+GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/ipm"
 DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
 DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
 DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
@@ -43,14 +45,21 @@ def _ensure_dataset_gold_task():
     ensure_dataset(dataset_id=DATASET_ID_GOLD)
 
 def _download_excel_task():
-    # Usar GCS_URI desde Variables de Airflow si existe, sino usar el default hardcodeado
+    # Obtener el último archivo Excel de la carpeta en GCS
     try:
-        gcs_uri = Variable.get("ipm_gcs_file_uri")
-        print(f"[INFO] Usando GCS URI desde Variable de Airflow: {gcs_uri}")
+        # Intentar obtener configuración desde Variables de Airflow
+        bucket_name = Variable.get("ipm_gcs_bucket", default_var=GCS_BUCKET_NAME)
+        folder_path = Variable.get("ipm_gcs_folder", default_var=GCS_FOLDER_PATH)
+        print(f"[INFO] Usando configuración: bucket={bucket_name}, carpeta={folder_path}")
     except:
-        # Si no existe la variable, usar el valor por defecto hardcodeado
-        gcs_uri = GCS_URI_DEFAULT
-        print(f"[INFO] Usando GCS URI por defecto hardcodeado: {gcs_uri}")
+        # Si no existen las variables, usar valores por defecto hardcodeados
+        bucket_name = GCS_BUCKET_NAME
+        folder_path = GCS_FOLDER_PATH
+        print(f"[INFO] Usando configuración por defecto: bucket={bucket_name}, carpeta={folder_path}")
+    
+    # Buscar el último archivo Excel en la carpeta
+    print(f"[INFO] Buscando el último archivo .xlsx en gs://{bucket_name}/{folder_path}")
+    gcs_uri = get_latest_excel_from_gcs_folder(bucket_name=bucket_name, folder_path=folder_path)
     
     print(f"[INFO] Descargando archivo desde GCS: {gcs_uri}")
     return download_excel_from_gcs(gcs_uri=gcs_uri)

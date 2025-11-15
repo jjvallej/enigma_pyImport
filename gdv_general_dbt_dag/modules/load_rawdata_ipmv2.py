@@ -38,6 +38,53 @@ def ensure_dataset(dataset_id: str, location: str = "us-central1"):
         client.create_dataset(ds)
         print(f"[OK] Dataset creado: {ds_fqn} ({location})")
 
+def get_latest_excel_from_gcs_folder(bucket_name: str, folder_path: str) -> str:
+    """
+    Obtiene la URI del último archivo Excel (.xlsx) subido a una carpeta en GCS.
+    
+    Args:
+        bucket_name: Nombre del bucket en GCS
+        folder_path: Ruta de la carpeta (ej: 'data_staging/dpt_planeacion_municipal/ipm')
+    
+    Returns:
+        URI completa del archivo más reciente (gs://bucket/folder/file.xlsx)
+    """
+    gcs = _gcs_client()
+    
+    # Normalizar la ruta de la carpeta (asegurar que termine con /)
+    if not folder_path.endswith('/'):
+        folder_path = folder_path + '/'
+    
+    # Obtener el bucket
+    try:
+        bucket = gcs.bucket(bucket_name)
+    except Exception as e:
+        raise ValueError(f"No se pudo acceder al bucket '{bucket_name}': {e}")
+    
+    # Listar todos los blobs en la carpeta que terminen en .xlsx
+    blobs = list(bucket.list_blobs(prefix=folder_path))
+    
+    # Filtrar solo archivos .xlsx y obtener el más reciente
+    xlsx_files = [blob for blob in blobs if blob.name.lower().endswith('.xlsx') and not blob.name.endswith('/')]
+    
+    if not xlsx_files:
+        raise ValueError(f"No se encontraron archivos .xlsx en la carpeta 'gs://{bucket_name}/{folder_path}'")
+    
+    # Ordenar por tiempo de actualización (más reciente primero)
+    xlsx_files.sort(key=lambda x: x.time_created, reverse=True)
+    
+    # Tomar el más reciente
+    latest_blob = xlsx_files[0]
+    gcs_uri = f"gs://{bucket_name}/{latest_blob.name}"
+    
+    if DEBUG:
+        print(f"[DEBUG] Archivos encontrados en la carpeta: {len(xlsx_files)}")
+        for blob in xlsx_files[:5]:  # Mostrar los primeros 5
+            print(f"[DEBUG]   - {blob.name} (creado: {blob.time_created})")
+        print(f"[INFO] Usando archivo más reciente: {latest_blob.name} (creado: {latest_blob.time_created})")
+    
+    return gcs_uri
+
 def download_excel_from_gcs(gcs_uri: str) -> str:
     """
     Descarga el archivo Excel desde GCS hacia un archivo temporal
