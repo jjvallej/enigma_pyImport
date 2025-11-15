@@ -142,9 +142,14 @@ def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
     df = df.iloc[:, :n_expected].copy()
     df.columns = expected_cols
 
-    # Ajustes mínimos de tipos para respetar el esquema esperado
-    # (sin lógica adicional de limpieza)
+    # En la capa bronze NO se deben hacer conversiones de tipos
+    # Todos los valores se mantienen como STRING para preservar los datos originales
+    # Las transformaciones y limpiezas se harán en la capa silver con dbt
     df["cod_mpio"] = df["cod_mpio"].astype(str)
+    df["Municipio"] = df["Municipio"].astype(str)
+    
+    # Convertir todas las columnas numéricas a STRING para preservar valores originales
+    # (incluso si tienen letras, espacios, o caracteres especiales)
     int_columns = [
         "Total",
         "IPM_Pobre_Abs",
@@ -155,11 +160,9 @@ def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
         "IPM_No_Pobre_Porc",
     ] + [f"I{k}_{suffix}" for k in range(1, 16) for suffix in ("Con_Privacion_Porc", "Sin_Privacion_Porc")]
 
-    for col in int_columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce").round().astype("Int64")
-
-    for col in float_columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    # Mantener todos los valores como STRING en bronze (sin conversión)
+    for col in int_columns + float_columns:
+        df[col] = df[col].astype(str)
 
     # (4) agregar timestamp de lectura (UTC)
     df["fecha_lectura"] = datetime.now(timezone.utc)
@@ -169,22 +172,23 @@ def _load_df_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
     client = _bq_client()
     table_fqn = f"{PROJECT_ID}.{dataset_id}.{table_name}"
 
-    # Esquema: 2 identificadores + Total + 4 de IPM + 60 (15*4) + fecha_lectura
+    # Esquema: En bronze todo es STRING (excepto fecha_lectura) para preservar datos originales
+    # 2 identificadores + Total + 4 de IPM + 60 (15*4) + fecha_lectura
     schema = [
         bigquery.SchemaField("cod_mpio", "STRING"),
         bigquery.SchemaField("Municipio", "STRING"),
-        bigquery.SchemaField("Total", "INT64"),
-        bigquery.SchemaField("IPM_Pobre_Abs", "INT64"),
-        bigquery.SchemaField("IPM_No_Pobre_Abs", "INT64"),
-        bigquery.SchemaField("IPM_Pobre_Porc", "FLOAT"),
-        bigquery.SchemaField("IPM_No_Pobre_Porc", "FLOAT"),
+        bigquery.SchemaField("Total", "STRING"),  # STRING en bronze
+        bigquery.SchemaField("IPM_Pobre_Abs", "STRING"),  # STRING en bronze
+        bigquery.SchemaField("IPM_No_Pobre_Abs", "STRING"),  # STRING en bronze
+        bigquery.SchemaField("IPM_Pobre_Porc", "STRING"),  # STRING en bronze
+        bigquery.SchemaField("IPM_No_Pobre_Porc", "STRING"),  # STRING en bronze
     ]
     for k in range(1, 16):
         schema += [
-            bigquery.SchemaField(f"I{k}_Con_Privacion_Abs", "INT64"),
-            bigquery.SchemaField(f"I{k}_Sin_Privacion_Abs", "INT64"),
-            bigquery.SchemaField(f"I{k}_Con_Privacion_Porc", "FLOAT"),
-            bigquery.SchemaField(f"I{k}_Sin_Privacion_Porc", "FLOAT"),
+            bigquery.SchemaField(f"I{k}_Con_Privacion_Abs", "STRING"),  # STRING en bronze
+            bigquery.SchemaField(f"I{k}_Sin_Privacion_Abs", "STRING"),  # STRING en bronze
+            bigquery.SchemaField(f"I{k}_Con_Privacion_Porc", "STRING"),  # STRING en bronze
+            bigquery.SchemaField(f"I{k}_Sin_Privacion_Porc", "STRING"),  # STRING en bronze
         ]
     schema.append(bigquery.SchemaField("fecha_lectura", "TIMESTAMP"))
 

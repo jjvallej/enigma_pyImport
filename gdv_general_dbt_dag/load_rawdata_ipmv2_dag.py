@@ -170,7 +170,17 @@ with DAG(
             },
         )
 
-        s5_dbt_run_clean = BashOperator(
+        s5_dbt_run_validate_numbers = BashOperator(
+            task_id="dbt_run_validate_numbers",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_validate_numbers || dbt run --select rawdata_ipmv2_validate_numbers",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s6_dbt_run_clean = BashOperator(
             task_id="dbt_run_clean",
             bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_clean || dbt run --select rawdata_ipmv2_clean",
             env={
@@ -180,7 +190,7 @@ with DAG(
             },
         )
 
-        s6_dbt_test = BashOperator(
+        s7_dbt_test = BashOperator(
             task_id="dbt_test",
             bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select rawdata_ipmv2_clean || dbt test --select rawdata_ipmv2_clean",
             env={
@@ -190,8 +200,8 @@ with DAG(
             },
         )
 
-        # Dependencias: ensure_dataset -> stg -> normalize_text -> transform_types -> clean -> test
-        s1_ensure_dataset >> s2_dbt_run_stg >> s3_dbt_run_normalize_text >> s4_dbt_run_transform_types >> s5_dbt_run_clean >> s6_dbt_test
+        # Dependencias: ensure_dataset -> stg -> normalize_text -> transform_types -> validate_numbers -> clean -> test
+        s1_ensure_dataset >> s2_dbt_run_stg >> s3_dbt_run_normalize_text >> s4_dbt_run_transform_types >> s5_dbt_run_validate_numbers >> s6_dbt_run_clean >> s7_dbt_test
 
     # Grupo de tareas para la capa gold
     with TaskGroup(group_id="gold") as gold_group:
