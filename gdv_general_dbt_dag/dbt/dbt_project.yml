@@ -24,7 +24,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 # Configuring models
 models:
   gdv_general_dbt_dag:
-    staging:
+    silver:
       +materialized: view
       +database: datagov-473122
     gold:

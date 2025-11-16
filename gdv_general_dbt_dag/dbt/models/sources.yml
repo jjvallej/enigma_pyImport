@@ -1,18 +1,6 @@
 version: 2
 sources:
-  - name: bronze
-    schema: gdv_ipm_sisben_bronze
-    tables:
-      - name: ipm_sisben_clean
-  
   - name: bronze_ipmv2
     schema: bronze_dpt_planeacion_municipal_dev
     tables:
       - name: bronze_dpt_planeacion_municipal_dev_ipm
-  
-  - name: dims
-    schema: gdv_ipm_sisben_dims
-    tables:
-      - name: dim_municipio
-      - name: dim_nivel_pobreza
-      - name: dim_categoria_ipm
