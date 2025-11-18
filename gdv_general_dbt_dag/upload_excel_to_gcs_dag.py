@@ -64,7 +64,7 @@ with DAG(
     schedule_interval=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo) y lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/.",
+    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de transformación scr_planeacion_transf_ipm.",
 ) as dag:
 
     # Tarea inicial
