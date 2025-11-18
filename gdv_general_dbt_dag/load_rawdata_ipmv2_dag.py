@@ -88,11 +88,11 @@ def _cleanup_temp_files_task(ti):
     cleanup_temp_paths([excel_path, pickle_path])
 
 with DAG(
-    dag_id="scr_planeacion_transf_ipm_manual",
+    dag_id="scr_planeacion_transf_ipm",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
-    tags=["planeacion", "transformacion", "ipm", "manual"],
+    tags=["secretaria:planeacion", "actividad:transformacion", "fuente:ipm", "ejecución:manual"],
     description="Lee Excel IPM desde GCS (subido por scr_planeacion_inges_ipm), transforma y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.bronze_dpt_planeacion_municipal_dev_ipm",
 ) as dag:
 

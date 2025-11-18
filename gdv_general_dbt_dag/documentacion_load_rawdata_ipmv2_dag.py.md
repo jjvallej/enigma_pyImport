@@ -1,6 +1,6 @@
 # DOCUMENTACIÓN DETALLADA DEL DAG load_rawdata_ipmv2_dag.py
 
-Este documento describe de forma detallada y continua el DAG de Airflow `scr_planeacion_transf_ipm_manual` definido en el archivo `load_rawdata_ipmv2_dag.py`. El DAG orquesta la ingesta de un archivo Excel del IPM desde Google Cloud Storage GCS, su transformación mínima en Python para la capa bronze, y la ejecución de modelos dbt para construir las capas silver y gold en BigQuery.
+Este documento describe de forma detallada y continua el DAG de Airflow scr_planeacion_transf_ipm definido en el archivo load_rawdata_ipmv2_dag.py. El DAG orquesta la ingesta de un archivo Excel del IPM desde Google Cloud Storage GCS, su transformacion minima en Python para la capa bronze, y la ejecucion de modelos dbt para construir las capas silver y gold en BigQuery.
 
 ## Propósito general
 
@@ -38,7 +38,7 @@ Variables de entorno para dbt establecidas en cada `BashOperator`:
 
 ## Estructura del DAG
 
-El DAG `scr_planeacion_transf_ipm_manual` se ejecuta manualmente (`schedule_interval=None`) y no hace catchup. Organiza las tareas en tres grupos lógicos usando `TaskGroup`.
+El DAG scr_planeacion_transf_ipm se ejecuta manualmente (schedule_interval=None) y no hace catchup. Organiza las tareas en tres grupos logicos usando TaskGroup.
 
 ### Grupo bronze
 
