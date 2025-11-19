@@ -41,7 +41,7 @@ Este archivo define las fuentes de datos externas que los modelos dbt pueden lee
 
 El archivo define una unica fuente principal:
 
-La fuente bronze_ipmv2 es la fuente principal y unica para este pipeline. Se refiere al schema bronze_dpt_planeacion_municipal_dev y contiene la tabla ipm_raw_data. Esta es la tabla que se crea en la capa bronze por el modulo ipm_transform.py y que contiene los datos originales en formato STRING, preservando todos los valores tal como vienen del archivo Excel sin transformaciones.
+La fuente bronze_ipmv2 es la fuente principal y unica para este pipeline. Se refiere al schema bronze_dpt_planeacion_municipal_dev y contiene la tabla ipm_raw_data. Esta es la tabla que se crea en la capa bronze por el modulo ipm_extract.py (dentro del DAG src_planeacion_extrac_ipm) y que contiene los datos originales en formato STRING, preservando todos los valores tal como vienen del archivo Excel sin transformaciones.
 
 Esta fuente se referencia en el modelo ipm_transform_stg usando la sintaxis source('bronze_ipmv2', 'ipm_raw_data'), que es el punto de entrada del pipeline de transformaciones dbt.
 
@@ -270,9 +270,21 @@ INTEGRACION CON EL PIPELINE
 
 El proyecto dbt se integra con el pipeline de Airflow de la siguiente manera:
 
-El DAG src_ipm_transform_dag.py ejecuta los modelos dbt en el orden correcto usando BashOperator que ejecuta comandos dbt run --select modelo. Cada modelo se ejecuta como una tarea separada en Airflow, lo que permite monitoreo granular y manejo de errores.
+El DAG src_planeacion_transf_ipm (definido en el archivo src_ipm_transform_dag.py) ejecuta los modelos dbt en el orden correcto usando BashOperator que ejecuta comandos dbt run --select modelo. Cada modelo se ejecuta como una tarea separada dentro del TaskGroup "silver" o "gold", lo que permite monitoreo granular y manejo de errores.
 
-Las dependencias entre modelos se manejan tanto en dbt usando ref() como en Airflow usando las dependencias de tareas, asegurando que los modelos se ejecuten en el orden correcto.
+El DAG src_planeacion_transf_ipm es ejecutado automaticamente al finalizar el DAG src_planeacion_extrac_ipm, que a su vez es ejecutado por el DAG src_planeacion_inges_ipm, formando asi un flujo completo de ingesta -> extraccion -> transformacion.
 
-Los modelos se ejecutan en el contexto del proyecto dbt configurado en dbt_project.yml, usando las credenciales y configuracion del perfil especificado en profiles.yml.
+Las dependencias entre modelos se manejan tanto en dbt usando ref() como en Airflow usando las dependencias de tareas dentro de los TaskGroups, asegurando que los modelos se ejecuten en el orden correcto. El TaskGroup "silver" contiene todas las transformaciones de bronze a silver, y el TaskGroup "gold" contiene la transformacion final de silver a gold.
+
+Los modelos se ejecutan en el contexto del proyecto dbt configurado en dbt_project.yml, usando las credenciales y configuracion del perfil especificado en profiles.yml ubicado en /opt/airflow/include/dbt.
+
+RESULTADO FINAL
+
+El pipeline completo genera las siguientes tablas en BigQuery:
+
+- **Bronze**: `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` - Datos originales preservados tal como vienen del Excel (creada por src_planeacion_extrac_ipm)
+
+- **Silver**: `silver_dpt_planeacion_municipal_dev.ipm_transformed_data` - Datos limpios y validados listos para consumo (creada por el modelo dbt ipm_transform_clean en src_planeacion_transf_ipm)
+
+- **Gold**: `gold_dpt_planeacion_municipal_dev.ipm_processed_data` - Datos finales simplificados para usuarios finales (creada por el modelo dbt ipm_processed_data en src_planeacion_transf_ipm)
 
