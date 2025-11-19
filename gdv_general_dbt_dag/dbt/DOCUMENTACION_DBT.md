@@ -33,7 +33,7 @@ La seccion models define configuraciones especificas para diferentes grupos de m
 - silver: Los modelos en la carpeta silver se materializan como vistas views y usan la base de datos datagov-473122. Esta configuracion aplica a todos los modelos intermedios de transformacion en la capa silver.
 - gold: Los modelos en la carpeta gold se materializan como tablas tables y tambien usan la base de datos datagov-473122. Esta configuracion aplica al modelo final de consumo.
 
-Nota importante: Aunque la configuracion de silver especifica que los modelos se materializan como vistas, el modelo final rawdata_ipmv2_clean sobrescribe esta configuracion y se materializa como tabla table, como se especifica en su configuracion individual.
+Nota importante: Aunque la configuracion de silver especifica que los modelos se materializan como vistas, el modelo final ipm_transform_clean sobrescribe esta configuracion y se materializa como tabla table, como se especifica en su configuracion individual.
 
 ARCHIVO: sources.yml
 
@@ -43,7 +43,7 @@ El archivo define una unica fuente principal:
 
 La fuente bronze_ipmv2 es la fuente principal y unica para este pipeline. Se refiere al schema bronze_dpt_planeacion_municipal_dev y contiene la tabla ipm_raw_data. Esta es la tabla que se crea en la capa bronze por el modulo ipm_transform.py y que contiene los datos originales en formato STRING, preservando todos los valores tal como vienen del archivo Excel sin transformaciones.
 
-Esta fuente se referencia en el modelo rawdata_ipmv2_stg usando la sintaxis source('bronze_ipmv2', 'ipm_raw_data'), que es el punto de entrada del pipeline de transformaciones dbt.
+Esta fuente se referencia en el modelo ipm_transform_stg usando la sintaxis source('bronze_ipmv2', 'ipm_raw_data'), que es el punto de entrada del pipeline de transformaciones dbt.
 
 ARCHIVO: macros/generate_schema_name.sql
 
@@ -61,7 +61,7 @@ MODELOS DE LA CAPA SILVER
 
 La capa silver contiene siete modelos que transforman progresivamente los datos desde bronze hasta una tabla final limpia y validada. Cada modelo se materializa como una vista view excepto el ultimo que se materializa como tabla table. Todos los modelos se crean en el schema silver_dpt_planeacion_municipal_dev.
 
-MODELO: rawdata_ipmv2_stg
+MODELO: ipm_transform_stg
 
 Este es el primer modelo de la capa silver y actua como una capa de staging. Su proposito principal es leer los datos de bronze y normalizar los nombres de las columnas de PascalCase o formato mixto a snake_case, que es el estandar utilizado en el resto del pipeline.
 
@@ -88,11 +88,11 @@ La columna fecha_lectura se mantiene sin cambios.
 
 Este modelo no realiza ninguna transformacion de datos, solo estandariza los nombres de las columnas para facilitar el trabajo en los modelos posteriores.
 
-MODELO: rawdata_ipmv2_normalize_text
+MODELO: ipm_transform_normalize_text
 
 Este modelo normaliza el texto de los campos identificadores cod_mpio y municipio. Su proposito es estandarizar estos campos eliminando acentos y convirtiendo todo a mayusculas, lo que facilita las comparaciones y los joins con otras tablas.
 
-El modelo se materializa como una vista y lee del modelo anterior rawdata_ipmv2_stg usando ref('rawdata_ipmv2_stg').
+El modelo se materializa como una vista y lee del modelo anterior ipm_transform_stg usando ref('ipm_transform_stg').
 
 Para cod_mpio, aplica la siguiente transformacion: primero convierte el valor a STRING usando CAST, luego lo convierte a minusculas con LOWER, luego usa TRANSLATE para reemplazar los caracteres acentuados por sus equivalentes sin acento, y finalmente convierte todo a mayusculas con UPPER. El mapeo de caracteres es: a con acento a a, e con acento a e, i con acento a i, o con acento a o, u con acento a u, n con tilde a n, y lo mismo para las versiones mayusculas.
 
@@ -102,11 +102,11 @@ Todas las demas columnas se mantienen sin cambios, pasando directamente desde el
 
 La normalizacion de texto es importante porque los nombres de municipios pueden venir con diferentes formatos, acentos, y casos, y esta estandarizacion asegura que se puedan hacer comparaciones y joins de manera confiable.
 
-MODELO: rawdata_ipmv2_transform_types
+MODELO: ipm_transform_transform_types
 
 Este modelo intenta convertir los tipos de datos de STRING a los tipos apropiados. En la capa bronze, todos los valores se guardan como STRING para preservar los datos originales, pero en silver necesitamos convertirlos a tipos numericos para poder hacer calculos y validaciones.
 
-El modelo se materializa como una vista y lee del modelo rawdata_ipmv2_normalize_text usando ref('rawdata_ipmv2_normalize_text').
+El modelo se materializa como una vista y lee del modelo ipm_transform_normalize_text usando ref('ipm_transform_normalize_text').
 
 Para las columnas que deberian ser enteros valores absolutos, usa SAFE_CAST para convertir de STRING a INT64. SAFE_CAST es una funcion de BigQuery que retorna NULL en lugar de lanzar un error si la conversion falla. Esto es importante porque algunos valores pueden tener caracteres no numericos que no se pueden convertir directamente.
 
@@ -118,11 +118,11 @@ Los campos cod_mpio, municipio y fecha_lectura se mantienen sin cambios.
 
 Es importante notar que en este punto, si un valor tiene caracteres no numericos mezclados con numeros, la conversion fallara y el valor sera NULL. Estos valores NULL se manejaran en los modelos posteriores.
 
-MODELO: rawdata_ipmv2_clean_numbers
+MODELO: ipm_transform_clean_numbers
 
 Este modelo es uno de los mas complejos y criticos. Su proposito es limpiar las columnas numericas eliminando letras, espacios y caracteres especiales que puedan estar mezclados con los numeros, dejando solo los numeros validos.
 
-El modelo se materializa como una vista y lee del modelo rawdata_ipmv2_normalize_text usando ref('rawdata_ipmv2_normalize_text'). Nota importante: este modelo lee de normalize_text, no de transform_types, lo que significa que trabaja directamente con los valores STRING antes de intentar convertirlos a tipos numericos.
+El modelo se materializa como una vista y lee del modelo ipm_transform_normalize_text usando ref('ipm_transform_normalize_text'). Nota importante: este modelo lee de normalize_text, no de transform_types, lo que significa que trabaja directamente con los valores STRING antes de intentar convertirlos a tipos numericos.
 
 Para cod_mpio, aplica una limpieza especial: primero elimina espacios usando REGEXP_REPLACE con el patron r'\s', luego elimina todos los caracteres que no sean numeros usando REGEXP_REPLACE con el patron r'[^0-9]'. El resultado es cod_mpio_cleaned que contiene solo numeros.
 
@@ -148,11 +148,11 @@ La columna fecha_lectura tambien se mantiene sin cambios.
 
 El resultado de este modelo son valores numericos limpios en las columnas absolutas, con el sufijo _cleaned para indicar que han sido procesadas.
 
-MODELO: rawdata_ipmv2_detect_negatives
+MODELO: ipm_transform_detect_negatives
 
 Este modelo detecta problemas en los datos y crea flags de validacion que se usaran en el siguiente modelo para aplicar reglas de negocio.
 
-El modelo se materializa como una vista y lee del modelo rawdata_ipmv2_clean_numbers usando ref('rawdata_ipmv2_clean_numbers').
+El modelo se materializa como una vista y lee del modelo ipm_transform_clean_numbers usando ref('ipm_transform_clean_numbers').
 
 El modelo selecciona todas las columnas del modelo anterior usando SELECT *, y luego agrega dos columnas nuevas de tipo booleano:
 
@@ -162,11 +162,11 @@ La segunda columna es is_total_zero_or_empty. Esta columna detecta si el campo t
 
 Estos flags se usaran en el siguiente modelo para aplicar reglas de validacion: si hay valores negativos o si el total es cero o vacio, se aplicaran reglas especiales para manejar esos casos.
 
-MODELO: rawdata_ipmv2_apply_validations
+MODELO: ipm_transform_apply_validations
 
 Este modelo aplica las validaciones finales y las reglas de negocio basandose en los flags detectados en el modelo anterior.
 
-El modelo se materializa como una vista y lee del modelo rawdata_ipmv2_detect_negatives usando ref('rawdata_ipmv2_detect_negatives').
+El modelo se materializa como una vista y lee del modelo ipm_transform_detect_negatives usando ref('ipm_transform_detect_negatives').
 
 Para cod_mpio, usa cod_mpio_cleaned del modelo anterior y lo renombra a cod_mpio. Para municipio, lo mantiene sin cambios.
 
@@ -182,13 +182,13 @@ La columna fecha_lectura se mantiene sin cambios.
 
 El resultado de este modelo son datos completamente validados y limpios, con todas las reglas de negocio aplicadas. Los valores negativos se han convertido a 0, los registros con total cero o vacio tienen todas sus columnas numericas en 0, y los porcentajes se han convertido correctamente a FLOAT64.
 
-MODELO: rawdata_ipmv2_clean
+MODELO: ipm_transform_clean
 
 Este es el modelo final de la capa silver. Su proposito es materializar los datos limpios como una tabla fisica y realizar la transformacion final de la fecha.
 
 El modelo se materializa como una tabla table en el schema silver_dpt_planeacion_municipal_dev con el alias ipm_transformed_data. El alias permite que la tabla tenga un nombre mas descriptivo y consistente con las convenciones de nombres del proyecto.
 
-El modelo lee del modelo rawdata_ipmv2_apply_validations usando ref('rawdata_ipmv2_apply_validations').
+El modelo lee del modelo ipm_transform_apply_validations usando ref('ipm_transform_apply_validations').
 
 Todas las columnas se pasan directamente sin cambios, excepto fecha_lectura que se transforma usando DATE(fecha_lectura). La funcion DATE extrae solo la parte de fecha del timestamp, eliminando la hora, minutos y segundos. El resultado es un tipo DATE en formato YYYY-MM-DD.
 
@@ -200,13 +200,13 @@ MODELOS DE LA CAPA GOLD
 
 La capa gold contiene un solo modelo que transforma los datos de silver a un formato final simplificado para consumo de usuarios finales.
 
-MODELO: rawdata_ipmv2_gold
+MODELO: ipm_processed_data
 
 Este modelo crea la capa final de consumo con un formato simplificado y estandarizado para los usuarios finales.
 
 El modelo se materializa como una tabla table en el schema gold_dpt_planeacion_municipal_dev con el alias ipm_processed_data.
 
-El modelo lee del modelo final de silver rawdata_ipmv2_clean usando ref('rawdata_ipmv2_clean').
+El modelo lee del modelo final de silver ipm_transform_clean usando ref('ipm_transform_clean').
 
 Las transformaciones que realiza son principalmente de renombrado y simplificacion:
 
@@ -232,21 +232,21 @@ FLUJO COMPLETO DE TRANSFORMACIONES
 
 El flujo completo de transformaciones en dbt es el siguiente:
 
-1. rawdata_ipmv2_stg: Lee de bronze y normaliza nombres de columnas a snake_case.
+1. ipm_transform_stg: Lee de bronze y normaliza nombres de columnas a snake_case.
 
-2. rawdata_ipmv2_normalize_text: Normaliza texto de cod_mpio y municipio eliminando acentos y convirtiendo a mayusculas.
+2. ipm_transform_normalize_text: Normaliza texto de cod_mpio y municipio eliminando acentos y convirtiendo a mayusculas.
 
-3. rawdata_ipmv2_transform_types: Intenta convertir tipos de STRING a INT64 para absolutos y FLOAT64 para porcentajes. Nota: Este modelo y el siguiente pueden ejecutarse en paralelo porque ambos dependen solo de normalize_text.
+3. ipm_transform_transform_types: Intenta convertir tipos de STRING a INT64 para absolutos y FLOAT64 para porcentajes. Nota: Este modelo y el siguiente pueden ejecutarse en paralelo porque ambos dependen solo de normalize_text.
 
-4. rawdata_ipmv2_clean_numbers: Limpia columnas numericas eliminando letras y caracteres especiales, convirtiendo a INT64.
+4. ipm_transform_clean_numbers: Limpia columnas numericas eliminando letras y caracteres especiales, convirtiendo a INT64.
 
-5. rawdata_ipmv2_detect_negatives: Detecta valores negativos y totales cero o vacios, creando flags de validacion.
+5. ipm_transform_detect_negatives: Detecta valores negativos y totales cero o vacios, creando flags de validacion.
 
-6. rawdata_ipmv2_apply_validations: Aplica reglas de negocio basadas en los flags, convierte porcentajes a FLOAT64, y valida todos los datos.
+6. ipm_transform_apply_validations: Aplica reglas de negocio basadas en los flags, convierte porcentajes a FLOAT64, y valida todos los datos.
 
-7. rawdata_ipmv2_clean: Materializa como tabla y convierte fecha_lectura a tipo DATE.
+7. ipm_transform_clean: Materializa como tabla y convierte fecha_lectura a tipo DATE.
 
-8. rawdata_ipmv2_gold: Crea la capa final simplificada para consumo.
+8. ipm_processed_data: Crea la capa final simplificada para consumo.
 
 CARACTERISTICAS IMPORTANTES DEL PROYECTO
 

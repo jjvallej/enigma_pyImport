@@ -79,5 +79,6 @@ SELECT
     -- Fecha de lectura: convertir a DATE (YYYY-MM-DD) sin hora
     DATE(fecha_lectura) AS fecha_lectura
     
-FROM {{ ref('rawdata_ipmv2_apply_validations') }}
+FROM {{ ref('ipm_transform_apply_validations') }}
+
 

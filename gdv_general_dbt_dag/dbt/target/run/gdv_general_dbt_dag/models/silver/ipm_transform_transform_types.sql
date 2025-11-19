@@ -1,9 +1,8 @@
-{{
-  config(
-    materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev'
-  )
-}}
+
+
+  create or replace view `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_transform_types`
+  OPTIONS()
+  as 
 
 -- Modelo para transformar tipos de datos: enteros para absolutos, floats con 2 decimales para porcentajes
 -- Usa SAFE_CAST para manejar valores inválidos (serán NULL y se limpiarán en validate_numbers)
@@ -99,5 +98,5 @@ SELECT
     ROUND(SAFE_CAST(i15_sin_privacion_porc AS FLOAT64), 2) AS i15_sin_privacion_porc,
     
     fecha_lectura
-FROM {{ ref('rawdata_ipmv2_normalize_text') }}
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_normalize_text`;
 

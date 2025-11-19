@@ -35,14 +35,14 @@ Objetivo: ejecutar en orden los modelos dbt que limpian y validan los datos hast
 
 Tareas:
 1. `ensure_dataset` (`PythonOperator`): asegura el dataset silver.
-2. `dbt_run_stg` (`BashOperator`): ejecuta `rawdata_ipmv2_stg` que lee de bronze y normaliza nombres de columnas a `snake_case`.
-3. `dbt_run_normalize_text` (`BashOperator`): ejecuta `rawdata_ipmv2_normalize_text` que normaliza `cod_mpio` y `municipio` (quita acentos y usa mayúsculas).
-4. `dbt_run_transform_types` (`BashOperator`): ejecuta `rawdata_ipmv2_transform_types` que intenta convertir tipos numéricos usando `SAFE_CAST` y redondea porcentajes.
-5. `dbt_run_clean_numbers` (`BashOperator`): ejecuta `rawdata_ipmv2_clean_numbers` que limpia números eliminando letras y símbolos y convierte a enteros.
-6. `dbt_run_detect_negatives` (`BashOperator`): ejecuta `rawdata_ipmv2_detect_negatives` que crea `flags` sobre negativos y totales vacíos o cero.
-7. `dbt_run_apply_validations` (`BashOperator`): ejecuta `rawdata_ipmv2_apply_validations` que aplica reglas de negocio: poner en cero si hay negativos o total inválido; convierte porcentajes a `FLOAT64`.
-8. `dbt_run_clean` (`BashOperator`): ejecuta `rawdata_ipmv2_clean` que materializa la tabla final de silver y convierte `fecha_lectura` a `DATE`.
-9. `dbt_test` (`BashOperator`): ejecuta pruebas sobre `rawdata_ipmv2_clean`.
+2. `dbt_run_stg` (`BashOperator`): ejecuta `ipm_transform_stg` que lee de bronze y normaliza nombres de columnas a `snake_case`.
+3. `dbt_run_normalize_text` (`BashOperator`): ejecuta `ipm_transform_normalize_text` que normaliza `cod_mpio` y `municipio` (quita acentos y usa mayúsculas).
+4. `dbt_run_transform_types` (`BashOperator`): ejecuta `ipm_transform_transform_types` que intenta convertir tipos numéricos usando `SAFE_CAST` y redondea porcentajes.
+5. `dbt_run_clean_numbers` (`BashOperator`): ejecuta `ipm_transform_clean_numbers` que limpia números eliminando letras y símbolos y convierte a enteros.
+6. `dbt_run_detect_negatives` (`BashOperator`): ejecuta `ipm_transform_detect_negatives` que crea `flags` sobre negativos y totales vacíos o cero.
+7. `dbt_run_apply_validations` (`BashOperator`): ejecuta `ipm_transform_apply_validations` que aplica reglas de negocio: poner en cero si hay negativos o total inválido; convierte porcentajes a `FLOAT64`.
+8. `dbt_run_clean` (`BashOperator`): ejecuta `ipm_transform_clean` que materializa la tabla final de silver y convierte `fecha_lectura` a `DATE`.
+9. `dbt_test` (`BashOperator`): ejecuta pruebas sobre `ipm_transform_clean`.
 
 Dependencias clave:
 - Secuencia inicial: `ensure_dataset -> dbt_run_stg -> dbt_run_normalize_text`.
@@ -56,7 +56,7 @@ Objetivo: crear la tabla de consumo final.
 
 Tareas:
 1. `ensure_dataset` (`PythonOperator`): asegura el dataset gold.
-2. `dbt_run_gold` (`BashOperator`): ejecuta `rawdata_ipmv2_gold`, que toma la tabla final de silver y la simplifica al esquema de consumo, sin porcentajes ni `fecha_lectura`.
+2. `dbt_run_gold` (`BashOperator`): ejecuta `ipm_processed_data`, que toma la tabla final de silver y la simplifica al esquema de consumo, sin porcentajes ni `fecha_lectura`.
 3. `dbt_test` (`BashOperator`): ejecuta pruebas sobre el modelo gold.
 
 Dependencias gold: `ensure_dataset -> dbt_run_gold -> dbt_test`.
@@ -85,7 +85,7 @@ Dependencias gold: `ensure_dataset -> dbt_run_gold -> dbt_test`.
 - Datos ya disponibles en la tabla `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por el DAG `src_planeacion_extrac_ipm`).
 - Cuenta de servicio válida en `/opt/airflow/include/sa.json` con permisos de lectura/escritura en BigQuery.
 - Perfil dbt válido en `/opt/airflow/include/dbt` apuntando al proyecto y datasets correctos.
-- El proyecto dbt en `DBT_PROJECT_DIR` con los modelos `rawdata_ipmv2_*` presentes y configurados.
+- El proyecto dbt en `DBT_PROJECT_DIR` con los modelos `ipm_transform_*` y `ipm_processed_data` presentes y configurados.
 
 ## Resumen del flujo
 

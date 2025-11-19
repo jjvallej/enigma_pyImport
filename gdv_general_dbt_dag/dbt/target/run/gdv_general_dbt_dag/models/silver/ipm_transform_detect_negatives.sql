@@ -1,9 +1,8 @@
-{{
-  config(
-    materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev'
-  )
-}}
+
+
+  create or replace view `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_detect_negatives`
+  OPTIONS()
+  as 
 
 -- Paso 2: Detectar valores negativos y agregar flags de validación
 -- Si hay algún valor negativo en columnas numéricas, marcar el registro
@@ -59,5 +58,5 @@ SELECT
     ELSE FALSE
   END AS is_total_zero_or_empty
   
-FROM {{ ref('rawdata_ipmv2_clean_numbers') }}
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_clean_numbers`;
 

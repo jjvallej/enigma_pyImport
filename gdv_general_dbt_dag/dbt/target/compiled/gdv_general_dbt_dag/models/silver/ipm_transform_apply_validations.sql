@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev'
-  )
-}}
+
 
 -- Paso 3: Aplicar validaciones finales
 -- 1. Si hay algún valor negativo, poner TODAS las numéricas del registro en 0
@@ -100,5 +95,4 @@ SELECT
   CASE WHEN is_total_zero_or_empty THEN 0.0 ELSE COALESCE(SAFE_CAST(i15_sin_privacion_porc AS FLOAT64), 0.0) END AS i15_sin_privacion_porc,
   fecha_lectura
   
-FROM {{ ref('rawdata_ipmv2_detect_negatives') }}
-
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_detect_negatives`

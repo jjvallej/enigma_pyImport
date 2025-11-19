@@ -132,5 +132,6 @@ SELECT
   i15_sin_privacion_porc,
   fecha_lectura
   
-FROM {{ ref('rawdata_ipmv2_normalize_text') }}
+FROM {{ ref('ipm_transform_normalize_text') }}
+
 

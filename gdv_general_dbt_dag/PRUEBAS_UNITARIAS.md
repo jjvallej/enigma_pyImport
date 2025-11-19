@@ -154,14 +154,14 @@ Secuencia y paralelismo controlado:
 - `stg` → `normalize_text` → `[transform_types, clean_numbers]` → `detect_negatives` → `apply_validations` → `clean` → `test`
 
 Pruebas por modelo:
-- `rawdata_ipmv2_stg`: mapeo de nombres a `snake_case`
-- `rawdata_ipmv2_normalize_text`: eliminación de acentos y mayúsculas en `cod_mpio` y `municipio`
-- `rawdata_ipmv2_transform_types`: `SAFE_CAST` a `INT64` y `FLOAT64` con `ROUND(2)`
-- `rawdata_ipmv2_clean_numbers`: limpieza con `REGEXP_REPLACE` y `SAFE_CAST` a `INT64`
-- `rawdata_ipmv2_detect_negatives`: flags `has_negative_value` e `is_total_zero_or_empty`
-- `rawdata_ipmv2_apply_validations`: reglas de negocio para poner en 0 numéricas cuando hay negativos o total vacío; `SAFE_CAST` de porcentajes a `FLOAT64`
-- `rawdata_ipmv2_clean`: `DATE(fecha_lectura)` y materialización como tabla
-`dbt test` ejecutado sobre `rawdata_ipmv2_clean` y `rawdata_ipmv2_gold`.
+- `ipm_transform_stg`: mapeo de nombres a `snake_case`
+- `ipm_transform_normalize_text`: eliminación de acentos y mayúsculas en `cod_mpio` y `municipio`
+- `ipm_transform_transform_types`: `SAFE_CAST` a `INT64` y `FLOAT64` con `ROUND(2)`
+- `ipm_transform_clean_numbers`: limpieza con `REGEXP_REPLACE` y `SAFE_CAST` a `INT64`
+- `ipm_transform_detect_negatives`: flags `has_negative_value` e `is_total_zero_or_empty`
+- `ipm_transform_apply_validations`: reglas de negocio para poner en 0 numéricas cuando hay negativos o total vacío; `SAFE_CAST` de porcentajes a `FLOAT64`
+- `ipm_transform_clean`: `DATE(fecha_lectura)` y materialización como tabla
+`dbt test` ejecutado sobre `ipm_transform_clean` y `ipm_processed_data`.
 
 Resultado: OK. Cadena ejecutada y pruebas `dbt test` superadas en modelos clean y gold.
 
@@ -201,16 +201,16 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 ## 8) Comandos de ejecución usados
 
 - dbt (en contenedor Airflow):
-  - `cd /opt/airflow/dags/gdv_general_dbt_dag/dbt && dbt run --select rawdata_ipmv2_stg`
-  - `dbt run --select rawdata_ipmv2_normalize_text`
-  - `dbt run --select rawdata_ipmv2_transform_types`
-  - `dbt run --select rawdata_ipmv2_clean_numbers`
-  - `dbt run --select rawdata_ipmv2_detect_negatives`
-  - `dbt run --select rawdata_ipmv2_apply_validations`
-  - `dbt run --select rawdata_ipmv2_clean`
-  - `dbt run --select rawdata_ipmv2_gold`
-  - `dbt test --select rawdata_ipmv2_clean`
-  - `dbt test --select rawdata_ipmv2_gold`
+  - `cd /opt/airflow/dags/gdv_general_dbt_dag/dbt && dbt run --select ipm_transform_stg`
+  - `dbt run --select ipm_transform_normalize_text`
+  - `dbt run --select ipm_transform_transform_types`
+  - `dbt run --select ipm_transform_clean_numbers`
+  - `dbt run --select ipm_transform_detect_negatives`
+  - `dbt run --select ipm_transform_apply_validations`
+  - `dbt run --select ipm_transform_clean`
+  - `dbt run --select ipm_processed_data`
+  - `dbt test --select ipm_transform_clean`
+  - `dbt test --select ipm_processed_data`
 
 - Airflow (UI): ejecución manual de DAGs con parámetros según documentación.
 

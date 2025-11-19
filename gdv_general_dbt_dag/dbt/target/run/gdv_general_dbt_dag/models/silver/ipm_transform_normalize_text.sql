@@ -1,9 +1,8 @@
-{{
-  config(
-    materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev'
-  )
-}}
+
+
+  create or replace view `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_normalize_text`
+  OPTIONS()
+  as 
 
 -- Modelo para normalizar texto: eliminar acentos y convertir a mayúsculas
 SELECT
@@ -78,5 +77,5 @@ SELECT
     i15_con_privacion_porc,
     i15_sin_privacion_porc,
     fecha_lectura
-FROM {{ ref('rawdata_ipmv2_stg') }}
+FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transform_stg`;
 

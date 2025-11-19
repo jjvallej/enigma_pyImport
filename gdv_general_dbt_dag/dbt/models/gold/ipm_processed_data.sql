@@ -6,7 +6,7 @@
   )
 }}
 
--- Modelo gold: consume la tabla final de silver (rawdata_ipmv2_clean)
+-- Modelo gold: consume la tabla final de silver (ipm_transform_clean)
 -- Estructura final con columnas en mayúsculas, sin porcentajes, sin sufijo _abs y sin fecha_lectura
 SELECT
     cod_mpio,
@@ -44,5 +44,6 @@ SELECT
     i14_sin_privacion_abs AS I14_SIN_PRIVACION,
     i15_con_privacion_abs AS I15_CON_PRIVACION,
     i15_sin_privacion_abs AS I15_SIN_PRIVACION
-FROM {{ ref('rawdata_ipmv2_clean') }}
+FROM {{ ref('ipm_transform_clean') }}
+
 

@@ -55,7 +55,7 @@ with DAG(
         # Usamos la ruta completa del ejecutable dbt o lo buscamos en el PATH del usuario
         s2_dbt_run_stg = BashOperator(
             task_id="dbt_run_stg",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_stg || dbt run --select rawdata_ipmv2_stg",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_stg || dbt run --select ipm_transform_stg",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -65,7 +65,7 @@ with DAG(
 
         s3_dbt_run_normalize_text = BashOperator(
             task_id="dbt_run_normalize_text",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_normalize_text || dbt run --select rawdata_ipmv2_normalize_text",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_normalize_text || dbt run --select ipm_transform_normalize_text",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -75,7 +75,7 @@ with DAG(
 
         s4_dbt_run_transform_types = BashOperator(
             task_id="dbt_run_transform_types",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_transform_types || dbt run --select rawdata_ipmv2_transform_types",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_transform_types || dbt run --select ipm_transform_transform_types",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -85,7 +85,7 @@ with DAG(
 
         s5_dbt_run_clean_numbers = BashOperator(
             task_id="dbt_run_clean_numbers",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_clean_numbers || dbt run --select rawdata_ipmv2_clean_numbers",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_clean_numbers || dbt run --select ipm_transform_clean_numbers",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -95,7 +95,7 @@ with DAG(
 
         s6_dbt_run_detect_negatives = BashOperator(
             task_id="dbt_run_detect_negatives",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_detect_negatives || dbt run --select rawdata_ipmv2_detect_negatives",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_detect_negatives || dbt run --select ipm_transform_detect_negatives",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -105,7 +105,7 @@ with DAG(
 
         s7_dbt_run_apply_validations = BashOperator(
             task_id="dbt_run_apply_validations",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_apply_validations || dbt run --select rawdata_ipmv2_apply_validations",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_apply_validations || dbt run --select ipm_transform_apply_validations",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -115,7 +115,7 @@ with DAG(
 
         s8_dbt_run_clean = BashOperator(
             task_id="dbt_run_clean",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_clean || dbt run --select rawdata_ipmv2_clean",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_transform_clean || dbt run --select ipm_transform_clean",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -125,7 +125,7 @@ with DAG(
 
         s9_dbt_test = BashOperator(
             task_id="dbt_test",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select rawdata_ipmv2_clean || dbt test --select rawdata_ipmv2_clean",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select ipm_transform_clean || dbt test --select ipm_transform_clean",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -150,7 +150,7 @@ with DAG(
         # Tarea dbt para ejecutar el modelo gold
         g2_dbt_run_gold = BashOperator(
             task_id="dbt_run_gold",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select rawdata_ipmv2_gold || dbt run --select rawdata_ipmv2_gold",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select ipm_processed_data || dbt run --select ipm_processed_data",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
@@ -160,7 +160,7 @@ with DAG(
 
         g3_dbt_test = BashOperator(
             task_id="dbt_test",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select rawdata_ipmv2_gold || dbt test --select rawdata_ipmv2_gold",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt test --select ipm_processed_data || dbt test --select ipm_processed_data",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
                 "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
