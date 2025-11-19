@@ -1,21 +1,32 @@
 DOCUMENTACION DETALLADA DEL DAG src_ipm_load_dag.py
 
-Este documento describe de forma detallada y continua el DAG de Airflow src_planeacion_inges_ipm definido en el archivo src_ipm_load_dag.py. El DAG automatiza la transferencia del archivo Excel del IPM desde Google Drive hacia Google Cloud Storage GCS utilizando el metodo mas simple: enlace publico de Google Drive, sin autenticacion adicional. La URL del archivo esta hardcodeada en el codigo, por lo que no requiere parametros de ejecucion.
+Este documento describe de forma detallada y continua el DAG de Airflow src_planeacion_inges_ipm definido en el archivo src_ipm_load_dag.py. El DAG orquesta la extraccion de un archivo Excel del IPM desde Google Cloud Storage GCS, su transformacion minima en Python para la capa bronze, y la carga a BigQuery.
 
 PROPOSITO GENERAL
 
-Facilitar la ingesta del archivo fuente del IPM alojado en Google Drive, moviendolo a un bucket de GCS bajo una carpeta estandar. Este movimiento habilita el procesamiento posterior por otros DAGs, como el de transformacion a bronze y capas superiores en BigQuery. El DAG esta disenado para trabajar con un archivo especifico cuya URL esta definida directamente en el codigo como constante.
+Automatizar el flujo de extraccion de datos del IPM a partir de un Excel subido previamente a GCS. El DAG:
+- Asegura la existencia del dataset bronze en BigQuery.
+- Localiza y descarga automaticamente el archivo Excel mas reciente en una carpeta de GCS.
+- Realiza transformaciones minimas en pandas manteniendo los datos en formato texto para preservarlos en bronze.
+- Carga los datos transformados a la tabla ipm_raw_data en el dataset bronze.
+- Ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar.
 
 CONFIGURACION PRINCIPAL
 
-El archivo comienza importando las librerias necesarias de Airflow y el modulo local ipm_load que contiene las funciones de utilidad para descargar desde Google Drive y subir a GCS.
+El archivo comienza importando las librerias necesarias de Airflow y el modulo local ipm_load que contiene las funciones de utilidad para extraer desde GCS, transformar y cargar a BigQuery.
 
 Constantes dentro del DAG:
-- DEFAULT_BUCKET_NAME: bucket de destino en GCS. Por defecto "datalake_gdv". Esta constante define donde se almacenara el archivo descargado.
-- DEFAULT_FOLDER_NAME: carpeta destino dentro del bucket. Por defecto "data_staging/dpt_planeacion_municipal/ipm". Esta ruta estandariza la ubicacion de los archivos fuente del IPM.
-- DRIVE_URL: URL fija del archivo IPM en Google Drive. Esta URL esta hardcodeada en el codigo y apunta al archivo especifico del IPM que se procesa. La URL completa es: https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true
+- GCS_BUCKET_NAME: bucket de origen en GCS. Por defecto "datalake_gdv". Esta constante define donde se buscara el archivo.
+- GCS_FOLDER_PATH: carpeta con los Excel. Por defecto "data_staging/dpt_planeacion_municipal/ipm". Esta ruta estandariza la ubicacion de los archivos fuente del IPM.
+- DATASET_ID_BRONZE: dataset de bronze en BigQuery, "bronze_dpt_planeacion_municipal_dev".
+- TABLE_NAME_BRONZE: nombre de la tabla bronze, "ipm_raw_data".
+- SHEET_INDEX: indice de hoja de Excel a procesar. Por defecto 0.
 
-El DAG no requiere parametros de ejecucion ni utiliza Variables de Airflow. La URL del archivo esta definida directamente en el codigo como constante DRIVE_URL. Cualquier ajuste de bucket, carpeta o URL se realiza modificando las constantes en el codigo fuente. Esto simplifica la ejecucion ya que no es necesario proporcionar parametros al ejecutar el DAG.
+Variables de Airflow opcionales que sobrescriben las constantes de GCS:
+- ipm_gcs_bucket: nombre del bucket de GCS.
+- ipm_gcs_folder: ruta de la carpeta en GCS.
+
+Si existen, el DAG las utilizara; si no, empleara los valores por defecto.
 
 ESTRUCTURA DEL DAG
 
@@ -25,106 +36,106 @@ El DAG src_planeacion_inges_ipm se define con las siguientes caracteristicas:
 - schedule_interval: None, lo que significa que el DAG no se ejecuta automaticamente, solo manualmente
 - catchup: False, no ejecuta ejecuciones pasadas
 - tags: Etiquetas para categorizar el DAG: secretaria:planeacion, actividad:ingesta, fuente:ipm, ejecucion:manual
-- description: Descripcion detallada del proposito del DAG que incluye la descarga desde Google Drive, subida a GCS y ejecucion del DAG de transformacion
+- description: Descripcion detallada del proposito del DAG que incluye la extraccion desde GCS, transformacion minima y carga a bronze, y ejecucion del DAG de transformacion
 
-El DAG consta de cuatro tareas secuenciales:
+El DAG consta de un TaskGroup "bronze" que contiene todas las tareas de extraccion y carga, seguido de una tarea que ejecuta el DAG de transformacion:
 
 1. start (EmptyOperator): Marcador de inicio que no realiza ninguna accion. Sirve como punto de entrada del flujo.
 
-2. upload_file_from_drive_to_gcs (PythonOperator): Tarea principal que ejecuta la funcion _upload_file_task. Esta tarea descarga el archivo desde Google Drive y lo sube a GCS. No requiere contexto adicional ya que no lee parametros, por lo que no se configura provide_context=True.
+2. TaskGroup "bronze": Grupo de tareas que extrae desde GCS y carga a bronze:
+   - ensure_dataset (PythonOperator): Asegura que el dataset bronze exista en BigQuery.
+   - download_excel (PythonOperator): Busca y descarga el archivo Excel mas reciente desde GCS.
+   - transform_dataframe (PythonOperator): Transforma el Excel descargado, preservando datos como texto.
+   - load_to_bq (PythonOperator): Carga el DataFrame transformado a BigQuery en la tabla bronze.
+   - cleanup_temp_files (PythonOperator): Elimina archivos temporales (TriggerRule.ALL_DONE).
 
-3. trigger_extract_ipm (TriggerDagRunOperator): Tarea que ejecuta el DAG de extraccion src_planeacion_extrac_ipm. Esta tarea espera a que el DAG de extraccion termine completamente antes de continuar (wait_for_completion=True). Esto asegura que todo el proceso de extraccion y transformacion se complete antes de finalizar el DAG principal.
+3. trigger_transf_ipm (TriggerDagRunOperator): Tarea que ejecuta el DAG de transformacion src_planeacion_transf_ipm. Esta tarea espera a que el DAG de transformacion termine completamente antes de continuar (wait_for_completion=True).
 
 4. end (EmptyOperator): Marcador de fin que no realiza ninguna accion. Sirve como punto de salida del flujo.
 
-Dependencias: start ejecuta primero, luego upload_file_from_drive_to_gcs, despues trigger_extract_ipm, y finalmente end. La secuencia es simple y lineal sin paralelismo. El DAG de extraccion se ejecuta como parte del flujo principal y el DAG principal espera su finalizacion antes de terminar. A su vez, el DAG de extraccion ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente.
+Dependencias: start ejecuta primero, luego el TaskGroup "bronze" con sus tareas internas en secuencia, despues trigger_transf_ipm, y finalmente end. La secuencia es: start -> bronze (ensure_dataset -> download_excel -> transform_dataframe -> load_to_bq -> cleanup_temp_files) -> trigger_transf_ipm -> end.
 
 LOGICA DE LAS TAREAS
 
-La funcion _upload_file_task implementa la logica de descarga y subida del archivo. Esta funcion no recibe parametros porque toda la configuracion esta definida como constantes en el codigo.
+La funcion _ensure_dataset_bronze_task simplemente llama a ensure_dataset del modulo ipm_load para asegurar que el dataset bronze exista.
 
-El proceso funciona de la siguiente manera:
+La funcion _download_excel_task resuelve primero el bucket y carpeta desde Variables de Airflow o usa los valores por defecto. Luego busca en GCS el archivo .xlsx mas reciente en la carpeta indicada usando get_latest_excel_from_gcs_folder, y finalmente descarga el archivo usando download_excel_from_gcs, retornando la ruta local del archivo descargado via XCom.
 
-Primero, la funcion asigna los valores de configuracion desde las constantes definidas en el archivo. bucket_name se establece en DEFAULT_BUCKET_NAME, folder_name se establece en DEFAULT_FOLDER_NAME, use_public_link se establece en True para usar el metodo mas simple de descarga mediante enlace publico, y destination_file_name se establece en None para que el modulo extraiga automaticamente el nombre original del archivo desde Google Drive.
+La funcion _transform_task recibe la ruta del Excel desde XCom (task bronze.download_excel), transforma el Excel usando transform_excel del modulo ipm_load, serializa el DataFrame en un archivo .pkl temporal y retorna su ruta via XCom.
 
-Segundo, emite mensajes informativos usando print que se registraran en los logs de Airflow. Estos mensajes incluyen: un mensaje de inicio de transferencia, la URL de Drive que se esta utilizando (la constante DRIVE_URL), el bucket destino configurado, la carpeta destino configurada, el metodo de descarga que se usara (enlace publico), y una nota de que el nombre del archivo se extraera automaticamente.
+La funcion _load_task recibe la ruta del .pkl desde XCom (task bronze.transform_dataframe), deserializa el DataFrame y lo carga a BigQuery usando load_dataframe_to_bq del modulo ipm_load.
 
-Tercero, llama a la funcion move_file_from_drive_to_gcs del modulo modules.ipm_load pasando todos los parametros configurados. Esta funcion encapsula todo el proceso de descarga desde Google Drive y subida a GCS.
+La funcion _cleanup_temp_files_task recibe ambas rutas (Excel y .pkl) desde XCom y las elimina usando cleanup_temp_paths del modulo ipm_load.
 
-Cuarto, una vez que move_file_from_drive_to_gcs completa exitosamente, imprime un mensaje de confirmacion con la URI completa del archivo en GCS en formato gs://bucket/ruta/archivo.xlsx.
-
-Finalmente, retorna la URI de GCS como resultado de la tarea. Aunque esta URI no se usa por otras tareas en este DAG, se puede consultar en los logs o en la interfaz de Airflow para verificar donde se almaceno el archivo.
-
-La tarea trigger_extract_ipm utiliza el operador TriggerDagRunOperator de Airflow para ejecutar el DAG src_planeacion_extrac_ipm. Esta tarea tiene configurado wait_for_completion=True, lo que significa que el DAG principal esperara a que el DAG de extraccion termine completamente (ya sea exitosamente o con error) antes de continuar. A su vez, el DAG de extraccion ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente. Si alguno de los DAGs falla, la tarea trigger_extract_ipm tambien fallara, lo que causara que el DAG principal falle. Esto asegura que el flujo completo se ejecute de manera atomica: o todo el proceso (ingesta, extraccion y transformacion) se completa exitosamente, o el DAG principal falla indicando que hubo un problema en algun punto del pipeline.
+La tarea trigger_transf_ipm utiliza el operador TriggerDagRunOperator de Airflow para ejecutar el DAG src_planeacion_transf_ipm. Esta tarea tiene configurado wait_for_completion=True, lo que significa que el DAG principal esperara a que el DAG de transformacion termine completamente antes de continuar.
 
 INTERACCION CON EL MODULO DE UTILIDADES
 
-La funcion move_file_from_drive_to_gcs del modulo modules.ipm_load encapsula todos los detalles tecnicos de la transferencia. Esta funcion es la que realmente realiza el trabajo pesado.
-
-El proceso que realiza esta funcion es el siguiente: primero extrae el File ID de la URL proporcionada usando la funcion extract_file_id_from_url, que puede manejar diferentes formatos de URLs de Google Drive. Segundo, descarga el archivo desde Google Drive usando download_file_from_public_link, que maneja casos especiales como archivos grandes que muestran una pagina de advertencia antes de la descarga real. La descarga se hace en chunks para manejar archivos grandes eficientemente. Tercero, determina el nombre original del archivo desde los metadatos de Google Drive o desde los headers HTTP, y asegura que tenga una extension valida .xlsx. Cuarto, sube el archivo a GCS usando upload_file_to_gcs, que crea automaticamente la estructura de carpetas si no existe y puede sobrescribir archivos existentes si es necesario. Quinto, elimina siempre el archivo temporal local al finalizar, incluso si ocurre un error durante el proceso, garantizando que no queden archivos temporales acumulandose en el sistema.
+Las funciones del modulo ipm_load encapsulan todos los detalles tecnicos de la extraccion, transformacion y carga. El modulo maneja la busqueda del archivo mas reciente en GCS, la descarga, la transformacion minima preservando los datos como texto, y la carga a BigQuery con el esquema apropiado.
 
 Esta separacion de responsabilidades permite que el DAG sea simple y claro, mientras que la complejidad tecnica se maneja en el modulo de utilidades.
 
 MANEJO DE ERRORES
 
-Como la URL esta hardcodeada en el codigo como constante DRIVE_URL, no hay validacion de parametros requerida. La URL siempre esta disponible cuando se ejecuta la funcion, por lo que no hay riesgo de que falte un parametro.
+Si no se encuentra ningun archivo Excel en la carpeta de GCS, la funcion get_latest_excel_from_gcs_folder lanzara una excepcion ValueError. Esta excepcion se propagara hasta la tarea de Airflow, que marcara la tarea como FAILED.
 
-Sin embargo, pueden ocurrir otros tipos de errores durante la ejecucion:
+Si hay un error al acceder al bucket de GCS o al descargar el archivo, las funciones del modulo lanzaran excepciones que tambien marcaran las tareas como FAILED.
 
-Si el archivo en Google Drive no es publico o la URL es invalida, la funcion download_file_from_public_link del modulo lanzara una excepcion HTTPError o ValueError. Esta excepcion se propagara hasta la tarea de Airflow, que marcara la tarea como FAILED.
+Si hay un error al cargar datos a BigQuery, la funcion load_dataframe_to_bq lanzara una excepcion que marcara la tarea como FAILED.
 
-Si hay un error al acceder al bucket de GCS o al subir el archivo, la funcion upload_file_to_gcs lanzara una excepcion que tambien marcara la tarea como FAILED.
+La tarea cleanup_temp_files usa TriggerRule.ALL_DONE, lo que garantiza que siempre se ejecute, incluso si fallan tareas previas, asegurando la limpieza de archivos temporales.
 
-En todos los casos, el modulo de utilidades garantiza que los archivos temporales se eliminen incluso si ocurre un error, por lo que no habra acumulacion de archivos temporales en el sistema.
+Si el DAG de transformacion falla, la tarea trigger_transf_ipm tambien fallara, asegurando que todo el pipeline falle de manera controlada.
 
-Los logs de Airflow mostraran el mensaje de error especifico, lo que facilita la depuracion. Por ejemplo, si el archivo no es publico, se vera un error HTTP 403 o un mensaje indicando que no se pudo acceder al archivo.
+Los logs de Airflow mostraran el mensaje de error especifico, lo que facilita la depuracion.
 
 IDEMPOTENCIA Y CONVENCIONES
 
 El DAG tiene caracteristicas de idempotencia y sigue convenciones estandar:
 
-La subida a GCS sobrescribe un archivo existente con el mismo nombre dentro de la carpeta por defecto. Esto significa que si se ejecuta el DAG multiples veces, siempre reemplazara el archivo anterior con el nuevo. Este comportamiento es consistente con el modulo de utilidades que usa overwrite=True por defecto, y simplifica los reintentos ya que no es necesario eliminar manualmente archivos anteriores.
+La carga a BigQuery usa WRITE_TRUNCATE, lo que significa que si la tabla ya existe, se reemplazara completamente con los nuevos datos. Esto significa que si se ejecuta el DAG multiples veces, siempre reemplazara los datos anteriores con los nuevos. Este comportamiento simplifica los reintentos.
 
-El DAG estandariza la ubicacion de archivos fuente en data_staging/dpt_planeacion_municipal/ipm. Esta ruta es conocida por otros procesos, especialmente por el DAG src_planeacion_extrac_ipm que busca automaticamente el archivo mas reciente en esta carpeta. Esta convencion facilita la integracion entre DAGs y asegura que los archivos se encuentren donde se esperan.
+El DAG busca automaticamente el archivo mas reciente en la carpeta configurada, por lo que siempre procesara la version mas actualizada disponible.
 
-La URL del archivo esta hardcodeada, lo que significa que siempre descargara el mismo archivo desde la misma ubicacion en Google Drive. Esto es apropiado cuando hay un archivo fuente unico y oficial que se actualiza periodicamente en la misma ubicacion.
+La limpieza de archivos temporales siempre se ejecuta, incluso si ocurre un error, evitando acumulacion de archivos temporales en el sistema.
 
 EJECUCION DEL DAG
 
-El DAG se ejecuta de manera muy simple ya que no requiere configuracion adicional:
+El DAG se ejecuta de manera simple ya que puede usar Variables de Airflow opcionales o valores por defecto:
 
 1. Abrir el DAG src_planeacion_inges_ipm en la interfaz web de Airflow.
 
-2. Hacer clic en el boton Trigger DAG o Run. No es necesario proporcionar ningun parametro en la seccion de configuracion, ya que la URL del archivo esta hardcodeada en el codigo como constante DRIVE_URL.
+2. Hacer clic en el boton Trigger DAG o Run. No es necesario proporcionar parametros si se usan los valores por defecto. Si se desea cambiar el bucket o carpeta de GCS, se pueden configurar Variables de Airflow antes de ejecutar.
 
 3. Monitorear la ejecucion en la interfaz de Airflow. El DAG ejecutara las siguientes tareas en secuencia:
-   - La tarea upload_file_from_drive_to_gcs mostrara su estado como running mientras descarga y sube el archivo.
-   - La tarea trigger_extract_ipm ejecutara el DAG src_planeacion_extrac_ipm que extraera los datos a bronze y luego ejecutara automaticamente el DAG src_planeacion_transf_ipm para transformar los datos a silver y gold. Esta tarea puede tardar varios minutos dependiendo del tamano del archivo y la complejidad de las transformaciones.
+   - La tarea ensure_dataset mostrara su estado como running mientras verifica o crea el dataset.
+   - La tarea download_excel mostrara su estado como running mientras busca y descarga el archivo mas reciente desde GCS.
+   - La tarea transform_dataframe mostrara su estado como running mientras transforma el Excel.
+   - La tarea load_to_bq mostrara su estado como running mientras carga los datos a BigQuery.
+   - La tarea cleanup_temp_files eliminara los archivos temporales.
+   - La tarea trigger_transf_ipm ejecutara el DAG src_planeacion_transf_ipm que transformara los datos a silver y gold. Esta tarea puede tardar varios minutos dependiendo de la complejidad de las transformaciones.
    - Finalmente, la tarea end marcara el final del flujo.
 
-4. Verificar en los logs de la tarea upload_file_from_drive_to_gcs la URI final de GCS retornada. Los logs mostraran mensajes informativos sobre el proceso, incluyendo la URL de Drive que se esta usando, el bucket y carpeta destino, y finalmente un mensaje de confirmacion con la URI completa del archivo en GCS, por ejemplo: gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx.
+4. Verificar en los logs de las tareas la ejecucion del proceso. Los logs mostraran mensajes informativos sobre cada paso, incluyendo el archivo encontrado en GCS, el numero de filas transformadas, y la confirmacion de carga en BigQuery.
 
-5. Una vez completada exitosamente toda la ejecucion, el archivo estara disponible en GCS, habra sido procesado y transformado a traves de las capas bronze, silver y gold en BigQuery, y el DAG principal habra finalizado correctamente.
+5. Una vez completada exitosamente toda la ejecucion, los datos estaran disponibles en bronze, habran sido transformados a traves de las capas silver y gold en BigQuery, y el DAG principal habra finalizado correctamente.
 
 REQUISITOS PREVIOS
 
 Para que el DAG funcione correctamente, se deben cumplir los siguientes requisitos:
 
-La cuenta de servicio configurada en el entorno de Airflow debe tener permisos de escritura en el bucket de GCS especificado en DEFAULT_BUCKET_NAME. Esto significa que la cuenta de servicio debe tener el rol Storage Object Admin o Storage Object Creator en el bucket datalake_gdv, o al menos permisos para crear y escribir objetos en la carpeta data_staging/dpt_planeacion_municipal/ipm.
+La cuenta de servicio configurada en el entorno de Airflow debe tener permisos de lectura en el bucket de GCS especificado y permisos de lectura/escritura en BigQuery. Esto significa que la cuenta de servicio debe tener los roles apropiados para acceder a GCS y BigQuery.
 
-El archivo en Google Drive debe ser accesible publicamente mediante enlace. Esto significa que el archivo debe estar configurado como "Cualquier persona con el enlace puede ver" en la configuracion de compartir de Google Drive. Si el archivo no es publico, este DAG no funcionara porque usa use_public_link=True. En ese caso, se necesitaria modificar el DAG para usar use_public_link=False y compartir el archivo con la cuenta de servicio de Google Cloud, pero esto requeriria cambios adicionales en el codigo.
+Los datos deben estar disponibles en GCS en la carpeta configurada (normalmente subidos por el DAG src_planeacion_extrac_ipm que descarga desde Google Drive). Al menos un archivo Excel (.xlsx) debe existir en la carpeta para que el DAG funcione correctamente.
 
-El archivo debe ser un archivo Excel valido con extension .xlsx o .xls. El modulo puede manejar diferentes formatos, pero el procesamiento posterior asume que es un archivo Excel.
-
-La URL hardcodeada DRIVE_URL debe ser valida y apuntar al archivo correcto. Si el archivo se mueve o se elimina en Google Drive, la URL dejara de funcionar y el DAG fallara.
+El archivo Excel debe tener el formato esperado con las columnas del IPM. Si el formato no es correcto, la transformacion fallara con un error descriptivo.
 
 RESUMEN
 
-El DAG src_planeacion_inges_ipm es el primer componente del pipeline de datos del IPM. Su funcion es mover el archivo Excel del IPM desde un enlace publico fijo de Google Drive (hardcodeado en el codigo como constante DRIVE_URL) a una ubicacion estandarizada en GCS (gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/), y luego ejecutar automaticamente el DAG de extraccion src_planeacion_extrac_ipm que a su vez ejecutara el DAG de transformacion src_planeacion_transf_ipm, procesando el archivo a traves de las capas bronze, silver y gold en BigQuery.
+El DAG src_planeacion_inges_ipm es el segundo componente del pipeline de datos del IPM. Su funcion es extraer el archivo Excel mas reciente desde GCS, aplicar transformaciones minimas preservando los datos como texto, y cargarlo a BigQuery en la capa bronze (bronze_dpt_planeacion_municipal_dev.ipm_raw_data), luego ejecutar automaticamente el DAG de transformacion src_planeacion_transf_ipm que procesa los datos a traves de las capas silver y gold.
 
-El DAG consta de cuatro tareas secuenciales: una tarea de inicio, la descarga y subida del archivo a GCS, la ejecucion del DAG de transformacion (que espera su finalizacion), y una tarea de fin. No requiere parametros de ejecucion ya que la URL del archivo esta definida directamente en el codigo como constante. Esto simplifica su uso pero significa que siempre descargara el mismo archivo desde la misma ubicacion.
+El DAG consta de un TaskGroup "bronze" con tareas secuenciales para asegurar el dataset, descargar el Excel, transformar los datos, cargar a BigQuery, y limpiar archivos temporales, seguido de una tarea que ejecuta el DAG de transformacion. Puede usar Variables de Airflow para configurar el bucket y carpeta de GCS, o usar valores por defecto hardcodeados.
 
-La ejecucion es completamente manual, lo que permite controlar cuando se actualiza el archivo fuente en GCS y se ejecuta todo el pipeline de transformacion. Una vez ejecutado exitosamente, el archivo queda disponible en GCS, ha sido procesado completamente a traves de todas las capas de transformacion, y los datos finales estan disponibles en BigQuery para consumo.
+La ejecucion es completamente manual, lo que permite controlar cuando se procesan los datos y se ejecuta todo el pipeline de transformacion. Una vez ejecutado exitosamente, los datos quedan disponibles en bronze, han sido procesados completamente a traves de todas las capas de transformacion, y los datos finales estan disponibles en BigQuery para consumo.
 
-El diseno del DAG sigue el principio de simplicidad: toda la complejidad tecnica de descargar desde Google Drive y subir a GCS esta encapsulada en el modulo de utilidades, mientras que el DAG orquesta la ejecucion de manera clara y directa, incluyendo la ejecucion automatica del DAG de extraccion como parte del flujo principal.
-
+El diseno del DAG sigue el principio de simplicidad: toda la complejidad tecnica de extraccion, transformacion y carga esta encapsulada en el modulo de utilidades, mientras que el DAG orquesta la ejecucion de manera clara y directa, incluyendo la ejecucion automatica del DAG de transformacion como parte del flujo principal.

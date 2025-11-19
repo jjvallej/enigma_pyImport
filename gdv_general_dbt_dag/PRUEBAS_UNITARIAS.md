@@ -19,7 +19,48 @@ Este documento resume las pruebas unitarias y de integración realizadas y suger
 
 ## 1) Módulo Python: `modules/ipm_load.py`
 
-### 1.1 `extract_file_id_from_url`
+### 1.1 `ensure_dataset`
+- Caso: dataset existente → log de existente
+- Caso: dataset inexistente → creación con ubicación `us-central1`
+
+Resultado: OK (idempotente).
+
+### 1.2 `get_latest_excel_from_gcs_folder`
+- Caso: múltiples `.xlsx` en carpeta → retorna el más reciente por `time_created`
+- Caso: sin archivos → `ValueError`
+
+Resultado: OK con datos; error controlado sin archivos.
+
+### 1.3 `download_excel_from_gcs`
+- Caso: blob existente → crea temporal `.xlsx`, descarga, tamaño > 0
+- Caso: blob inexistente → error claro
+
+Resultado: OK; manejo de error correcto.
+
+### 1.4 `transform_excel`
+- Quitar primera fila guía si existe
+- Renombrar a esquema esperado: `cod_mpio`, `Municipio`, `Total`, `IPM_*`, `I1..I15_*`, `fecha_lectura`
+- Convertir TODAS las columnas a `STRING` (preservación en bronze)
+- Añadir `fecha_lectura` en UTC
+
+Resultado: OK con dataset de muestra que incluye casos con letras, separadores y vacíos.
+
+### 1.5 `_load_df_to_bq` / `load_dataframe_to_bq`
+- Esquema en BigQuery: todas `STRING` excepto `fecha_lectura` `TIMESTAMP`
+- `WRITE_TRUNCATE` reemplaza tabla
+
+Resultado: OK; tabla creada y reemplazada correctamente.
+
+### 1.6 `cleanup_temp_paths`
+- Elimina rutas válidas, ignora `None` o vacías, no falla ante inexistentes
+
+Resultado: OK; verificado en flujo de ingesta del DAG.
+
+---
+
+## 2) Módulo Python: `modules/ipm_extract.py`
+
+### 2.1 `extract_file_id_from_url`
 - Caso: URL tipo `https://drive.google.com/file/d/FILE_ID/view`
 - Caso: URL tipo `https://drive.google.com/open?id=FILE_ID`
 - Caso: URL tipo `https://docs.google.com/spreadsheets/d/FILE_ID/edit`
@@ -29,12 +70,12 @@ Este documento resume las pruebas unitarias y de integración realizadas y suger
 Resultado esperado: retorna el `FILE_ID` correcto o excepción descriptiva.
 Resultado: OK en escenarios válidos y error controlado en inválidos.
 
-### 1.2 `get_public_download_url`
+### 2.2 `get_public_download_url`
 - Caso: `FILE_ID` válido → genera URL `https://drive.google.com/uc?export=download&id=FILE_ID`
 
 Resultado: OK.
 
-### 1.3 `download_file_from_public_link`
+### 2.3 `download_file_from_public_link`
 - Caso: enlace público válido (archivo pequeño) → descarga exitosa, retorna `(ruta_tmp, nombre_original)`
 - Caso: enlace público con advertencia de archivo grande → detecta HTML intermedio y continúa descarga
 - Caso: enlace inválido → `HTTPError` o error claro
@@ -42,14 +83,14 @@ Resultado: OK.
 Verificaciones: tamaño de archivo > 0, extensión `.xlsx` por defecto si no se obtiene del header.
 Resultado: OK con enlaces válidos; manejo de error correcto con enlaces inválidos.
 
-### 1.4 `download_file_from_drive_api` (Service Account)
+### 2.4 `download_file_from_drive_api` (Service Account)
 - Caso: archivo compartido con la Service Account → descarga exitosa, conserva nombre
 - Caso: `use_service_account=False` → `NotImplementedError`
 - Caso: mime de spreadsheet → fuerza extensión `.xlsx` si falta
 
 Resultado: OK; la vía OAuth no está implementada por diseño.
 
-### 1.5 `upload_file_to_gcs`
+### 2.5 `upload_file_to_gcs`
 - Caso: subida a carpeta existente → retorna `gs://...`
 - Caso: carpeta inexistente → GCS crea el prefijo automáticamente
 - Caso: objeto ya existe y `overwrite=True` → elimina y reemplaza
@@ -58,52 +99,11 @@ Resultado: OK; la vía OAuth no está implementada por diseño.
 
 Resultado: OK (incluye sobrescritura controlada y validación de bucket).
 
-### 1.6 `move_file_from_drive_to_gcs`
+### 2.6 `move_file_from_drive_to_gcs`
 - Caso feliz: enlace público válido → retorna `gs://bucket/folder/archivo.xlsx` y elimina temporal local
 - Caso de error en subida → intenta limpiar temporal y propaga excepción
 
 Resultado: OK en caso feliz; limpieza de temporales verificada.
-
----
-
-## 2) Módulo Python: `modules/ipm_extract.py`
-
-### 2.1 `ensure_dataset`
-- Caso: dataset existente → log de existente
-- Caso: dataset inexistente → creación con ubicación `us-central1`
-
-Resultado: OK (idempotente).
-
-### 2.2 `get_latest_excel_from_gcs_folder`
-- Caso: múltiples `.xlsx` en carpeta → retorna el más reciente por `time_created`
-- Caso: sin archivos → `ValueError`
-
-Resultado: OK con datos; error controlado sin archivos.
-
-### 2.3 `download_excel_from_gcs`
-- Caso: blob existente → crea temporal `.xlsx`, descarga, tamaño > 0
-- Caso: blob inexistente → error claro
-
-Resultado: OK; manejo de error correcto.
-
-### 2.4 `transform_excel`
-- Quitar primera fila guía si existe
-- Renombrar a esquema esperado: `cod_mpio`, `Municipio`, `Total`, `IPM_*`, `I1..I15_*`, `fecha_lectura`
-- Convertir TODAS las columnas a `STRING` (preservación en bronze)
-- Añadir `fecha_lectura` en UTC
-
-Resultado: OK con dataset de muestra que incluye casos con letras, separadores y vacíos.
-
-### 2.5 `_load_df_to_bq` / `load_dataframe_to_bq`
-- Esquema en BigQuery: todas `STRING` excepto `fecha_lectura` `TIMESTAMP`
-- `WRITE_TRUNCATE` reemplaza tabla
-
-Resultado: OK; tabla creada y reemplazada correctamente.
-
-### 2.6 `cleanup_temp_paths`
-- Elimina rutas válidas, ignora `None` o vacías, no falla ante inexistentes
-
-Resultado: OK; verificado en flujo de extracción del DAG.
 
 ---
 
@@ -119,31 +119,31 @@ Resultado: OK (idempotente).
 
 ## 3) DAG: `src_ipm_load_dag.py`
 
-### Flujo
-- `start` → `upload_file_from_drive_to_gcs` → `trigger_extract_ipm` → `end`
-
-### Pruebas
-- Enlace público válido → retorna `gs://.../ipm/archivo.xlsx`
-- Logs informativos con origen y destino
-- Verificar que ejecuta automáticamente el DAG `src_planeacion_extrac_ipm`
-
-Resultado: OK con enlace válido; disparo automático del DAG de extracción verificado.
-
----
-
-## 4) DAG: `src_ipm_extract_dag.py`
-
-### Grupo extract (extracción a bronze)
+### Grupo bronze (ingesta a bronze)
 - Pasa `XCom` desde `download_excel` a `transform_dataframe` y de este a `load_to_bq`
 - `cleanup_temp_files` con `TriggerRule.ALL_DONE` limpia siempre temporales
 - Al finalizar exitosamente, ejecuta automáticamente el DAG `src_planeacion_transf_ipm`
 
 Pruebas:
-- Ejecución end-to-end con un Excel de muestra
+- Ejecución end-to-end con un Excel de muestra desde GCS
 - Verificar creación de `bronze_dpt_planeacion_municipal_dev.ipm_raw_data`
 - Verificar que ejecuta automáticamente el DAG de transformación
 
 Resultado: OK. Tabla bronze creada, temporales limpiados, y DAG de transformación ejecutado automáticamente.
+
+---
+
+## 4) DAG: `src_ipm_extract_dag.py`
+
+### Flujo
+- `start` → `upload_file_from_drive_to_gcs` → `trigger_inges_ipm` → `end`
+
+### Pruebas
+- Enlace público válido → retorna `gs://.../ipm/archivo.xlsx`
+- Logs informativos con origen y destino
+- Verificar que ejecuta automáticamente el DAG `src_planeacion_inges_ipm`
+
+Resultado: OK con enlace válido; disparo automático del DAG de ingesta verificado.
 
 ---
 
@@ -165,7 +165,7 @@ Pruebas por modelo:
 
 Resultado: OK. Cadena ejecutada y pruebas `dbt test` superadas en modelos clean y gold.
 
-**Nota importante:** Este DAG espera que los datos ya estén disponibles en `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por `src_ipm_extract_dag.py`).
+**Nota importante:** Este DAG espera que los datos ya estén disponibles en `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por `src_ipm_load_dag.py`).
 
 ### Grupo gold (dbt)
 - `ensure_dataset` → `dbt_run_gold` → `dbt_test`
@@ -237,6 +237,6 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 
 ## 11) Próximos pasos de prueba automatizada (opcional)
 
-- Pytest para unit tests de utilidades: mocks de GCS y HTTP (requests) para `ipm_load.py` y `ipm_extract.py`
+- Pytest para unit tests de utilidades: mocks de GCS y BigQuery para `ipm_load.py` y mocks de GCS y HTTP (requests) para `ipm_extract.py`
 - Great Expectations o dbt tests adicionales para validaciones de esquema y contenido
 - Hooks de CI para ejecutar `dbt run --select state:modified+` y `dbt test` en PRs

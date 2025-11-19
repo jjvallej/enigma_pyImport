@@ -1,139 +1,179 @@
 DOCUMENTACION DETALLADA DEL MODULO ipm_extract.py
 
-Este documento describe en detalle el funcionamiento del modulo ipm_extract.py, que proporciona funcionalidades para extraer archivos Excel desde Google Cloud Storage, transformarlos minimamente y cargarlos en la capa bronze de BigQuery. Este modulo encapsula toda la logica relacionada con la extraccion y carga inicial de datos en la capa bronze.
+Este documento describe en detalle el funcionamiento del modulo ipm_extract.py, que proporciona funcionalidades para descargar archivos Excel desde Google Drive y subirlos a Google Cloud Storage. El modulo soporta diferentes metodos de autenticacion y maneja diversos formatos de URLs de Google Drive.
 
 PROPOSITO DEL MODULO
 
-El modulo ipm_extract.py esta disenado para facilitar la extraccion de archivos Excel desde Google Cloud Storage y su carga en BigQuery en la capa bronze. Este proceso es el segundo paso en el pipeline de datos IPM, despues de que el archivo ha sido movido desde Google Drive a GCS por el modulo ipm_load.py.
+El modulo ipm_extract.py esta disenado para facilitar la transferencia de archivos Excel desde Google Drive hacia Google Cloud Storage. Este proceso es tipicamente el primer paso en el pipeline de datos, donde los archivos fuente se almacenan en Drive y necesitan ser movidos a GCS para su posterior procesamiento.
 
-La filosofia de la capa bronze es preservar los datos exactamente como vienen de la fuente, sin hacer transformaciones complejas o limpiezas profundas. Todas las transformaciones y validaciones se realizan posteriormente en las capas silver y gold usando dbt.
+El modulo soporta tres metodos principales de acceso a archivos de Google Drive:
+1. Enlaces publicos: El metodo mas simple, no requiere autenticacion. El archivo debe estar configurado como publico en Google Drive.
+2. Service Account: Requiere que el archivo este compartido con la cuenta de servicio. Utiliza las credenciales del archivo sa.json.
+3. OAuth 2.0: Para acceder a archivos personales del usuario. Nota: Este metodo no esta completamente implementado en la version actual.
 
 CONFIGURACION INICIAL
 
-El archivo comienza con la importacion de las librerias necesarias. Utiliza google.cloud.bigquery y google.cloud.storage para interactuar con los servicios de Google Cloud, pandas para manipulacion de datos, y librerias estandar de Python para manejo de archivos temporales, fechas y expresiones regulares.
+El archivo comienza con la importacion de las librerias necesarias. Utiliza google.cloud.storage para interactuar con Google Cloud Storage, googleapiclient para interactuar con la API de Google Drive, y librerias estandar de Python para manejo de archivos, URLs y expresiones regulares.
 
 Las constantes principales son:
 - PROJECT_ID: Identificador del proyecto de Google Cloud, actualmente "datagov-473122"
 - SA_PATH: Ruta al archivo de credenciales de servicio, ubicado en "/opt/airflow/include/sa.json"
 - DEBUG: Variable booleana que controla si se muestran mensajes de depuracion detallados
-- GCS_BUCKET_NAME: Nombre del bucket de GCS por defecto, "datalake_gdv"
-- GCS_FOLDER_PATH: Ruta de la carpeta por defecto en GCS, "data_staging/dpt_planeacion_municipal/ipm"
+- SCOPES: Define los permisos necesarios para la API de Google Drive, actualmente solo lectura readonly
 
 FUNCIONES DE CLIENTES
 
-El modulo define dos funciones privadas para crear clientes de Google Cloud:
+El modulo define dos funciones para crear clientes de Google Cloud:
 
-_bq_client: Crea y retorna un cliente de BigQuery. Esta funcion establece la variable de entorno GOOGLE_APPLICATION_CREDENTIALS con la ruta del archivo de credenciales y luego crea un cliente de BigQuery asociado al proyecto configurado. Este cliente se utiliza para todas las operaciones relacionadas con BigQuery, como crear datasets y cargar datos.
+_gcs_client: Crea y retorna un cliente de Google Cloud Storage. Esta funcion establece la variable de entorno GOOGLE_APPLICATION_CREDENTIALS con la ruta del archivo de credenciales y luego crea un cliente de Storage asociado al proyecto configurado. Este cliente se utiliza para todas las operaciones de subida y manipulacion de archivos en GCS.
 
-_gcs_client: Crea y retorna un cliente de Google Cloud Storage. Similar a la funcion anterior, establece las credenciales y crea un cliente de Storage para interactuar con buckets y archivos en GCS. Este cliente se utiliza para descargar archivos desde GCS.
+_drive_client_service_account: Crea un cliente de Google Drive API usando Service Account. Esta funcion carga las credenciales desde el archivo sa.json, les asigna los scopes necesarios para lectura de archivos, y construye un cliente de la API de Drive version 3. El parametro cache_discovery se establece en False para evitar problemas de cache. Este cliente se utiliza cuando se necesita acceder a archivos mediante la API de Drive en lugar de enlaces publicos.
 
-FUNCION ensure_dataset
+FUNCION extract_file_id_from_url
 
-Esta funcion verifica si existe un dataset en BigQuery y lo crea si no existe. Recibe como parametros el identificador del dataset y opcionalmente la ubicacion geografica, que por defecto es "us-central1".
+Esta funcion es fundamental porque extrae el identificador unico del archivo File ID desde diferentes formatos de URLs de Google Drive. El File ID es necesario para todas las operaciones con la API de Drive.
 
-El proceso es el siguiente: primero construye el nombre completo del dataset usando el PROJECT_ID y el dataset_id proporcionado. Luego intenta obtener el dataset usando el cliente de BigQuery. Si el dataset existe, imprime un mensaje de confirmacion si DEBUG esta activado. Si no existe, crea un nuevo dataset con la ubicacion especificada, le asigna la descripcion "Bronze layer para IPM v2" y lo crea en BigQuery. Finalmente imprime un mensaje indicando que el dataset fue creado exitosamente.
+El proceso funciona de la siguiente manera: primero verifica si la cadena proporcionada ya es solo un File ID, es decir, si tiene menos de 50 caracteres y no comienza con http. En ese caso, simplemente retorna el ID limpio sin espacios.
 
-Esta funcion es utilizada para asegurar que el dataset bronze_dpt_planeacion_municipal_dev existe antes de intentar cargar datos.
+Si es una URL, intenta extraer el File ID usando expresiones regulares que buscan patrones comunes en las URLs de Google Drive. Los patrones que reconoce incluyen:
+- URLs de archivos: /file/d/FILE_ID/view
+- URLs de hojas de calculo: /spreadsheets/d/FILE_ID/edit
+- URLs de documentos: /document/d/FILE_ID
+- URLs con parametro id: ?id=FILE_ID
+- URLs de carpetas: /folders/FILE_ID
 
-FUNCION get_latest_excel_from_gcs_folder
+La funcion itera sobre cada patron y si encuentra una coincidencia, retorna el File ID extraido. Si ningun patron coincide, lanza una excepcion indicando que no se pudo extraer el File ID de la URL proporcionada.
 
-Esta funcion busca y retorna la URI del archivo Excel mas reciente en una carpeta especifica de Google Cloud Storage. Es una funcion critica porque permite que el pipeline procese automaticamente el archivo mas actualizado sin necesidad de especificar manualmente el nombre del archivo.
+FUNCION get_public_download_url
 
-El proceso funciona asi: primero normaliza la ruta de la carpeta asegurandose de que termine con una barra diagonal. Luego obtiene el bucket de GCS usando el nombre proporcionado. Si hay un error al acceder al bucket, lanza una excepcion con un mensaje descriptivo.
+Esta funcion convierte un File ID en una URL de descarga directa para archivos publicos. La URL generada utiliza el formato especial de Google Drive que permite descargar archivos publicos sin necesidad de autenticacion. El formato es: https://drive.google.com/uc?export=download&id=FILE_ID. Esta URL se puede usar directamente con requests o similar para descargar el archivo.
 
-Despues lista todos los blobs (objetos) en la carpeta especificada usando el prefijo de la ruta. Filtra los archivos para quedarse solo con aquellos que terminan en .xlsx y que no son directorios (evitando carpetas virtuales). Si no encuentra ningun archivo Excel, lanza una excepcion indicando que no se encontraron archivos.
+FUNCION download_file_from_public_link
 
-Si encuentra archivos, los ordena por fecha de creacion de manera descendente, es decir, el mas reciente primero. Toma el primer archivo de la lista ordenada y construye su URI completa en formato gs://bucket/nombre_archivo.
+Esta funcion descarga un archivo desde Google Drive usando un enlace publico. Es el metodo mas simple porque no requiere autenticacion, solo que el archivo este configurado como publico en Google Drive.
 
-Si DEBUG esta activado, imprime informacion sobre cuantos archivos se encontraron y muestra los primeros cinco con sus fechas de creacion, ademas de indicar cual archivo se selecciono. Finalmente retorna la URI completa del archivo mas reciente.
+El proceso es el siguiente: primero extrae el File ID de la URL proporcionada usando extract_file_id_from_url. Si DEBUG esta activado, imprime el File ID extraido.
 
-FUNCION download_excel_from_gcs
+Segundo, obtiene la URL de descarga directa usando get_public_download_url.
 
-Esta funcion descarga un archivo Excel desde Google Cloud Storage a un archivo temporal en el sistema de archivos local. Recibe como parametro la URI completa del archivo en formato gs://bucket/nombre_archivo.
+Tercero, crea una sesion de requests y hace una peticion GET a la URL de descarga con stream=True para manejar archivos grandes de manera eficiente, y allow_redirects=True para seguir redirecciones.
 
-El proceso es: primero extrae el nombre del bucket y el nombre del blob desde la URI, dividiendo la cadena por las barras diagonales. El bucket es el tercer elemento (indice 2) despues de dividir por "/", y el blob name es el resto de la ruta. Luego obtiene el blob especifico desde el bucket. Crea un archivo temporal usando tempfile.mkstemp con extension .xlsx, cierra el descriptor de archivo inmediatamente, y descarga el contenido del blob al archivo temporal usando download_to_filename. Si DEBUG esta activado, imprime la ruta donde se descargo el archivo. Finalmente retorna la ruta del archivo temporal descargado.
+Cuarto, maneja un caso especial: cuando Google Drive detecta que se esta intentando descargar un archivo grande, muestra primero una pagina de advertencia en lugar de descargar directamente. La funcion detecta esto verificando si el Content-Type de la respuesta es text/html. Si es asi, busca en el contenido HTML el enlace real de descarga usando una expresion regular que busca el patron href="/uc?export=download...". Si encuentra el enlace, lo extrae, corrige las entidades HTML como &amp; a &, y hace una nueva peticion a esa URL.
 
-Esta funcion garantiza que el archivo se descargue de manera eficiente y que el descriptor de archivo se cierre correctamente para evitar problemas de recursos.
+Quinto, verifica que la peticion fue exitosa usando raise_for_status.
 
-FUNCION transform_excel
+Sexto, determina el nombre original del archivo. Si se proporciono un nombre en el parametro file_name, lo usa. Si no, intenta extraerlo del header Content-Disposition de la respuesta HTTP. Si el header contiene filename=, extrae el nombre usando una expresion regular. Limpia el nombre removiendo caracteres problematicos como saltos de linea. Si no puede obtener el nombre del header, usa un nombre por defecto basado en el File ID.
 
-Esta es una de las funciones mas importantes del modulo. Aplica las transformaciones minimas necesarias al archivo Excel descargado y retorna un DataFrame de pandas listo para ser cargado en BigQuery en la capa bronze.
+Septimo, crea un archivo temporal con la extension apropiada. Extrae la extension del nombre del archivo o usa .xlsx por defecto. Usa tempfile.mkstemp para crear el archivo temporal y cierra el descriptor inmediatamente.
 
-El proceso de transformacion tiene varios pasos:
+Octavo, descarga el archivo escribiendolo en chunks de 8192 bytes. Esto permite manejar archivos grandes de manera eficiente sin cargar todo el archivo en memoria. Si DEBUG esta activado y se conoce el tamano total del archivo, muestra el progreso de la descarga cada 25 por ciento.
 
-Primero lee el archivo Excel usando pandas.read_excel, especificando la hoja por indice (por defecto 0, la primera hoja) y usando la primera fila como encabezados (header=0).
+Noveno, si DEBUG esta activado, imprime mensajes de confirmacion con la ruta del archivo descargado y el nombre original.
 
-Segundo, elimina la primera fila de datos porque generalmente contiene totales o una fila guia que no es parte de los datos reales. Esto se hace usando iloc para seleccionar desde la fila 1 en adelante y luego reseteando el indice.
+Finalmente, retorna una tupla con la ruta del archivo temporal descargado y el nombre original del archivo.
 
-Tercero, si DEBUG esta activado, imprime los nombres de las columnas originales para inspeccion.
+FUNCION download_file_from_drive_api
 
-Cuarto, define las columnas esperadas en el orden correcto. El formato esperado es: cod_mpio, Municipio, Total, luego cuatro columnas para IPM (IPM_Pobre_Abs, IPM_No_Pobre_Abs, IPM_Pobre_Porc, IPM_No_Pobre_Porc), y luego para cada indicador del I1 al I15, cuatro columnas: Con_Privacion_Abs, Sin_Privacion_Abs, Con_Privacion_Porc, Sin_Privacion_Porc.
+Esta funcion descarga un archivo desde Google Drive usando la API oficial de Google Drive. Requiere autenticacion mediante Service Account, lo que significa que el archivo debe estar compartido con la cuenta de servicio correspondiente.
 
-Quinto, valida que el archivo tenga al menos el numero de columnas esperadas. Si tiene menos columnas, lanza una excepcion indicando cuantas columnas se esperaban y cuantas tiene el archivo. Si tiene mas columnas, emite una advertencia si DEBUG esta activado y toma solo las primeras columnas necesarias.
+El proceso es el siguiente: primero verifica si se debe usar Service Account. Si use_service_account es False, lanza una excepcion indicando que OAuth 2.0 no esta implementado.
 
-Sexto, renombra las columnas del DataFrame con los nombres esperados.
+Segundo, crea un cliente de Drive API usando _drive_client_service_account.
 
-Septimo, y esto es muy importante, convierte todas las columnas a tipo STRING. Esta es una decision de diseno critica: en la capa bronze no se deben hacer conversiones de tipos porque se quiere preservar los datos originales exactamente como vienen, incluso si tienen letras, espacios, caracteres especiales o valores invalidos. Las transformaciones y limpiezas se haran posteriormente en la capa silver usando dbt. Especificamente, convierte cod_mpio y Municipio a string, y todas las columnas numericas tanto las que deberian ser enteros como las que deberian ser flotantes a string.
+Tercero, obtiene los metadatos del archivo usando files().get() con los campos name y mimeType. Esto permite conocer el nombre original del archivo y su tipo MIME.
 
-Octavo, agrega una columna llamada fecha_lectura con el timestamp actual en UTC usando datetime.now(timezone.utc). Esta columna permite rastrear cuando se procesaron los datos.
+Cuarto, determina el nombre del archivo. Si se proporciono un nombre en el parametro file_name, lo usa. Si no, usa el nombre obtenido de los metadatos. Si el nombre no termina en .xlsx o .xls, verifica el tipo MIME y si es un archivo de Excel o hoja de calculo, agrega la extension .xlsx.
 
-Finalmente retorna el DataFrame transformado.
+Quinto, crea un archivo temporal con la extension apropiada usando tempfile.mkstemp.
 
-FUNCION _load_df_to_bq
+Sexto, descarga el archivo usando la API de Drive. Crea una peticion de descarga usando files().get_media() con el File ID. Crea un objeto FileIO para escribir el archivo, y un MediaIoBaseDownload para manejar la descarga en chunks. Itera sobre los chunks de descarga hasta que se complete. Si DEBUG esta activado, muestra el progreso de la descarga.
 
-Esta funcion privada carga un DataFrame de pandas a una tabla en BigQuery. Recibe el DataFrame, el identificador del dataset y el nombre de la tabla.
+Septimo, cierra el archivo y si DEBUG esta activado, imprime mensajes de confirmacion.
 
-El proceso es: primero crea un cliente de BigQuery y construye el nombre completo de la tabla usando el PROJECT_ID, dataset_id y table_name.
+Finalmente, retorna una tupla con la ruta del archivo temporal descargado y el nombre original del archivo.
 
-Segundo, define el esquema de la tabla. Es importante notar que en la capa bronze, todas las columnas excepto fecha_lectura son de tipo STRING para preservar los datos originales. El esquema incluye: cod_mpio como STRING, Municipio como STRING, Total como STRING, las cuatro columnas de IPM como STRING, y para cada indicador del I1 al I15, cuatro columnas todas como STRING. La unica columna que no es STRING es fecha_lectura que es TIMESTAMP.
+FUNCION download_file_from_drive
 
-Tercero, crea una configuracion de trabajo de carga que especifica que se debe usar WRITE_TRUNCATE, lo que significa que si la tabla ya existe, se reemplazara completamente con los nuevos datos. Tambien especifica el esquema definido.
+Esta funcion es una funcion de alto nivel que unifica los dos metodos de descarga. Permite elegir entre usar un enlace publico o la API de Drive.
 
-Cuarto, ejecuta el trabajo de carga usando load_table_from_dataframe, pasando el DataFrame, el nombre completo de la tabla y la configuracion. Espera a que el trabajo termine usando job.result().
+El proceso es simple: si use_public_link es True, llama a download_file_from_public_link. Si es False, extrae el File ID de la URL usando extract_file_id_from_url y luego llama a download_file_from_drive_api con use_service_account=True.
 
-Quinto, imprime un mensaje indicando cuantas filas se cargaron exitosamente.
+Esta funcion proporciona una interfaz unificada que oculta los detalles de implementacion de cada metodo.
 
-FUNCION load_dataframe_to_bq
+FUNCION upload_file_to_gcs
 
-Esta es una funcion publica que simplemente llama a _load_df_to_bq. Proporciona una interfaz publica para cargar DataFrames a BigQuery, ocultando la implementacion interna de la funcion privada.
+Esta funcion sube un archivo local a Google Cloud Storage. Maneja automaticamente la creacion de carpetas si no existen, y puede sobrescribir archivos existentes si se solicita.
 
-FUNCION cleanup_temp_paths
+El proceso es el siguiente: primero crea un cliente de GCS usando _gcs_client.
 
-Esta funcion elimina archivos temporales del sistema de archivos. Recibe una lista iterable de rutas de archivos opcionales.
+Segundo, obtiene el bucket usando el nombre proporcionado. Si hay un error al acceder al bucket, lanza una excepcion con un mensaje descriptivo.
 
-El proceso es: itera sobre cada ruta en la lista. Si la ruta es None o vacia, la ignora. Para cada ruta valida, intenta eliminar el archivo usando os.unlink. Si DEBUG esta activado, imprime un mensaje indicando que el archivo fue eliminado. Si hay alguna excepcion al intentar eliminar un archivo, imprime una advertencia pero no detiene el proceso.
+Tercero, normaliza la ruta de destino eliminando barras dobles y espacios, asegurandose de que el formato sea consistente. Esto se hace dividiendo la ruta por barras, eliminando espacios y partes vacias, y volviendo a unir.
 
-Esta funcion es critica para mantener el sistema limpio y evitar la acumulacion de archivos temporales que podrian consumir espacio en disco.
+Cuarto, si DEBUG esta activado, verifica si la carpeta destino ya existe listando objetos con ese prefijo. Si encuentra objetos, imprime que la carpeta ya existe. Si no encuentra objetos, imprime que la carpeta se creara automaticamente. Nota importante: en GCS no existen realmente las carpetas, son solo prefijos en los nombres de los objetos, pero esta verificacion ayuda a entender el estado.
+
+Quinto, obtiene o crea el blob objeto en GCS usando el nombre de destino normalizado.
+
+Sexto, verifica si el archivo ya existe usando blob.exists(). Si existe y overwrite es True, elimina el archivo existente antes de subir el nuevo. Si DEBUG esta activado, imprime mensajes informativos sobre esta operacion. Si overwrite es False, imprime una advertencia pero no sube el nuevo archivo.
+
+Septimo, sube el archivo usando blob.upload_from_filename(). Esta operacion crea automaticamente la estructura de carpetas si no existe, ya que GCS maneja las carpetas como parte del nombre del objeto.
+
+Octavo, construye la URI completa del archivo en formato gs://bucket/ruta.
+
+Noveno, si DEBUG esta activado, imprime un mensaje de confirmacion con la URI completa.
+
+Finalmente, retorna la URI completa del archivo en GCS.
+
+FUNCION move_file_from_drive_to_gcs
+
+Esta es la funcion principal y mas completa del modulo. Combina la descarga desde Google Drive y la subida a GCS en una sola operacion, manejando automaticamente la limpieza de archivos temporales.
+
+El proceso es el siguiente: primero descarga el archivo desde Google Drive usando download_file_from_drive. Esta funcion retorna una tupla con la ruta local del archivo descargado y el nombre original del archivo.
+
+Segundo, dentro de un bloque try-finally para asegurar la limpieza, determina el nombre del archivo de destino. Si no se proporciono destination_file_name, usa el nombre original extraido de Drive.
+
+Tercero, construye la ruta completa de destino en GCS. Normaliza los nombres de carpeta y archivo eliminando barras y espacios, y construye la ruta como folder_name/destination_file_name.
+
+Cuarto, sube el archivo a GCS usando upload_file_to_gcs con la ruta construida.
+
+Quinto, retorna la URI completa del archivo en GCS.
+
+Finalmente, en el bloque finally, elimina el archivo temporal local usando os.unlink. Si hay algun error al eliminar el archivo, imprime una advertencia pero no detiene el proceso. Si DEBUG esta activado, imprime un mensaje confirmando que el archivo temporal fue eliminado.
+
+Esta funcion garantiza que los archivos temporales siempre se eliminen, incluso si ocurre un error durante el proceso de subida.
 
 CARACTERISTICAS IMPORTANTES DEL MODULO
 
 El modulo tiene varias caracteristicas importantes que lo hacen robusto y facil de usar:
 
-Preservacion de datos originales: La decision de convertir todas las columnas a STRING en la capa bronze garantiza que los datos se preserven exactamente como vienen de la fuente. Esto permite auditar y depurar problemas posteriormente.
+Manejo de diferentes formatos de URL: La funcion extract_file_id_from_url puede manejar una amplia variedad de formatos de URLs de Google Drive, lo que hace que el modulo sea flexible y no requiera que el usuario formatee la URL de una manera especifica.
 
-Manejo automatico del archivo mas reciente: La funcion get_latest_excel_from_gcs_folder permite que el pipeline procese automaticamente el archivo mas actualizado sin intervencion manual, reduciendo errores humanos.
+Manejo de archivos grandes: Tanto la descarga desde enlaces publicos como desde la API se hacen en chunks, lo que permite manejar archivos grandes sin cargar todo el archivo en memoria.
 
-Limpieza automatica: La funcion cleanup_temp_paths garantiza que los archivos temporales se eliminen siempre, incluso si ocurre un error, evitando acumulacion de archivos temporales en el sistema.
+Manejo de advertencias de Google Drive: Cuando se descarga un archivo grande desde un enlace publico, Google Drive muestra primero una pagina de advertencia. El modulo detecta esto y extrae automaticamente el enlace real de descarga.
+
+Preservacion de nombres originales: El modulo intenta preservar el nombre original del archivo tanto al descargarlo como al subirlo a GCS, lo que facilita el rastreo y la identificacion de archivos.
+
+Creacion automatica de carpetas: Al subir un archivo a GCS, si la carpeta no existe, se crea automaticamente. Esto simplifica el proceso y evita errores.
+
+Manejo de archivos existentes: La funcion upload_file_to_gcs permite controlar si se deben sobrescribir archivos existentes o mantener los anteriores, proporcionando flexibilidad segun las necesidades del caso de uso.
+
+Limpieza automatica: La funcion move_file_from_drive_to_gcs garantiza que los archivos temporales se eliminen siempre, incluso si ocurre un error, evitando acumulacion de archivos temporales en el sistema.
 
 Mensajes de depuracion: Cuando DEBUG esta activado, el modulo proporciona mensajes detallados sobre cada paso del proceso, lo que facilita la depuracion y el monitoreo.
-
-Idempotencia: La configuracion WRITE_TRUNCATE garantiza que si el proceso se ejecuta multiples veces, la tabla se reemplazara con los datos mas recientes, proporcionando un comportamiento consistente.
 
 CASOS DE USO
 
 El modulo se puede usar en diferentes escenarios:
 
-Caso 1: Extraccion y carga directa. El modulo puede usarse directamente para extraer un archivo de GCS y cargarlo a BigQuery en bronze. Esto es lo que hace el DAG src_planeacion_extrac_ipm.
+Caso 1: Archivo publico en Google Drive. Este es el caso mas simple. Solo se necesita la URL publica del archivo, y el modulo lo descarga y sube a GCS sin necesidad de configuracion adicional.
 
-Caso 2: Integracion en DAGs de Airflow. El modulo esta disenado para ser usado en DAGs de Airflow, donde cada funcion puede ser una tarea diferente del DAG, permitiendo mejor control, logging y manejo de errores.
+Caso 2: Archivo compartido con Service Account. Si el archivo no es publico pero esta compartido con la cuenta de servicio, se puede usar la API de Drive estableciendo use_public_link=False.
+
+Caso 3: Automatizacion mediante DAG. El modulo esta disenado para ser usado en DAGs de Airflow, donde se puede automatizar la transferencia de archivos desde Drive a GCS como parte de un pipeline mas grande.
 
 INTEGRACION CON EL PIPELINE
 
-Este modulo es el segundo paso en el pipeline de datos IPM:
+Este modulo es tipicamente el primer paso en el pipeline de datos. Los archivos se almacenan en Google Drive por los usuarios, y este modulo los transfiere a GCS. Una vez en GCS, el modulo ipm_load.py puede procesarlos y cargarlos a BigQuery.
 
-1. El modulo ipm_load.py transfiere el archivo desde Google Drive a GCS.
-2. Este modulo (ipm_extract.py) extrae el archivo de GCS, aplica transformaciones minimas y lo carga en BigQuery en la capa bronze (bronze_dpt_planeacion_municipal_dev.ipm_raw_data).
-3. El DAG src_planeacion_transf_ipm utiliza modelos dbt para transformar los datos desde bronze a silver (silver_dpt_planeacion_municipal_dev.ipm_transformed_data) y gold (gold_dpt_planeacion_municipal_dev.ipm_processed_data).
-
-La separacion de responsabilidades es clara: ipm_load.py se encarga de la transferencia desde Drive a GCS, ipm_extract.py se encarga de la extraccion y carga a bronze, e ipm_transform.py (junto con los modelos dbt) se encarga del procesamiento y transformacion a silver y gold. Esta separacion permite que cada modulo se enfoque en su tarea especifica y facilita el mantenimiento y las pruebas.
-
+La separacion de responsabilidades es clara: ipm_extract.py se encarga de la transferencia desde Drive a GCS, mientras que ipm_load.py se encarga de la extraccion y carga a bronze. Esta separacion permite que cada modulo se enfoque en su tarea especifica y facilita el mantenimiento y las pruebas.
