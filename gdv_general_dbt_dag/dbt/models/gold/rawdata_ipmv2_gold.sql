@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema='gold_dpt_planeacion_municipal_dev',
-    alias='gold_dpt_planeacion_municipal_dev_ipm'
+    alias='ipm_processed_data'
   )
 }}
 

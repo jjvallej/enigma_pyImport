@@ -74,5 +74,5 @@ SELECT
     I15_Con_Privacion_Porc AS i15_con_privacion_porc,
     I15_Sin_Privacion_Porc AS i15_sin_privacion_porc,
     fecha_lectura
-FROM `datagov-473122`.`bronze_dpt_planeacion_municipal_dev`.`bronze_dpt_planeacion_municipal_dev_ipm`;
+FROM `datagov-473122`.`bronze_dpt_planeacion_municipal_dev`.`ipm_raw_data`;
 

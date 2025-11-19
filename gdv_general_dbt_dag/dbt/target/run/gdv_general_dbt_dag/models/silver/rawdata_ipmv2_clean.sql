@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`silver_dpt_planeacion_municipal_dev_ipm`
+    create or replace table `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`ipm_transformed_data`
       
     
     

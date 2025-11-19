@@ -1,4 +1,4 @@
-# dags/upload_excel_to_gcs_dag.py
+# dags/src_ipm_load_dag.py
 """
 DAG para mover archivos Excel desde Google Drive (enlace público) a Google Cloud Storage.
 Descarga el archivo desde Drive y lo sube al bucket GCS en la carpeta 'ipm' dentro de 'data_staging/dpt_planeacion_municipal/'.
@@ -15,7 +15,7 @@ import os
 # Asegura que podamos importar el módulo local
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from modules.upload_excel_to_gcs import move_file_from_drive_to_gcs
+from modules.ipm_load import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
 DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
@@ -59,12 +59,12 @@ def _upload_file_task():
     return gcs_uri
 
 with DAG(
-    dag_id="scr_planeacion_inges_ipm",
+    dag_id="src_planeacion_inges_ipm",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de transformación scr_planeacion_transf_ipm.",
+    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de extracción src_planeacion_extrac_ipm.",
 ) as dag:
 
     # Tarea inicial
@@ -78,11 +78,11 @@ with DAG(
         python_callable=_upload_file_task,
     )
 
-    # Tarea para ejecutar el DAG de transformación
-    trigger_transf_dag = TriggerDagRunOperator(
-        task_id="trigger_transf_ipm",
-        trigger_dag_id="scr_planeacion_transf_ipm",
-        wait_for_completion=True,  # Espera a que el DAG de transformación termine
+    # Tarea para ejecutar el DAG de extracción
+    trigger_extract_dag = TriggerDagRunOperator(
+        task_id="trigger_extract_ipm",
+        trigger_dag_id="src_planeacion_extrac_ipm",
+        wait_for_completion=True,  # Espera a que el DAG de extracción termine
     )
 
     # Tarea final
@@ -91,5 +91,5 @@ with DAG(
     )
 
     # Dependencias
-    start >> upload_file >> trigger_transf_dag >> end
+    start >> upload_file >> trigger_extract_dag >> end
 

@@ -3,4 +3,4 @@ sources:
   - name: bronze_ipmv2
     schema: bronze_dpt_planeacion_municipal_dev
     tables:
-      - name: bronze_dpt_planeacion_municipal_dev_ipm
+      - name: ipm_raw_data

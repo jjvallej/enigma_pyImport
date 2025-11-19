@@ -41,9 +41,9 @@ Este archivo define las fuentes de datos externas que los modelos dbt pueden lee
 
 El archivo define una unica fuente principal:
 
-La fuente bronze_ipmv2 es la fuente principal y unica para este pipeline. Se refiere al schema bronze_dpt_planeacion_municipal_dev y contiene la tabla bronze_dpt_planeacion_municipal_dev_ipm. Esta es la tabla que se crea en la capa bronze por el modulo load_rawdata_ipmv2.py y que contiene los datos originales en formato STRING, preservando todos los valores tal como vienen del archivo Excel sin transformaciones.
+La fuente bronze_ipmv2 es la fuente principal y unica para este pipeline. Se refiere al schema bronze_dpt_planeacion_municipal_dev y contiene la tabla ipm_raw_data. Esta es la tabla que se crea en la capa bronze por el modulo ipm_transform.py y que contiene los datos originales en formato STRING, preservando todos los valores tal como vienen del archivo Excel sin transformaciones.
 
-Esta fuente se referencia en el modelo rawdata_ipmv2_stg usando la sintaxis source('bronze_ipmv2', 'bronze_dpt_planeacion_municipal_dev_ipm'), que es el punto de entrada del pipeline de transformaciones dbt.
+Esta fuente se referencia en el modelo rawdata_ipmv2_stg usando la sintaxis source('bronze_ipmv2', 'ipm_raw_data'), que es el punto de entrada del pipeline de transformaciones dbt.
 
 ARCHIVO: macros/generate_schema_name.sql
 
@@ -65,7 +65,7 @@ MODELO: rawdata_ipmv2_stg
 
 Este es el primer modelo de la capa silver y actua como una capa de staging. Su proposito principal es leer los datos de bronze y normalizar los nombres de las columnas de PascalCase o formato mixto a snake_case, que es el estandar utilizado en el resto del pipeline.
 
-El modelo se materializa como una vista en el schema silver_dpt_planeacion_municipal_dev. Lee directamente de la fuente bronze_ipmv2 usando source('bronze_ipmv2', 'bronze_dpt_planeacion_municipal_dev_ipm').
+El modelo se materializa como una vista en el schema silver_dpt_planeacion_municipal_dev. Lee directamente de la fuente bronze_ipmv2 usando source('bronze_ipmv2', 'ipm_raw_data').
 
 Las transformaciones que realiza son puramente de renombrado de columnas:
 - cod_mpio se mantiene igual
@@ -186,7 +186,7 @@ MODELO: rawdata_ipmv2_clean
 
 Este es el modelo final de la capa silver. Su proposito es materializar los datos limpios como una tabla fisica y realizar la transformacion final de la fecha.
 
-El modelo se materializa como una tabla table en el schema silver_dpt_planeacion_municipal_dev con el alias silver_dpt_planeacion_municipal_dev_ipm. El alias permite que la tabla tenga un nombre mas descriptivo y consistente con las convenciones de nombres del proyecto.
+El modelo se materializa como una tabla table en el schema silver_dpt_planeacion_municipal_dev con el alias ipm_transformed_data. El alias permite que la tabla tenga un nombre mas descriptivo y consistente con las convenciones de nombres del proyecto.
 
 El modelo lee del modelo rawdata_ipmv2_apply_validations usando ref('rawdata_ipmv2_apply_validations').
 
@@ -204,7 +204,7 @@ MODELO: rawdata_ipmv2_gold
 
 Este modelo crea la capa final de consumo con un formato simplificado y estandarizado para los usuarios finales.
 
-El modelo se materializa como una tabla table en el schema gold_dpt_planeacion_municipal_dev con el alias gold_dpt_planeacion_municipal_dev_ipm.
+El modelo se materializa como una tabla table en el schema gold_dpt_planeacion_municipal_dev con el alias ipm_processed_data.
 
 El modelo lee del modelo final de silver rawdata_ipmv2_clean usando ref('rawdata_ipmv2_clean').
 
@@ -270,7 +270,7 @@ INTEGRACION CON EL PIPELINE
 
 El proyecto dbt se integra con el pipeline de Airflow de la siguiente manera:
 
-El DAG load_rawdata_ipmv2_dag.py ejecuta los modelos dbt en el orden correcto usando BashOperator que ejecuta comandos dbt run --select modelo. Cada modelo se ejecuta como una tarea separada en Airflow, lo que permite monitoreo granular y manejo de errores.
+El DAG src_ipm_transform_dag.py ejecuta los modelos dbt en el orden correcto usando BashOperator que ejecuta comandos dbt run --select modelo. Cada modelo se ejecuta como una tarea separada en Airflow, lo que permite monitoreo granular y manejo de errores.
 
 Las dependencias entre modelos se manejan tanto en dbt usando ref() como en Airflow usando las dependencias de tareas, asegurando que los modelos se ejecuten en el orden correcto.
 

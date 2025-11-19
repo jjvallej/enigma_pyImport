@@ -1,13 +1,22 @@
-# dags/modules/rawdata_ipmv2.py
+# modules/ipm_extract.py
+"""
+Módulo para extraer datos desde Google Cloud Storage, transformarlos mínimamente
+y cargarlos en la capa bronze de BigQuery.
+"""
 from google.cloud import bigquery, storage
 import pandas as pd
 import os, tempfile
 from datetime import datetime, timezone
 from typing import Iterable, Optional
+from airflow.models import Variable
 
 PROJECT_ID = "datagov-473122"
 SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True  # ponlo en False cuando ya no necesites logs
+DEBUG = True
+
+# Valores por defecto
+GCS_BUCKET_NAME = "datalake_gdv"
+GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/ipm"
 
 # ---------------------------
 # Clientes
@@ -106,7 +115,7 @@ def download_excel_from_gcs(gcs_uri: str) -> str:
 def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
     """
     Aplica las transformaciones esperadas al Excel de IPM.
-    Devuelve un DataFrame listo para cargarse a BigQuery.
+    Devuelve un DataFrame listo para cargarse a BigQuery en bronze.
     """
     df = pd.read_excel(local_path, sheet_name=sheet_index, header=0)
 
@@ -202,7 +211,7 @@ def _load_df_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
 
 
 def load_dataframe_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
-    """Función pública para cargar un DataFrame transformado."""
+    """Función pública para cargar un DataFrame transformado a BigQuery."""
     _load_df_to_bq(df, dataset_id=dataset_id, table_name=table_name)
 
 
@@ -218,21 +227,3 @@ def cleanup_temp_paths(paths: Iterable[Optional[str]]):
         except Exception as exc:
             print(f"[WARN] No se pudo eliminar {path}: {exc}")
 
-# ---------------------------
-# Core ETL
-# ---------------------------
-def process_and_load_from_gcs(gcs_uri: str, dataset_id: str, table_name: str, sheet_index: int = 0):
-    """
-    Paso 0: asegura dataset (se supone ya ejecutado por el DAG).
-    Paso 1: lee Excel desde GCS.
-    Paso 2: quita la primera fila.
-    Paso 3: renombra columnas a *_Abs / *_Porc con patrón fijo.
-    Paso 4: agrega columna TIMESTAMP 'fecha_lectura' (UTC).
-    Paso 5: guarda en BigQuery (WRITE_TRUNCATE) => dataset.table.
-    """
-    local_path = download_excel_from_gcs(gcs_uri)
-    try:
-        df = transform_excel(local_path, sheet_index=sheet_index)
-        _load_df_to_bq(df, dataset_id=dataset_id, table_name=table_name)
-    finally:
-        cleanup_temp_paths([local_path])

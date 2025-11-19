@@ -2,7 +2,7 @@ DOCUMENTACION DETALLADA DEL PIPELINE DE TRANSFORMACION IPM V2
 
 Este documento describe en detalle el funcionamiento de los archivos principales del pipeline de transformacion de datos IPM Version 2. El pipeline procesa archivos Excel que contienen datos del Indice de Pobreza Multidimensional IPM desde Google Cloud Storage, los transforma y los carga en BigQuery siguiendo una arquitectura de capas bronze, silver y gold.
 
-ARCHIVO: load_rawdata_ipmv2.py
+ARCHIVO: ipm_transform.py
 
 Este archivo contiene todas las funciones auxiliares y de procesamiento que se utilizan en el pipeline. Es un modulo Python que proporciona las capacidades de extraccion, transformacion y carga de datos.
 

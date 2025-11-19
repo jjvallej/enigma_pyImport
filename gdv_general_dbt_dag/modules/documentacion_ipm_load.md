@@ -1,10 +1,10 @@
-DOCUMENTACION DETALLADA DEL MODULO upload_excel_to_gcs.py
+DOCUMENTACION DETALLADA DEL MODULO ipm_load.py
 
-Este documento describe en detalle el funcionamiento del modulo upload_excel_to_gcs.py, que proporciona funcionalidades para descargar archivos Excel desde Google Drive y subirlos a Google Cloud Storage. El modulo soporta diferentes metodos de autenticacion y maneja diversos formatos de URLs de Google Drive.
+Este documento describe en detalle el funcionamiento del modulo ipm_load.py, que proporciona funcionalidades para descargar archivos Excel desde Google Drive y subirlos a Google Cloud Storage. El modulo soporta diferentes metodos de autenticacion y maneja diversos formatos de URLs de Google Drive.
 
 PROPOSITO DEL MODULO
 
-El modulo upload_excel_to_gcs.py esta disenado para facilitar la transferencia de archivos Excel desde Google Drive hacia Google Cloud Storage. Este proceso es tipicamente el primer paso en el pipeline de datos, donde los archivos fuente se almacenan en Drive y necesitan ser movidos a GCS para su posterior procesamiento.
+El modulo ipm_load.py esta disenado para facilitar la transferencia de archivos Excel desde Google Drive hacia Google Cloud Storage. Este proceso es tipicamente el primer paso en el pipeline de datos, donde los archivos fuente se almacenan en Drive y necesitan ser movidos a GCS para su posterior procesamiento.
 
 El modulo soporta tres metodos principales de acceso a archivos de Google Drive:
 1. Enlaces publicos: El metodo mas simple, no requiere autenticacion. El archivo debe estar configurado como publico en Google Drive.
@@ -174,7 +174,7 @@ Caso 3: Automatizacion mediante DAG. El modulo esta disenado para ser usado en D
 
 INTEGRACION CON EL PIPELINE
 
-Este modulo es tipicamente el primer paso en el pipeline de datos. Los archivos se almacenan en Google Drive por los usuarios, y este modulo los transfiere a GCS. Una vez en GCS, el modulo load_rawdata_ipmv2.py puede procesarlos y cargarlos a BigQuery.
+Este modulo es tipicamente el primer paso en el pipeline de datos. Los archivos se almacenan en Google Drive por los usuarios, y este modulo los transfiere a GCS. Una vez en GCS, el modulo ipm_transform.py puede procesarlos y cargarlos a BigQuery.
 
-La separacion de responsabilidades es clara: upload_excel_to_gcs.py se encarga de la transferencia desde Drive a GCS, mientras que load_rawdata_ipmv2.py se encarga del procesamiento y carga a BigQuery. Esta separacion permite que cada modulo se enfoque en su tarea especifica y facilita el mantenimiento y las pruebas.
+La separacion de responsabilidades es clara: ipm_load.py se encarga de la transferencia desde Drive a GCS, mientras que ipm_transform.py se encarga del procesamiento y carga a BigQuery. Esta separacion permite que cada modulo se enfoque en su tarea especifica y facilita el mantenimiento y las pruebas.
 

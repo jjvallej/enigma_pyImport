@@ -17,7 +17,7 @@ Este documento resume las pruebas unitarias y de integración realizadas y suger
 
 ---
 
-## 1) Módulo Python: `modules/upload_excel_to_gcs.py`
+## 1) Módulo Python: `modules/ipm_load.py`
 
 ### 1.1 `extract_file_id_from_url`
 - Caso: URL tipo `https://drive.google.com/file/d/FILE_ID/view`
@@ -66,7 +66,7 @@ Resultado: OK en caso feliz; limpieza de temporales verificada.
 
 ---
 
-## 2) Módulo Python: `modules/load_rawdata_ipmv2.py`
+## 2) Módulo Python: `modules/ipm_extract.py`
 
 ### 2.1 `ensure_dataset`
 - Caso: dataset existente → log de existente
@@ -103,35 +103,51 @@ Resultado: OK; tabla creada y reemplazada correctamente.
 ### 2.6 `cleanup_temp_paths`
 - Elimina rutas válidas, ignora `None` o vacías, no falla ante inexistentes
 
-Resultado: OK; verificado en flujo bronze del DAG.
+Resultado: OK; verificado en flujo de extracción del DAG.
 
 ---
 
-## 3) DAG: `upload_excel_to_gcs_dag.py`
+## 2b) Módulo Python: `modules/ipm_transform.py`
+
+### 2b.1 `ensure_dataset`
+- Caso: dataset existente (silver o gold) → log de existente
+- Caso: dataset inexistente → creación con ubicación `us-central1` y descripción apropiada según capa
+
+Resultado: OK (idempotente).
+
+---
+
+## 3) DAG: `src_ipm_load_dag.py`
 
 ### Flujo
-- `start` → `upload_file_from_drive_to_gcs` → `end`
+- `start` → `upload_file_from_drive_to_gcs` → `trigger_extract_ipm` → `end`
 
 ### Pruebas
-- Parámetro faltante `drive_url` → falla con mensaje que indica cómo pasarlo
 - Enlace público válido → retorna `gs://.../ipm/archivo.xlsx`
 - Logs informativos con origen y destino
+- Verificar que ejecuta automáticamente el DAG `src_planeacion_extrac_ipm`
 
-Resultado: OK con parámetro válido; validación apropiada cuando falta `drive_url`.
+Resultado: OK con enlace válido; disparo automático del DAG de extracción verificado.
 
 ---
 
-## 4) DAG: `load_rawdata_ipmv2_dag.py`
+## 4) DAG: `src_ipm_extract_dag.py`
 
-### Grupo bronze
+### Grupo extract (extracción a bronze)
 - Pasa `XCom` desde `download_excel` a `transform_dataframe` y de este a `load_to_bq`
 - `cleanup_temp_files` con `TriggerRule.ALL_DONE` limpia siempre temporales
+- Al finalizar exitosamente, ejecuta automáticamente el DAG `src_planeacion_transf_ipm`
 
 Pruebas:
 - Ejecución end-to-end con un Excel de muestra
-- Verificar creación de `bronze_dpt_planeacion_municipal_dev.bronze_dpt_planeacion_municipal_dev_ipm`
+- Verificar creación de `bronze_dpt_planeacion_municipal_dev.ipm_raw_data`
+- Verificar que ejecuta automáticamente el DAG de transformación
 
-Resultado: OK. Tabla bronze creada y temporales limpiados.
+Resultado: OK. Tabla bronze creada, temporales limpiados, y DAG de transformación ejecutado automáticamente.
+
+---
+
+## 5) DAG: `src_ipm_transform_dag.py`
 
 ### Grupo silver (dbt)
 Secuencia y paralelismo controlado:
@@ -149,6 +165,8 @@ Pruebas por modelo:
 
 Resultado: OK. Cadena ejecutada y pruebas `dbt test` superadas en modelos clean y gold.
 
+**Nota importante:** Este DAG espera que los datos ya estén disponibles en `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por `src_ipm_extract_dag.py`).
+
 ### Grupo gold (dbt)
 - `ensure_dataset` → `dbt_run_gold` → `dbt_test`
 - Verificar que el modelo excluye porcentajes y `fecha_lectura`, y renombra columnas a mayúsculas
@@ -157,7 +175,7 @@ Resultado: OK. Estructura final conforme a especificación.
 
 ---
 
-## 5) Modelos dbt: consultas de verificación rápidas
+## 6) Modelos dbt: consultas de verificación rápidas
 
 - Conteos: `SELECT COUNT(*)` en cada vista/tabla
 - Nulos: `SELECT COUNTIF(col IS NULL)` para columnas clave tras cada etapa
@@ -169,7 +187,7 @@ Resultado: OK en verificación manual post-ejecución.
 
 ---
 
-## 6) Datos de prueba mínimos sugeridos
+## 7) Datos de prueba mínimos sugeridos
 
 - Fila con `total` vacío y varios indicadores con letras en medio
 - Fila con valores negativos
@@ -180,7 +198,7 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 
 ---
 
-## 7) Comandos de ejecución usados
+## 8) Comandos de ejecución usados
 
 - dbt (en contenedor Airflow):
   - `cd /opt/airflow/dags/gdv_general_dbt_dag/dbt && dbt run --select rawdata_ipmv2_stg`
@@ -198,7 +216,7 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 
 ---
 
-## 8) Resultados esperados clave
+## 9) Resultados esperados clave
 
 - `bronze`: todas las columnas `STRING`, `fecha_lectura` `TIMESTAMP`
 - `clean_numbers`: sufijos `_cleaned` con enteros válidos en columnas absolutas
@@ -209,7 +227,7 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 
 ---
 
-## 9) Observaciones
+## 10) Observaciones
 
 - El paralelismo en silver permite optimizar tiempo, pero la cadena de validaciones depende de `clean_numbers`.
 - `WRITE_TRUNCATE` en bronze asegura idempotencia por ejecución.
@@ -217,8 +235,8 @@ Objetivo: cubrir rutas de limpieza, casting, flags y validaciones.
 
 ---
 
-## 10) Próximos pasos de prueba automatizada (opcional)
+## 11) Próximos pasos de prueba automatizada (opcional)
 
-- Pytest para unit tests de utilidades: mocks de GCS y HTTP (requests) para `upload_excel_to_gcs.py`
+- Pytest para unit tests de utilidades: mocks de GCS y HTTP (requests) para `ipm_load.py` y `ipm_extract.py`
 - Great Expectations o dbt tests adicionales para validaciones de esquema y contenido
 - Hooks de CI para ejecutar `dbt run --select state:modified+` y `dbt test` en PRs

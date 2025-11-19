@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema='silver_dpt_planeacion_municipal_dev',
-    alias='silver_dpt_planeacion_municipal_dev_ipm'
+    alias='ipm_transformed_data'
   )
 }}
 
