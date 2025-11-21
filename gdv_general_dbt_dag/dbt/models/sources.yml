@@ -4,3 +4,9 @@ sources:
     schema: bronze_dpt_planeacion_municipal_dev
     tables:
       - name: ipm_raw_data
+  - name: bronze_idc
+    schema: test_idc_bronze
+    tables:
+      - name: idc_raw_data_dato_original
+      - name: idc_raw_data_valor_normalizado
+      - name: idc_raw_data_valor_ranking

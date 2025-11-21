@@ -135,13 +135,12 @@ with DAG(
 
         t1_ensure_dataset >> t2_download_excel >> t3_load_all_sheets >> t4_cleanup_temp_files
 
-    # Tarea para ejecutar el DAG de transformación (se configurará cuando se cree)
-    # Por ahora comentado hasta que se cree el DAG de transform para IDC
-    # trigger_transf_dag = TriggerDagRunOperator(
-    #     task_id="trigger_transf_idc",
-    #     trigger_dag_id="src_planeacion_transf_idc",
-    #     wait_for_completion=True,  # Espera a que el DAG de transformación termine
-    # )
+    # Tarea para ejecutar el DAG de transformación
+    trigger_transf_dag = TriggerDagRunOperator(
+        task_id="trigger_transf_idc",
+        trigger_dag_id="src_planeacion_transf_idc",
+        wait_for_completion=True,  # Espera a que el DAG de transformación termine
+    )
 
     # Tarea final
     end = EmptyOperator(
@@ -149,7 +148,5 @@ with DAG(
     )
 
     # Dependencias
-    # Por ahora solo hasta bronze_group, cuando se cree el DAG de transform se descomenta la línea de arriba
-    # y se cambia esta dependencia a: start >> bronze_group >> trigger_transf_dag >> end
-    start >> bronze_group >> end
+    start >> bronze_group >> trigger_transf_dag >> end
 
