@@ -1,33 +1,27 @@
 DOCUMENTACION DETALLADA DEL MODULO ipm_extract.py
 
-Este documento describe en detalle el funcionamiento del modulo ipm_extract.py, que proporciona funcionalidades para descargar archivos Excel desde Google Drive y subirlos a Google Cloud Storage. El modulo soporta diferentes metodos de autenticacion y maneja diversos formatos de URLs de Google Drive.
+Este documento describe en detalle el funcionamiento del modulo ipm_extract.py, que proporciona funcionalidades para descargar archivos Excel desde Google Drive usando enlaces publicos y subirlos a Google Cloud Storage. El modulo maneja diversos formatos de URLs de Google Drive.
 
 PROPOSITO DEL MODULO
 
 El modulo ipm_extract.py esta disenado para facilitar la transferencia de archivos Excel desde Google Drive hacia Google Cloud Storage. Este proceso es tipicamente el primer paso en el pipeline de datos, donde los archivos fuente se almacenan en Drive y necesitan ser movidos a GCS para su posterior procesamiento.
 
-El modulo soporta tres metodos principales de acceso a archivos de Google Drive:
-1. Enlaces publicos: El metodo mas simple, no requiere autenticacion. El archivo debe estar configurado como publico en Google Drive.
-2. Service Account: Requiere que el archivo este compartido con la cuenta de servicio. Utiliza las credenciales del archivo sa.json.
-3. OAuth 2.0: Para acceder a archivos personales del usuario. Nota: Este metodo no esta completamente implementado en la version actual.
+El modulo utiliza exclusivamente enlaces publicos de Google Drive, lo que significa que no requiere autenticacion adicional. El archivo debe estar configurado como publico en Google Drive (configurado como "Cualquier persona con el enlace puede ver").
 
 CONFIGURACION INICIAL
 
-El archivo comienza con la importacion de las librerias necesarias. Utiliza google.cloud.storage para interactuar con Google Cloud Storage, googleapiclient para interactuar con la API de Google Drive, y librerias estandar de Python para manejo de archivos, URLs y expresiones regulares.
+El archivo comienza con la importacion de las librerias necesarias. Utiliza google.cloud.storage para interactuar con Google Cloud Storage, requests para descargar archivos desde enlaces publicos, y librerias estandar de Python para manejo de archivos, URLs y expresiones regulares.
 
 Las constantes principales son:
 - PROJECT_ID: Identificador del proyecto de Google Cloud, actualmente "datagov-473122"
-- SA_PATH: Ruta al archivo de credenciales de servicio, ubicado en "/opt/airflow/include/sa.json"
+- SA_PATH: Ruta al archivo de credenciales de servicio, ubicado en "/opt/airflow/include/sa.json" (solo se usa para GCS, no para Drive)
 - DEBUG: Variable booleana que controla si se muestran mensajes de depuracion detallados
-- SCOPES: Define los permisos necesarios para la API de Google Drive, actualmente solo lectura readonly
 
 FUNCIONES DE CLIENTES
 
-El modulo define dos funciones para crear clientes de Google Cloud:
+El modulo define una funcion para crear clientes de Google Cloud:
 
 _gcs_client: Crea y retorna un cliente de Google Cloud Storage. Esta funcion establece la variable de entorno GOOGLE_APPLICATION_CREDENTIALS con la ruta del archivo de credenciales y luego crea un cliente de Storage asociado al proyecto configurado. Este cliente se utiliza para todas las operaciones de subida y manipulacion de archivos en GCS.
-
-_drive_client_service_account: Crea un cliente de Google Drive API usando Service Account. Esta funcion carga las credenciales desde el archivo sa.json, les asigna los scopes necesarios para lectura de archivos, y construye un cliente de la API de Drive version 3. El parametro cache_discovery se establece en False para evitar problemas de cache. Este cliente se utiliza cuando se necesita acceder a archivos mediante la API de Drive en lugar de enlaces publicos.
 
 FUNCION extract_file_id_from_url
 
@@ -72,33 +66,13 @@ Noveno, si DEBUG esta activado, imprime mensajes de confirmacion con la ruta del
 
 Finalmente, retorna una tupla con la ruta del archivo temporal descargado y el nombre original del archivo.
 
-FUNCION download_file_from_drive_api
-
-Esta funcion descarga un archivo desde Google Drive usando la API oficial de Google Drive. Requiere autenticacion mediante Service Account, lo que significa que el archivo debe estar compartido con la cuenta de servicio correspondiente.
-
-El proceso es el siguiente: primero verifica si se debe usar Service Account. Si use_service_account es False, lanza una excepcion indicando que OAuth 2.0 no esta implementado.
-
-Segundo, crea un cliente de Drive API usando _drive_client_service_account.
-
-Tercero, obtiene los metadatos del archivo usando files().get() con los campos name y mimeType. Esto permite conocer el nombre original del archivo y su tipo MIME.
-
-Cuarto, determina el nombre del archivo. Si se proporciono un nombre en el parametro file_name, lo usa. Si no, usa el nombre obtenido de los metadatos. Si el nombre no termina en .xlsx o .xls, verifica el tipo MIME y si es un archivo de Excel o hoja de calculo, agrega la extension .xlsx.
-
-Quinto, crea un archivo temporal con la extension apropiada usando tempfile.mkstemp.
-
-Sexto, descarga el archivo usando la API de Drive. Crea una peticion de descarga usando files().get_media() con el File ID. Crea un objeto FileIO para escribir el archivo, y un MediaIoBaseDownload para manejar la descarga en chunks. Itera sobre los chunks de descarga hasta que se complete. Si DEBUG esta activado, muestra el progreso de la descarga.
-
-Septimo, cierra el archivo y si DEBUG esta activado, imprime mensajes de confirmacion.
-
-Finalmente, retorna una tupla con la ruta del archivo temporal descargado y el nombre original del archivo.
-
 FUNCION download_file_from_drive
 
-Esta funcion es una funcion de alto nivel que unifica los dos metodos de descarga. Permite elegir entre usar un enlace publico o la API de Drive.
+Esta funcion es una funcion de alto nivel que descarga un archivo desde Google Drive usando un enlace publico.
 
-El proceso es simple: si use_public_link es True, llama a download_file_from_public_link. Si es False, extrae el File ID de la URL usando extract_file_id_from_url y luego llama a download_file_from_drive_api con use_service_account=True.
+El proceso es simple: llama directamente a download_file_from_public_link con los parametros proporcionados.
 
-Esta funcion proporciona una interfaz unificada que oculta los detalles de implementacion de cada metodo.
+Esta funcion proporciona una interfaz unificada y simplificada para la descarga de archivos desde Google Drive.
 
 FUNCION upload_file_to_gcs
 
@@ -126,9 +100,9 @@ Finalmente, retorna la URI completa del archivo en GCS.
 
 FUNCION move_file_from_drive_to_gcs
 
-Esta es la funcion principal y mas completa del modulo. Combina la descarga desde Google Drive y la subida a GCS en una sola operacion, manejando automaticamente la limpieza de archivos temporales.
+Esta es la funcion principal y mas completa del modulo. Combina la descarga desde Google Drive (usando enlace publico) y la subida a GCS en una sola operacion, manejando automaticamente la limpieza de archivos temporales.
 
-El proceso es el siguiente: primero descarga el archivo desde Google Drive usando download_file_from_drive. Esta funcion retorna una tupla con la ruta local del archivo descargado y el nombre original del archivo.
+El proceso es el siguiente: primero descarga el archivo desde Google Drive usando download_file_from_drive, que internamente utiliza download_file_from_public_link. Esta funcion retorna una tupla con la ruta local del archivo descargado y el nombre original del archivo.
 
 Segundo, dentro de un bloque try-finally para asegurar la limpieza, determina el nombre del archivo de destino. Si no se proporciono destination_file_name, usa el nombre original extraido de Drive.
 
@@ -148,7 +122,7 @@ El modulo tiene varias caracteristicas importantes que lo hacen robusto y facil 
 
 Manejo de diferentes formatos de URL: La funcion extract_file_id_from_url puede manejar una amplia variedad de formatos de URLs de Google Drive, lo que hace que el modulo sea flexible y no requiera que el usuario formatee la URL de una manera especifica.
 
-Manejo de archivos grandes: Tanto la descarga desde enlaces publicos como desde la API se hacen en chunks, lo que permite manejar archivos grandes sin cargar todo el archivo en memoria.
+Manejo de archivos grandes: La descarga desde enlaces publicos se hace en chunks, lo que permite manejar archivos grandes sin cargar todo el archivo en memoria.
 
 Manejo de advertencias de Google Drive: Cuando se descarga un archivo grande desde un enlace publico, Google Drive muestra primero una pagina de advertencia. El modulo detecta esto y extrae automaticamente el enlace real de descarga.
 
@@ -164,13 +138,15 @@ Mensajes de depuracion: Cuando DEBUG esta activado, el modulo proporciona mensaj
 
 CASOS DE USO
 
-El modulo se puede usar en diferentes escenarios:
+El modulo se puede usar en los siguientes escenarios:
 
-Caso 1: Archivo publico en Google Drive. Este es el caso mas simple. Solo se necesita la URL publica del archivo, y el modulo lo descarga y sube a GCS sin necesidad de configuracion adicional.
+Caso 1: Archivo publico en Google Drive. Este es el unico metodo soportado. Se necesita la URL publica del archivo, y el modulo lo descarga y sube a GCS sin necesidad de configuracion adicional ni autenticacion.
 
-Caso 2: Archivo compartido con Service Account. Si el archivo no es publico pero esta compartido con la cuenta de servicio, se puede usar la API de Drive estableciendo use_public_link=False.
+Caso 2: Automatizacion mediante DAG. El modulo esta disenado para ser usado en DAGs de Airflow, donde se puede automatizar la transferencia de archivos desde Drive a GCS como parte de un pipeline mas grande.
 
-Caso 3: Automatizacion mediante DAG. El modulo esta disenado para ser usado en DAGs de Airflow, donde se puede automatizar la transferencia de archivos desde Drive a GCS como parte de un pipeline mas grande.
+REQUISITOS
+
+Para que el modulo funcione correctamente, el archivo en Google Drive debe estar configurado como publico, es decir, debe tener la configuracion de compartir establecida como "Cualquier persona con el enlace puede ver". Si el archivo no es publico, el modulo no podra descargarlo.
 
 INTEGRACION CON EL PIPELINE
 

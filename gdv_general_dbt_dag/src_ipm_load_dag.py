@@ -81,7 +81,7 @@ def _cleanup_temp_files_task(ti):
     cleanup_temp_paths([excel_path, pickle_path])
 
 with DAG(
-    dag_id="src_planeacion_inges_ipm",
+    dag_id="src_planeacion_load_ipm",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,

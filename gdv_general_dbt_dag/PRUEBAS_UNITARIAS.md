@@ -141,7 +141,7 @@ Resultado: OK. Tabla bronze creada, temporales limpiados, y DAG de transformaci�
 ### Pruebas
 - Enlace público válido → retorna `gs://.../ipm/archivo.xlsx`
 - Logs informativos con origen y destino
-- Verificar que ejecuta automáticamente el DAG `src_planeacion_inges_ipm`
+- Verificar que ejecuta automáticamente el DAG `src_planeacion_load_ipm`
 
 Resultado: OK con enlace válido; disparo automático del DAG de ingesta verificado.
 

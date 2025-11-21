@@ -1,6 +1,6 @@
 DOCUMENTACION DETALLADA DEL DAG src_ipm_load_dag.py
 
-Este documento describe de forma detallada y continua el DAG de Airflow src_planeacion_inges_ipm definido en el archivo src_ipm_load_dag.py. El DAG orquesta la extraccion de un archivo Excel del IPM desde Google Cloud Storage GCS, su transformacion minima en Python para la capa bronze, y la carga a BigQuery.
+Este documento describe de forma detallada y continua el DAG de Airflow src_planeacion_load_ipm definido en el archivo src_ipm_load_dag.py. El DAG orquesta la extraccion de un archivo Excel del IPM desde Google Cloud Storage GCS, su transformacion minima en Python para la capa bronze, y la carga a BigQuery.
 
 PROPOSITO GENERAL
 
@@ -30,8 +30,8 @@ Si existen, el DAG las utilizara; si no, empleara los valores por defecto.
 
 ESTRUCTURA DEL DAG
 
-El DAG src_planeacion_inges_ipm se define con las siguientes caracteristicas:
-- dag_id: "src_planeacion_inges_ipm" identificador unico del DAG
+El DAG src_planeacion_load_ipm se define con las siguientes caracteristicas:
+- dag_id: "src_planeacion_load_ipm" identificador unico del DAG
 - start_date: Fecha de inicio, 1 de enero de 2024
 - schedule_interval: None, lo que significa que el DAG no se ejecuta automaticamente, solo manualmente
 - catchup: False, no ejecuta ejecuciones pasadas
@@ -103,7 +103,7 @@ EJECUCION DEL DAG
 
 El DAG se ejecuta de manera simple ya que puede usar Variables de Airflow opcionales o valores por defecto:
 
-1. Abrir el DAG src_planeacion_inges_ipm en la interfaz web de Airflow.
+1. Abrir el DAG src_planeacion_load_ipm en la interfaz web de Airflow.
 
 2. Hacer clic en el boton Trigger DAG o Run. No es necesario proporcionar parametros si se usan los valores por defecto. Si se desea cambiar el bucket o carpeta de GCS, se pueden configurar Variables de Airflow antes de ejecutar.
 
@@ -132,7 +132,7 @@ El archivo Excel debe tener el formato esperado con las columnas del IPM. Si el 
 
 RESUMEN
 
-El DAG src_planeacion_inges_ipm es el segundo componente del pipeline de datos del IPM. Su funcion es extraer el archivo Excel mas reciente desde GCS, aplicar transformaciones minimas preservando los datos como texto, y cargarlo a BigQuery en la capa bronze (bronze_dpt_planeacion_municipal_dev.ipm_raw_data), luego ejecutar automaticamente el DAG de transformacion src_planeacion_transf_ipm que procesa los datos a traves de las capas silver y gold.
+El DAG src_planeacion_load_ipm es el segundo componente del pipeline de datos del IPM. Su funcion es extraer el archivo Excel mas reciente desde GCS, aplicar transformaciones minimas preservando los datos como texto, y cargarlo a BigQuery en la capa bronze (bronze_dpt_planeacion_municipal_dev.ipm_raw_data), luego ejecutar automaticamente el DAG de transformacion src_planeacion_transf_ipm que procesa los datos a traves de las capas silver y gold.
 
 El DAG consta de un TaskGroup "bronze" con tareas secuenciales para asegurar el dataset, descargar el Excel, transformar los datos, cargar a BigQuery, y limpiar archivos temporales, seguido de una tarea que ejecuta el DAG de transformacion. Puede usar Variables de Airflow para configurar el bucket y carpeta de GCS, o usar valores por defecto hardcodeados.
 

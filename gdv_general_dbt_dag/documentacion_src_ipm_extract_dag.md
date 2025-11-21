@@ -33,11 +33,11 @@ El DAG consta de cuatro tareas secuenciales:
 
 2. upload_file_from_drive_to_gcs (PythonOperator): Tarea principal que ejecuta la funcion _upload_file_task. Esta tarea descarga el archivo desde Google Drive y lo sube a GCS. No requiere contexto adicional ya que no lee parametros, por lo que no se configura provide_context=True.
 
-3. trigger_inges_ipm (TriggerDagRunOperator): Tarea que ejecuta el DAG de ingesta src_planeacion_inges_ipm. Esta tarea espera a que el DAG de ingesta termine completamente antes de continuar (wait_for_completion=True). Esto asegura que todo el proceso de ingesta y transformacion se complete antes de finalizar el DAG principal.
+3. trigger_load_ipm (TriggerDagRunOperator): Tarea que ejecuta el DAG de carga src_planeacion_load_ipm. Esta tarea espera a que el DAG de carga termine completamente antes de continuar (wait_for_completion=True). Esto asegura que todo el proceso de carga y transformacion se complete antes de finalizar el DAG principal.
 
 4. end (EmptyOperator): Marcador de fin que no realiza ninguna accion. Sirve como punto de salida del flujo.
 
-Dependencias: start ejecuta primero, luego upload_file_from_drive_to_gcs, despues trigger_inges_ipm, y finalmente end. La secuencia es simple y lineal sin paralelismo. El DAG de ingesta se ejecuta como parte del flujo principal y el DAG principal espera su finalizacion antes de terminar. A su vez, el DAG de ingesta ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente.
+Dependencias: start ejecuta primero, luego upload_file_from_drive_to_gcs, despues trigger_load_ipm, y finalmente end. La secuencia es simple y lineal sin paralelismo. El DAG de carga se ejecuta como parte del flujo principal y el DAG principal espera su finalizacion antes de terminar. A su vez, el DAG de carga ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente.
 
 LOGICA DE LAS TAREAS
 
@@ -45,7 +45,7 @@ La funcion _upload_file_task implementa la logica de descarga y subida del archi
 
 El proceso funciona de la siguiente manera:
 
-Primero, la funcion asigna los valores de configuracion desde las constantes definidas en el archivo. bucket_name se establece en DEFAULT_BUCKET_NAME, folder_name se establece en DEFAULT_FOLDER_NAME, use_public_link se establece en True para usar el metodo mas simple de descarga mediante enlace publico, y destination_file_name se establece en None para que el modulo extraiga automaticamente el nombre original del archivo desde Google Drive.
+Primero, la funcion asigna los valores de configuracion desde las constantes definidas en el archivo. bucket_name se establece en DEFAULT_BUCKET_NAME, folder_name se establece en DEFAULT_FOLDER_NAME, y destination_file_name se establece en None para que el modulo extraiga automaticamente el nombre original del archivo desde Google Drive.
 
 Segundo, emite mensajes informativos usando print que se registraran en los logs de Airflow. Estos mensajes incluyen: un mensaje de inicio de transferencia, la URL de Drive que se esta utilizando (la constante DRIVE_URL), el bucket destino configurado, la carpeta destino configurada, el metodo de descarga que se usara (enlace publico), y una nota de que el nombre del archivo se extraera automaticamente.
 
@@ -55,7 +55,7 @@ Cuarto, una vez que move_file_from_drive_to_gcs completa exitosamente, imprime u
 
 Finalmente, retorna la URI de GCS como resultado de la tarea. Aunque esta URI no se usa por otras tareas en este DAG, se puede consultar en los logs o en la interfaz de Airflow para verificar donde se almaceno el archivo.
 
-La tarea trigger_inges_ipm utiliza el operador TriggerDagRunOperator de Airflow para ejecutar el DAG src_planeacion_inges_ipm. Esta tarea tiene configurado wait_for_completion=True, lo que significa que el DAG principal esperara a que el DAG de ingesta termine completamente (ya sea exitosamente o con error) antes de continuar. A su vez, el DAG de ingesta ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente. Si alguno de los DAGs falla, la tarea trigger_inges_ipm tambien fallara, lo que causara que el DAG principal falle. Esto asegura que el flujo completo se ejecute de manera atomica: o todo el proceso (extraccion, ingesta y transformacion) se completa exitosamente, o el DAG principal falla indicando que hubo un problema en algun punto del pipeline.
+La tarea trigger_load_ipm utiliza el operador TriggerDagRunOperator de Airflow para ejecutar el DAG src_planeacion_load_ipm. Esta tarea tiene configurado wait_for_completion=True, lo que significa que el DAG principal esperara a que el DAG de carga termine completamente (ya sea exitosamente o con error) antes de continuar. A su vez, el DAG de carga ejecuta automaticamente el DAG de transformacion src_planeacion_transf_ipm al finalizar exitosamente. Si alguno de los DAGs falla, la tarea trigger_load_ipm tambien fallara, lo que causara que el DAG principal falle. Esto asegura que el flujo completo se ejecute de manera atomica: o todo el proceso (extraccion, carga y transformacion) se completa exitosamente, o el DAG principal falla indicando que hubo un problema en algun punto del pipeline.
 
 INTERACCION CON EL MODULO DE UTILIDADES
 
@@ -85,7 +85,7 @@ El DAG tiene caracteristicas de idempotencia y sigue convenciones estandar:
 
 La subida a GCS sobrescribe un archivo existente con el mismo nombre dentro de la carpeta por defecto. Esto significa que si se ejecuta el DAG multiples veces, siempre reemplazara el archivo anterior con el nuevo. Este comportamiento es consistente con el modulo de utilidades que usa overwrite=True por defecto, y simplifica los reintentos ya que no es necesario eliminar manualmente archivos anteriores.
 
-El DAG estandariza la ubicacion de archivos fuente en data_staging/dpt_planeacion_municipal/ipm. Esta ruta es conocida por otros procesos, especialmente por el DAG src_planeacion_inges_ipm que busca automaticamente el archivo mas reciente en esta carpeta. Esta convencion facilita la integracion entre DAGs y asegura que los archivos se encuentren donde se esperan.
+El DAG estandariza la ubicacion de archivos fuente en data_staging/dpt_planeacion_municipal/ipm. Esta ruta es conocida por otros procesos, especialmente por el DAG src_planeacion_load_ipm que busca automaticamente el archivo mas reciente en esta carpeta. Esta convencion facilita la integracion entre DAGs y asegura que los archivos se encuentren donde se esperan.
 
 La URL del archivo esta hardcodeada, lo que significa que siempre descargara el mismo archivo desde la misma ubicacion en Google Drive. Esto es apropiado cuando hay un archivo fuente unico y oficial que se actualiza periodicamente en la misma ubicacion.
 
@@ -99,7 +99,7 @@ El DAG se ejecuta de manera muy simple ya que no requiere configuracion adiciona
 
 3. Monitorear la ejecucion en la interfaz de Airflow. El DAG ejecutara las siguientes tareas en secuencia:
    - La tarea upload_file_from_drive_to_gcs mostrara su estado como running mientras descarga y sube el archivo.
-   - La tarea trigger_inges_ipm ejecutara el DAG src_planeacion_inges_ipm que extraera los datos a bronze y luego ejecutara automaticamente el DAG src_planeacion_transf_ipm para transformar los datos a silver y gold. Esta tarea puede tardar varios minutos dependiendo del tamano del archivo y la complejidad de las transformaciones.
+   - La tarea trigger_load_ipm ejecutara el DAG src_planeacion_load_ipm que extraera los datos a bronze y luego ejecutara automaticamente el DAG src_planeacion_transf_ipm para transformar los datos a silver y gold. Esta tarea puede tardar varios minutos dependiendo del tamano del archivo y la complejidad de las transformaciones.
    - Finalmente, la tarea end marcara el final del flujo.
 
 4. Verificar en los logs de la tarea upload_file_from_drive_to_gcs la URI final de GCS retornada. Los logs mostraran mensajes informativos sobre el proceso, incluyendo la URL de Drive que se esta usando, el bucket y carpeta destino, y finalmente un mensaje de confirmacion con la URI completa del archivo en GCS, por ejemplo: gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx.
@@ -112,7 +112,7 @@ Para que el DAG funcione correctamente, se deben cumplir los siguientes requisit
 
 La cuenta de servicio configurada en el entorno de Airflow debe tener permisos de escritura en el bucket de GCS especificado en DEFAULT_BUCKET_NAME. Esto significa que la cuenta de servicio debe tener el rol Storage Object Admin o Storage Object Creator en el bucket datalake_gdv, o al menos permisos para crear y escribir objetos en la carpeta data_staging/dpt_planeacion_municipal/ipm.
 
-El archivo en Google Drive debe ser accesible publicamente mediante enlace. Esto significa que el archivo debe estar configurado como "Cualquier persona con el enlace puede ver" en la configuracion de compartir de Google Drive. Si el archivo no es publico, este DAG no funcionara porque usa use_public_link=True. En ese caso, se necesitaria modificar el DAG para usar use_public_link=False y compartir el archivo con la cuenta de servicio de Google Cloud, pero esto requeriria cambios adicionales en el codigo.
+El archivo en Google Drive debe ser accesible publicamente mediante enlace. Esto significa que el archivo debe estar configurado como "Cualquier persona con el enlace puede ver" en la configuracion de compartir de Google Drive. Si el archivo no es publico, este DAG no funcionara porque utiliza exclusivamente enlaces publicos. Para que funcione, es necesario que el archivo tenga permisos publicos en Google Drive.
 
 El archivo debe ser un archivo Excel valido con extension .xlsx o .xls. El modulo puede manejar diferentes formatos, pero el procesamiento posterior asume que es un archivo Excel.
 
@@ -120,7 +120,7 @@ La URL hardcodeada DRIVE_URL debe ser valida y apuntar al archivo correcto. Si e
 
 RESUMEN
 
-El DAG src_planeacion_extrac_ipm es el primer componente del pipeline de datos del IPM. Su funcion es mover el archivo Excel del IPM desde un enlace publico fijo de Google Drive (hardcodeado en el codigo como constante DRIVE_URL) a una ubicacion estandarizada en GCS (gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/), y luego ejecutar automaticamente el DAG de ingesta src_planeacion_inges_ipm que a su vez ejecutara el DAG de transformacion src_planeacion_transf_ipm, procesando el archivo a traves de las capas bronze, silver y gold en BigQuery.
+El DAG src_planeacion_extrac_ipm es el primer componente del pipeline de datos del IPM. Su funcion es mover el archivo Excel del IPM desde un enlace publico fijo de Google Drive (hardcodeado en el codigo como constante DRIVE_URL) a una ubicacion estandarizada en GCS (gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/), y luego ejecutar automaticamente el DAG de carga src_planeacion_load_ipm que a su vez ejecutara el DAG de transformacion src_planeacion_transf_ipm, procesando el archivo a traves de las capas bronze, silver y gold en BigQuery.
 
 El DAG consta de cuatro tareas secuenciales: una tarea de inicio, la descarga y subida del archivo a GCS, la ejecucion del DAG de ingesta (que espera su finalizacion), y una tarea de fin. No requiere parametros de ejecucion ya que la URL del archivo esta definida directamente en el codigo como constante. Esto simplifica su uso pero significa que siempre descargara el mismo archivo desde la misma ubicacion.
 

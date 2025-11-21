@@ -123,7 +123,7 @@ CASOS DE USO
 
 El modulo se puede usar en diferentes escenarios:
 
-Caso 1: Extraccion y carga directa. El modulo puede usarse directamente para extraer un archivo de GCS y cargarlo a BigQuery en bronze. Esto es lo que hace el DAG src_planeacion_inges_ipm.
+Caso 1: Extraccion y carga directa. El modulo puede usarse directamente para extraer un archivo de GCS y cargarlo a BigQuery en bronze. Esto es lo que hace el DAG src_planeacion_load_ipm.
 
 Caso 2: Integracion en DAGs de Airflow. El modulo esta disenado para ser usado en DAGs de Airflow, donde cada funcion puede ser una tarea diferente del DAG, permitiendo mejor control, logging y manejo de errores.
 

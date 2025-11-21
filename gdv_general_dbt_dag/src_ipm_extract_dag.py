@@ -1,9 +1,10 @@
 # dags/src_ipm_extract_dag.py
 """
 DAG para mover archivos Excel desde Google Drive (enlace público) a Google Cloud Storage.
-Descarga el archivo desde Drive y lo sube al bucket GCS en la carpeta 'ipm' dentro de 'data_staging/dpt_planeacion_municipal/'.
+Descarga el archivo desde Drive usando un enlace público y lo sube al bucket GCS 
+en la carpeta 'ipm' dentro de 'data_staging/dpt_planeacion_municipal/'.
 
-USO MÁS SIMPLE: Con enlace público de Google Drive (no requiere autenticación)
+Requiere: Enlace público de Google Drive (no requiere autenticación)
 """
 from datetime import datetime
 from airflow import DAG
@@ -36,14 +37,13 @@ def _upload_file_task():
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = DEFAULT_FOLDER_NAME
-    use_public_link = True
     destination_file_name = None  # Se extraerá automáticamente del archivo
     
     print(f"[INFO] Iniciando transferencia de archivo desde Google Drive")
     print(f"[INFO] Drive URL/ID: {DRIVE_URL}")
     print(f"[INFO] Bucket destino: {bucket_name} (configurado automáticamente)")
     print(f"[INFO] Carpeta destino: {folder_name} (configurado automáticamente)")
-    print(f"[INFO] Método: Enlace Público (automático)")
+    print(f"[INFO] Método: Enlace Público")
     print(f"[INFO] Nombre del archivo: se extraerá automáticamente del Drive")
     
     # Mover el archivo
@@ -51,8 +51,7 @@ def _upload_file_task():
         drive_url_or_id=DRIVE_URL,
         bucket_name=bucket_name,
         folder_name=folder_name,
-        destination_file_name=destination_file_name,
-        use_public_link=use_public_link
+        destination_file_name=destination_file_name
     )
     
     print(f"[OK] Archivo transferido exitosamente a: {gcs_uri}")
@@ -64,7 +63,7 @@ with DAG(
     schedule_interval=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:extraccion", "fuente:ipm", "ejecución:manual"],
-    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de ingesta src_planeacion_inges_ipm.",
+    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_ipm que carga los datos a BigQuery.",
 ) as dag:
 
     # Tarea inicial
@@ -78,11 +77,11 @@ with DAG(
         python_callable=_upload_file_task,
     )
 
-    # Tarea para ejecutar el DAG de ingesta
+    # Tarea para ejecutar el DAG de carga
     trigger_load_dag = TriggerDagRunOperator(
-        task_id="trigger_inges_ipm",
-        trigger_dag_id="src_planeacion_inges_ipm",
-        wait_for_completion=True,  # Espera a que el DAG de ingesta termine
+        task_id="trigger_load_ipm",
+        trigger_dag_id="src_planeacion_load_ipm",
+        wait_for_completion=True,  # Espera a que el DAG de carga termine
     )
 
     # Tarea final

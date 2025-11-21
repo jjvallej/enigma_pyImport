@@ -9,7 +9,7 @@ Automatizar el flujo de transformacion de los datos del IPM desde bronze hasta s
 - Construye la capa silver mediante modelos dbt encadenados que limpian, validan y estructuran los datos desde bronze.
 - Materializa una tabla final gold lista para consumo analítico.
 
-**Nota importante:** Este DAG espera que los datos ya estén disponibles en la tabla `bronze_dpt_planeacion_municipal_dev.ipm_raw_data`, que es poblada por el DAG `src_planeacion_extrac_ipm`.
+**Nota importante:** Este DAG espera que los datos ya estén disponibles en la tabla `bronze_dpt_planeacion_municipal_dev.ipm_raw_data`, que es poblada por el DAG `src_planeacion_load_ipm`.
 
 ## Configuración principal en el DAG
 
@@ -27,7 +27,7 @@ Variables de entorno para dbt establecidas en cada `BashOperator`:
 
 ## Estructura del DAG
 
-El DAG src_planeacion_transf_ipm se ejecuta manualmente (schedule_interval=None) y no hace catchup. Se ejecuta automaticamente al finalizar el DAG `src_planeacion_extrac_ipm`, o puede ejecutarse manualmente si los datos ya estan en bronze. Organiza las tareas en dos grupos logicos usando TaskGroup.
+El DAG src_planeacion_transf_ipm se ejecuta manualmente (schedule_interval=None) y no hace catchup. Se ejecuta automaticamente al finalizar el DAG `src_planeacion_load_ipm`, o puede ejecutarse manualmente si los datos ya estan en bronze. Organiza las tareas en dos grupos logicos usando TaskGroup.
 
 ### Grupo silver
 
@@ -77,12 +77,12 @@ Dependencias gold: `ensure_dataset -> dbt_run_gold -> dbt_test`.
 
 ## Ejecución del DAG y parámetros
 
-- El DAG no tiene `schedule` y se dispara automáticamente al finalizar el DAG `src_planeacion_extrac_ipm`, o manualmente desde la UI de Airflow o vía API si los datos ya están en bronze.
+- El DAG no tiene `schedule` y se dispara automáticamente al finalizar el DAG `src_planeacion_load_ipm`, o manualmente desde la UI de Airflow o vía API si los datos ya están en bronze.
 - El DAG lee directamente desde la tabla bronze `bronze_dpt_planeacion_municipal_dev.ipm_raw_data`, por lo que no requiere configuración adicional.
 
 ## Requisitos previos
 
-- Datos ya disponibles en la tabla `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por el DAG `src_planeacion_extrac_ipm`).
+- Datos ya disponibles en la tabla `bronze_dpt_planeacion_municipal_dev.ipm_raw_data` (normalmente cargados por el DAG `src_planeacion_load_ipm`).
 - Cuenta de servicio válida en `/opt/airflow/include/sa.json` con permisos de lectura/escritura en BigQuery.
 - Perfil dbt válido en `/opt/airflow/include/dbt` apuntando al proyecto y datasets correctos.
 - El proyecto dbt en `DBT_PROJECT_DIR` con los modelos `ipm_transform_*` y `ipm_processed_data` presentes y configurados.
@@ -93,7 +93,7 @@ Dependencias gold: `ensure_dataset -> dbt_run_gold -> dbt_test`.
 2. Gold: genera la tabla `ipm_processed_data` de consumo con nombres estandarizados y solo valores absolutos.
 
 **Flujo completo del pipeline:**
-- `src_planeacion_inges_ipm` (src_ipm_load_dag.py) → carga archivo desde Drive a GCS
-- `src_planeacion_extrac_ipm` (src_ipm_extract_dag.py) → extrae desde GCS a bronze
+- `src_planeacion_extrac_ipm` (src_ipm_extract_dag.py) → extrae archivo desde Drive a GCS
+- `src_planeacion_load_ipm` (src_ipm_load_dag.py) → carga archivo desde GCS a bronze
 - `src_planeacion_transf_ipm` (src_ipm_transform_dag.py) → transforma desde bronze a silver/gold
 

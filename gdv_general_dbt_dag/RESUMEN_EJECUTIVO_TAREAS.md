@@ -4,12 +4,12 @@ Este documento resume de forma concisa que hace cada tarea del pipeline de trans
 
 El pipeline completo se ejecuta mediante tres DAGs principales en secuencia:
 1. src_planeacion_extrac_ipm: Descarga el archivo Excel desde Google Drive y lo sube a GCS
-2. src_planeacion_inges_ipm: Extrae el archivo de GCS, aplica transformaciones minimas y carga a bronze (ipm_raw_data)
+2. src_planeacion_load_ipm: Extrae el archivo de GCS, aplica transformaciones minimas y carga a bronze (ipm_raw_data)
 3. src_planeacion_transf_ipm: Transforma los datos desde bronze a silver (ipm_transformed_data) y gold (ipm_processed_data) usando dbt
 
 CAPA BRONZE (Ingesta y Preservacion de Datos Originales)
 
-Todas las tareas de esta capa se ejecutan en el DAG src_planeacion_inges_ipm dentro del TaskGroup "bronze".
+Todas las tareas de esta capa se ejecutan en el DAG src_planeacion_load_ipm dentro del TaskGroup "bronze".
 
 1. ensure_dataset
    Que hace: Crea el dataset en BigQuery si no existe
@@ -98,9 +98,9 @@ BENEFICIOS GENERALES DEL PIPELINE
 
 FLUJO GENERAL
 
-1. src_planeacion_extrac_ipm: Descarga archivo Excel desde Google Drive → Sube a GCS → Ejecuta src_planeacion_inges_ipm
+1. src_planeacion_extrac_ipm: Descarga archivo Excel desde Google Drive → Sube a GCS → Ejecuta src_planeacion_load_ipm
 
-2. src_planeacion_inges_ipm (TaskGroup "bronze"): 
+2. src_planeacion_load_ipm (TaskGroup "bronze"): 
    - Busca ultimo archivo Excel en GCS
    - Descarga y transforma minimamente (preserva datos como STRING)
    - Carga a bronze_dpt_planeacion_municipal_dev.ipm_raw_data
