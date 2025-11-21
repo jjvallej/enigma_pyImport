@@ -76,13 +76,12 @@ with DAG(
         python_callable=_upload_file_task,
     )
 
-    # Tarea para ejecutar el DAG de carga (se configurará cuando se cree el DAG de load)
-    # Por ahora comentado hasta que se cree el DAG de load para IDC
-    # trigger_load_dag = TriggerDagRunOperator(
-    #     task_id="trigger_load_idc",
-    #     trigger_dag_id="src_planeacion_load_idc",
-    #     wait_for_completion=True,  # Espera a que el DAG de carga termine
-    # )
+    # Tarea para ejecutar el DAG de carga
+    trigger_load_dag = TriggerDagRunOperator(
+        task_id="trigger_load_idc",
+        trigger_dag_id="src_planeacion_load_idc",
+        wait_for_completion=True,  # Espera a que el DAG de carga termine
+    )
 
     # Tarea final
     end = EmptyOperator(
@@ -90,7 +89,5 @@ with DAG(
     )
 
     # Dependencias
-    # Por ahora solo hasta upload_file, cuando se cree el DAG de load se descomenta la línea de arriba
-    # y se cambia esta dependencia a: start >> upload_file >> trigger_load_dag >> end
-    start >> upload_file >> end
+    start >> upload_file >> trigger_load_dag >> end
 
