@@ -1,4 +1,4 @@
-# modules/ipm_extract.py
+# modules/idc_extract.py
 """
 Módulo para descargar archivos Excel desde Google Drive usando enlaces públicos
 y subirlos a Google Cloud Storage.
@@ -267,7 +267,7 @@ def upload_file_to_gcs(
     Args:
         local_file_path: Ruta local del archivo a subir
         bucket_name: Nombre del bucket en GCS
-        destination_blob_name: Nombre del blob (ruta) en GCS (ej: 'data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx')
+        destination_blob_name: Nombre del blob (ruta) en GCS (ej: 'data_staging/dpt_planeacion_municipal/idc/archivo.xlsx')
         overwrite: Si es True, sobrescribe el archivo si ya existe. Si es False, mantiene el anterior.
     
     Returns:
@@ -322,7 +322,7 @@ def upload_file_to_gcs(
 def move_file_from_drive_to_gcs(
     drive_url_or_id: str,
     bucket_name: str,
-    folder_name: str = "IPM",
+    folder_name: str = "IDC",
     destination_file_name: Optional[str] = None
 ) -> str:
     """
@@ -331,7 +331,7 @@ def move_file_from_drive_to_gcs(
     Args:
         drive_url_or_id: URL pública de Google Drive o File ID
         bucket_name: Nombre del bucket en GCS
-        folder_name: Nombre de la carpeta dentro del bucket (default: "IPM")
+        folder_name: Nombre de la carpeta dentro del bucket (default: "IDC")
         destination_file_name: Nombre opcional para el archivo en GCS. 
                                Si no se proporciona, se usa el nombre original.
     
@@ -373,3 +373,4 @@ def move_file_from_drive_to_gcs(
                 print(f"[DEBUG] Archivo temporal eliminado: {local_file_path}")
         except Exception as e:
             print(f"[WARN] No se pudo eliminar archivo temporal {local_file_path}: {e}")
+
