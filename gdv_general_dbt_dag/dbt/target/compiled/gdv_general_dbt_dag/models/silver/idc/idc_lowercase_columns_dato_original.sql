@@ -1,9 +1,4 @@
-{{
-  config(
-    materialized='table',
-    schema='test_idc_silver'
-  )
-}}
+
 
 -- Modelo: Convierte todos los nombres de columnas a minúsculas
 -- Toma del modelo normalize_columns y convierte todas las columnas explícitamente a minúsculas
@@ -140,5 +135,4 @@ SELECT
   INN_2_3 AS inn_2_3,
   INN_2_4 AS inn_2_4
   
-FROM {{ ref('idc_normalize_columns_dato_original') }}
-
+FROM `datagov-473122`.`test_idc_silver`.`idc_normalize_columns_dato_original`
