@@ -1,13 +1,15 @@
 # dags/src_idc_transform_dag.py
 """
 DAG para transformar los datos del IDC desde la capa bronze a la capa silver
-utilizando modelos dbt. Procesa dos pasos:
-1. Normalización de nombres de columnas a snake_case
-2. Conversión de nombres de columnas a minúsculas
+utilizando modelos dbt. Procesa tres pasos:
+1. Normalización de nombres de columnas a snake_case (vistas)
+2. Conversión de nombres de columnas a minúsculas (vistas)
+3. Normalización de departamento a mayúsculas sin acentos (tablas finales)
 
 Cada tabla tiene sus propios modelos:
-- idc_normalize_columns_*: Convierte nombres a snake_case
-- idc_lowercase_columns_*: Convierte nombres a minúsculas
+- idc_normalize_columns_*: Convierte nombres a snake_case (vistas)
+- idc_lowercase_columns_*: Convierte nombres a minúsculas (vistas)
+- idc_uppercase_*: Normaliza departamento y crea tablas finales (tablas)
 """
 from datetime import datetime
 from airflow import DAG
@@ -37,7 +39,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:idc", "ejecución:manual"],
-    description="Normaliza los nombres de columnas del IDC a snake_case desde bronze a silver utilizando modelos dbt. Espera que los datos ya estén en test_idc_bronze.",
+    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas y normaliza departamento a mayúsculas sin acentos desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Espera que los datos ya estén en test_idc_bronze.",
 ) as dag:
 
     # Tarea inicial vacía
@@ -114,11 +116,45 @@ with DAG(
             },
         )
 
-        # Dependencias: ensure_dataset -> [normalize_columns en paralelo] -> [lowercase_columns en paralelo]
+        # Paso 3: Normalizar departamento a mayúsculas sin acentos (depende de lowercase_columns, crea tablas finales)
+        s8_dbt_uppercase_dato_original = BashOperator(
+            task_id="dbt_uppercase_dato_original",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select idc_uppercase_dato_original || dbt run --select idc_uppercase_dato_original",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s9_dbt_uppercase_valor_normalizado = BashOperator(
+            task_id="dbt_uppercase_valor_normalizado",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select idc_uppercase_valor_normalizado || dbt run --select idc_uppercase_valor_normalizado",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        s10_dbt_uppercase_valor_ranking = BashOperator(
+            task_id="dbt_uppercase_valor_ranking",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select idc_uppercase_valor_ranking || dbt run --select idc_uppercase_valor_ranking",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        # Dependencias: ensure_dataset -> [normalize_columns en paralelo] -> [lowercase_columns en paralelo] -> [uppercase en paralelo]
         s1_ensure_dataset >> [s2_dbt_normalize_columns_dato_original, s3_dbt_normalize_columns_valor_normalizado, s4_dbt_normalize_columns_valor_ranking]
         s2_dbt_normalize_columns_dato_original >> s5_dbt_lowercase_columns_dato_original
         s3_dbt_normalize_columns_valor_normalizado >> s6_dbt_lowercase_columns_valor_normalizado
         s4_dbt_normalize_columns_valor_ranking >> s7_dbt_lowercase_columns_valor_ranking
+        s5_dbt_lowercase_columns_dato_original >> s8_dbt_uppercase_dato_original
+        s6_dbt_lowercase_columns_valor_normalizado >> s9_dbt_uppercase_valor_normalizado
+        s7_dbt_lowercase_columns_valor_ranking >> s10_dbt_uppercase_valor_ranking
 
     # Tarea final
     end = EmptyOperator(

@@ -1,15 +1,8 @@
 
-  
-    
 
-    create or replace table `datagov-473122`.`test_idc_silver`.`idc_normalize_columns_valor_normalizado`
-      
-    
-    
-
-    OPTIONS()
-    as (
-      
+  create or replace view `datagov-473122`.`test_idc_silver`.`idc_normalize_columns_valor_normalizado`
+  OPTIONS()
+  as 
 
 -- Modelo: Normaliza nombres de columnas a formato snake_case (texto_texto)
 -- Convierte todas las columnas a formato snake_case explícitamente
@@ -146,6 +139,5 @@ SELECT
   `INN-2-3` AS INN_2_3,
   `INN-2-4` AS INN_2_4
   
-FROM `datagov-473122`.`test_idc_bronze`.`idc_raw_data_valor_normalizado`
-    );
-  
+FROM `datagov-473122`.`test_idc_bronze`.`idc_raw_data_valor_normalizado`;
+
