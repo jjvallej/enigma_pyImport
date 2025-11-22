@@ -1,15 +1,8 @@
 
-  
-    
 
-    create or replace table `datagov-473122`.`test_idc_silver`.`idc_transformed_data_valor_normalizado`
-      
-    
-    
-
-    OPTIONS()
-    as (
-      
+  create or replace view `datagov-473122`.`test_idc_silver`.`idc_fill_nulls_valor_normalizado`
+  OPTIONS()
+  as 
 
 -- Modelo: Reemplaza valores NULL y NaN por 0 en todas las columnas numéricas
 -- Toma del modelo uppercase y reemplaza NULL/NaN por 0 en columnas numéricas
@@ -145,6 +138,5 @@ SELECT
   IF(SAFE_CAST(inn_2_3 AS FLOAT64) IS NULL OR IS_NAN(SAFE_CAST(inn_2_3 AS FLOAT64)), 0.0, SAFE_CAST(inn_2_3 AS FLOAT64)) AS inn_2_3,
   IF(SAFE_CAST(inn_2_4 AS FLOAT64) IS NULL OR IS_NAN(SAFE_CAST(inn_2_4 AS FLOAT64)), 0.0, SAFE_CAST(inn_2_4 AS FLOAT64)) AS inn_2_4
   
-FROM `datagov-473122`.`test_idc_silver`.`idc_uppercase_valor_normalizado`
-    );
-  
+FROM `datagov-473122`.`test_idc_silver`.`idc_uppercase_valor_normalizado`;
+
