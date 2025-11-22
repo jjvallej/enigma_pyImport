@@ -1,8 +1,7 @@
 {{
   config(
-    materialized='table',
-    schema='test_idc_silver',
-    alias='idc_transformed_data_valor_normalizado'
+    materialized='view',
+    schema='test_idc_silver'
   )
 }}
 

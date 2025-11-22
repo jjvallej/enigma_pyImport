@@ -1,15 +1,8 @@
 
-  
-    
 
-    create or replace table `datagov-473122`.`test_idc_silver`.`idc_transformed_data_dato_original`
-      
-    
-    
-
-    OPTIONS()
-    as (
-      
+  create or replace view `datagov-473122`.`test_idc_silver`.`idc_uppercase_dato_original`
+  OPTIONS()
+  as 
 
 -- Modelo: Normaliza la columna departamento a mayúsculas sin acentos ni caracteres especiales
 -- Toma del modelo lowercase_columns y normaliza departamento
@@ -167,6 +160,5 @@ SELECT
   inn_2_3,
   inn_2_4
   
-FROM `datagov-473122`.`test_idc_silver`.`idc_lowercase_columns_dato_original`
-    );
-  
+FROM `datagov-473122`.`test_idc_silver`.`idc_lowercase_columns_dato_original`;
+
