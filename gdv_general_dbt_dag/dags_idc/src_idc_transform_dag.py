@@ -25,8 +25,10 @@ from airflow.utils.task_group import TaskGroup
 import os, sys
 
 # Asegura que podamos importar el módulo local
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from modules.idc_load import (
+# Agregar el directorio raíz del proyecto al path para importar módulos
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+from modules.idc.idc_load import (
     ensure_dataset,
 )
 

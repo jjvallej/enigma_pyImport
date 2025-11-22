@@ -1,8 +1,8 @@
-# dags/src_idc_extract_dag.py
+# dags/src_ipm_extract_dag.py
 """
 DAG para mover archivos Excel desde Google Drive (enlace público) a Google Cloud Storage.
 Descarga el archivo desde Drive usando un enlace público y lo sube al bucket GCS 
-en la carpeta 'idc' dentro de 'data_staging/dpt_planeacion_municipal/'.
+en la carpeta 'ipm' dentro de 'data_staging/dpt_planeacion_municipal/'.
 
 Requiere: Enlace público de Google Drive (no requiere autenticación)
 """
@@ -15,23 +15,26 @@ import os
 
 # Asegura que podamos importar el módulo local
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from modules.idc_extract import move_file_from_drive_to_gcs
+# Agregar el directorio raíz del proyecto al path para importar módulos
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+from modules.ipm.ipm_extract import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
 DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
-DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/idc"  # Carpeta idc (minúsculas) dentro de dpt_planeacion_municipal
-DRIVE_URL = "https://docs.google.com/spreadsheets/d/1lAiRpLoTs4iA7ViqWCCnTwip4hRZMDWyzqicwdmgXFw/edit?usp=sharing"  # URL fija del archivo IDC en Google Drive
+DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/ipm"  # Carpeta ipm (minúsculas) dentro de dpt_planeacion_municipal
+DRIVE_URL = "https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"  # URL fija del archivo IPM en Google Drive
 
 def _upload_file_task():
     """
     Task que mueve el archivo desde Google Drive a GCS.
-    Usa la URL hardcodeada del archivo IDC.
+    Usa la URL hardcodeada del archivo IPM.
     """
     # Todos los parámetros se configuran automáticamente:
-    # - drive_url_or_id: URL hardcodeada del archivo IDC
+    # - drive_url_or_id: URL hardcodeada del archivo IPM
     # - bucket_name: usa valor por defecto
-    # - folder_name: usa valor por defecto (data_staging/dpt_planeacion_municipal/idc)
+    # - folder_name: usa valor por defecto (data_staging/dpt_planeacion_municipal/ipm)
+    # - use_public_link: siempre True (más fácil)
     # - destination_file_name: se extrae automáticamente del nombre del archivo en Drive
     
     bucket_name = DEFAULT_BUCKET_NAME
@@ -57,12 +60,12 @@ def _upload_file_task():
     return gcs_uri
 
 with DAG(
-    dag_id="src_planeacion_extrac_idc",
+    dag_id="src_planeacion_extrac_ipm",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,  # Ejecución manual
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:extraccion", "fuente:idc", "ejecución:manual"],
-    description="Descarga el archivo Excel IDC desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta idc dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_idc que carga los datos a BigQuery.",
+    tags=["secretaria:planeacion", "actividad:extraccion", "fuente:ipm", "ejecución:manual"],
+    description="Descarga el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_ipm que carga los datos a BigQuery.",
 ) as dag:
 
     # Tarea inicial
@@ -78,8 +81,8 @@ with DAG(
 
     # Tarea para ejecutar el DAG de carga
     trigger_load_dag = TriggerDagRunOperator(
-        task_id="trigger_load_idc",
-        trigger_dag_id="src_planeacion_load_idc",
+        task_id="trigger_load_ipm",
+        trigger_dag_id="src_planeacion_load_ipm",
         wait_for_completion=True,  # Espera a que el DAG de carga termine
     )
 
@@ -90,4 +93,3 @@ with DAG(
 
     # Dependencias
     start >> upload_file >> trigger_load_dag >> end
-
