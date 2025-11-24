@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`test_idc_gold`.`idc_processed_data`
+    create or replace table `datagov-473122`.`test_idc_gold`.`fact_idc`
       
     
     
@@ -11,9 +11,9 @@
     as (
       
 
--- Modelo gold: Une las 3 tablas (dato_original, valor_normalizado, valor_ranking)
--- Estructura final: departamento, ano, id_indicador, valor_original, valor_normalizado, ranking
--- Usa UNPIVOT para convertir las columnas de indicadores en filas
+-- Modelo gold: Une las 3 tablas (dato_original, valor_normalizado, valor_ranking) con el diccionario (dim_idc)
+-- Estructura final: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING
+-- Usa UNPIVOT para convertir las columnas de indicadores en filas y hace JOIN con dim_idc usando ID_SUBINDICADOR
 
 WITH dato_original_unpivot AS (
   SELECT
@@ -97,27 +97,47 @@ valor_ranking_unpivot AS (
       inn_1_1, inn_1_2, inn_1_3, inn_1_4, inn_2_1, inn_2_2, inn_2_3, inn_2_4
     )
   )
+),
+
+-- Unir las 3 tablas de valores
+unified_values AS (
+  SELECT
+    COALESCE(do.departamento, vn.departamento, vr.departamento) AS departamento,
+    COALESCE(do.ano, vn.ano, vr.ano) AS ano,
+    COALESCE(do.id_indicador, vn.id_indicador, vr.id_indicador) AS id_subindicador,
+    do.valor_original,
+    vn.valor_normalizado,
+    vr.ranking
+  FROM dato_original_unpivot do
+  FULL OUTER JOIN valor_normalizado_unpivot vn
+    ON do.departamento = vn.departamento
+    AND do.ano = vn.ano
+    AND do.id_indicador = vn.id_indicador
+  FULL OUTER JOIN valor_ranking_unpivot vr
+    ON COALESCE(do.departamento, vn.departamento) = vr.departamento
+    AND COALESCE(do.ano, vn.ano) = vr.ano
+    AND COALESCE(do.id_indicador, vn.id_indicador) = vr.id_indicador
 )
 
 SELECT
-  COALESCE(do.departamento, vn.departamento, vr.departamento) AS departamento,
-  COALESCE(do.ano, vn.ano, vr.ano) AS ano,
-  COALESCE(do.id_indicador, vn.id_indicador, vr.id_indicador) AS id_indicador,
-  do.valor_original,
-  vn.valor_normalizado,
-  vr.ranking
-FROM dato_original_unpivot do
-FULL OUTER JOIN valor_normalizado_unpivot vn
-  ON do.departamento = vn.departamento
-  AND do.ano = vn.ano
-  AND do.id_indicador = vn.id_indicador
-FULL OUTER JOIN valor_ranking_unpivot vr
-  ON COALESCE(do.departamento, vn.departamento) = vr.departamento
-  AND COALESCE(do.ano, vn.ano) = vr.ano
-  AND COALESCE(do.id_indicador, vn.id_indicador) = vr.id_indicador
+  uv.departamento AS DEPARTAMENTO,
+  uv.ano AS ANIO,
+  CAST(d.ID_FACTOR AS INT64) AS ID_FACTOR,
+  CAST(d.ID_PILAR AS INT64) AS ID_PILAR,
+  d.ID_INDICADOR,
+  d.ID_SUBINDICADOR,
+  CAST(uv.valor_original AS FLOAT64) AS VALOR_ORIGINAL,
+  CAST(uv.valor_normalizado AS FLOAT64) AS VALOR_NORMALIZADO,
+  CAST(uv.ranking AS INT64) AS VALOR_RANKING
+FROM unified_values uv
+INNER JOIN `datagov-473122`.`test_idc_gold`.`dim_idc` d
+  ON UPPER(REPLACE(uv.id_subindicador, '_', '-')) = UPPER(d.ID_SUBINDICADOR)
 ORDER BY
-  COALESCE(do.departamento, vn.departamento, vr.departamento),
-  COALESCE(do.ano, vn.ano, vr.ano),
-  COALESCE(do.id_indicador, vn.id_indicador, vr.id_indicador)
+  uv.departamento,
+  uv.ano,
+  CAST(d.ID_FACTOR AS INT64),
+  CAST(d.ID_PILAR AS INT64),
+  d.ID_INDICADOR,
+  uv.id_subindicador
     );
   

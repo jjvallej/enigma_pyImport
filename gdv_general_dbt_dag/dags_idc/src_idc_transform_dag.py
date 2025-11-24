@@ -51,7 +51,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:idc", "ejecución:manual"],
-    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Luego une las 3 tablas en la capa gold creando idc_processed_data. Espera que los datos ya estén en test_idc_bronze.",
+    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Luego une las 3 tablas con el diccionario (dim_idc) en la capa gold creando fact_idc con estructura: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING. Espera que los datos ya estén en test_idc_bronze y que dim_idc exista en test_idc_gold.",
 ) as dag:
 
     # Tarea inicial vacía
@@ -243,9 +243,9 @@ with DAG(
             python_callable=_ensure_dataset_gold_task,
         )
 
-        # Unir las 3 tablas en una estructura final
-        g2_dbt_idc_processed_data = BashOperator(
-            task_id="dbt_idc_processed_data",
+        # Unir las 3 tablas en una estructura final con el diccionario
+        g2_dbt_fact_idc = BashOperator(
+            task_id="dbt_fact_idc",
             bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select idc_processed_data || dbt run --select idc_processed_data",
             env={
                 "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
@@ -254,9 +254,9 @@ with DAG(
             },
         )
 
-        # Dependencias: ensure_dataset -> dbt_idc_processed_data
-        # Nota: dbt_idc_processed_data depende de las 3 tablas finales de silver (s14, s15, s16)
-        g1_ensure_dataset >> g2_dbt_idc_processed_data
+        # Dependencias: ensure_dataset -> dbt_fact_idc
+        # Nota: dbt_fact_idc depende de las 3 tablas finales de silver (s14, s15, s16) y de dim_idc en gold
+        g1_ensure_dataset >> g2_dbt_fact_idc
 
     # Tarea final
     end = EmptyOperator(

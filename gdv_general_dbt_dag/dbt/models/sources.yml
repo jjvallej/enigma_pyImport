@@ -10,3 +10,7 @@ sources:
       - name: idc_raw_data_dato_original
       - name: idc_raw_data_valor_normalizado
       - name: idc_raw_data_valor_ranking
+  - name: gold_idc
+    schema: test_idc_gold
+    tables:
+      - name: dim_idc
