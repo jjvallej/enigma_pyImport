@@ -138,7 +138,7 @@ SELECT
   `INN-2-3` AS INN_2_3,
   `INN-2-4` AS INN_2_4
   
-FROM `datagov-473122`.`test_idc_bronze`.`idc_raw_data_dato_original`
+FROM `datagov-473122`.`bronze_dpt_planeacion_municipal_dev`.`idc_raw_data_dato_original`
 ),  __dbt__cte__idc_lowercase_columns_dato_original as (
 
 

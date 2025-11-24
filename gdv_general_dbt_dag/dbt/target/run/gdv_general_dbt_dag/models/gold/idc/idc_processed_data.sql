@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`test_idc_gold`.`fact_idc`
+    create or replace table `datagov-473122`.`gold_dpt_planeacion_municipal_dev`.`fact_idc`
       
     
     
@@ -21,7 +21,7 @@ WITH dato_original_unpivot AS (
     ano_idc AS ano,
     id_indicador,
     valor AS valor_original
-  FROM `datagov-473122`.`test_idc_silver`.`idc_transformed_data_dato_original`
+  FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`idc_transformed_data_dato_original`
   UNPIVOT INCLUDE NULLS (
     valor FOR id_indicador IN (
       ins_1_1, ins_1_2, ins_1_3, ins_2_1, ins_2_2, ins_2_3, ins_3_1, ins_3_2, ins_3_3,
@@ -49,7 +49,7 @@ valor_normalizado_unpivot AS (
     ano_idc AS ano,
     id_indicador,
     valor AS valor_normalizado
-  FROM `datagov-473122`.`test_idc_silver`.`idc_transformed_data_valor_normalizado`
+  FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`idc_transformed_data_valor_normalizado`
   UNPIVOT INCLUDE NULLS (
     valor FOR id_indicador IN (
       ins_1_1, ins_1_2, ins_1_3, ins_2_1, ins_2_2, ins_2_3, ins_3_1, ins_3_2, ins_3_3,
@@ -77,7 +77,7 @@ valor_ranking_unpivot AS (
     ano_idc AS ano,
     id_indicador,
     valor AS ranking
-  FROM `datagov-473122`.`test_idc_silver`.`idc_transformed_data_valor_ranking`
+  FROM `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`idc_transformed_data_valor_ranking`
   UNPIVOT INCLUDE NULLS (
     valor FOR id_indicador IN (
       ins_1_1, ins_1_2, ins_1_3, ins_2_1, ins_2_2, ins_2_3, ins_3_1, ins_3_2, ins_3_3,
@@ -130,7 +130,7 @@ SELECT
   CAST(uv.valor_normalizado AS FLOAT64) AS VALOR_NORMALIZADO,
   CAST(uv.ranking AS INT64) AS VALOR_RANKING
 FROM unified_values uv
-INNER JOIN `datagov-473122`.`test_idc_gold`.`dim_idc` d
+INNER JOIN `datagov-473122`.`gold_dpt_planeacion_municipal_dev`.`dim_idc` d
   ON UPPER(REPLACE(uv.id_subindicador, '_', '-')) = UPPER(d.ID_SUBINDICADOR)
 ORDER BY
   uv.departamento,

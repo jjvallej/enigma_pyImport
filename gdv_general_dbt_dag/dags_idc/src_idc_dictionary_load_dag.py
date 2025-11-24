@@ -6,7 +6,7 @@ transformarlos mínimamente y cargarlos en la capa gold de BigQuery.
 El archivo CSV contiene el diccionario de indicadores con la estructura:
 ID_FACTOR,ID_PILAR,ID_INDICADOR,ID_SUBINDICADOR,NOM_FACTOR,NOM_PILAR,NOM_INDICADOR,NOM_SUBINDICADOR
 
-La tabla se crea en el dataset test_idc_gold con el nombre dim_idc.
+La tabla se crea en el dataset gold_dpt_planeacion_municipal_dev con el nombre dim_idc.
 """
 from datetime import datetime
 from airflow import DAG
@@ -34,7 +34,7 @@ from modules.idc.idc_dictionary_load import (
 # El DAG buscará automáticamente el archivo .csv más reciente en esta carpeta
 GCS_BUCKET_NAME = "datalake_gdv"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
-DATASET_ID_GOLD = "test_idc_gold"
+DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
 TABLE_NAME = "dim_idc"
 
 def _ensure_dataset_gold_task():
@@ -94,7 +94,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc_dictionary", "ejecución:manual"],
-    description="Lee CSV del diccionario IDC desde GCS, transforma mínimamente y carga a BigQuery en test_idc_gold como tabla dim_idc.",
+    description="Lee CSV del diccionario IDC desde GCS, transforma mínimamente y carga a BigQuery en gold_dpt_planeacion_municipal_dev como tabla dim_idc.",
 ) as dag:
 
     # Tarea inicial vacía

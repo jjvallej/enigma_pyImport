@@ -33,8 +33,8 @@ from modules.idc.idc_load import (
 )
 
 # === CONFIGURACIÓN ===
-DATASET_ID_SILVER = "test_idc_silver"
-DATASET_ID_GOLD = "test_idc_gold"
+DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
+DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
 DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
 
 def _ensure_dataset_silver_task():
@@ -51,7 +51,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:idc", "ejecución:manual"],
-    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Luego une las 3 tablas con el diccionario (dim_idc) en la capa gold creando fact_idc con estructura: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING. Espera que los datos ya estén en test_idc_bronze y que dim_idc exista en test_idc_gold.",
+    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Luego une las 3 tablas con el diccionario (dim_idc) en la capa gold creando fact_idc con estructura: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING. Espera que los datos ya estén en bronze_dpt_planeacion_municipal_dev y que dim_idc exista en gold_dpt_planeacion_municipal_dev.",
 ) as dag:
 
     # Tarea inicial vacía

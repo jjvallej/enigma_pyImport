@@ -46,7 +46,7 @@ from modules.idc.idc_load import (
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
 GCS_BUCKET_NAME = "datalake_gdv"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
-DATASET_ID_BRONZE = "test_idc_bronze"
+DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
 
 # Mapeo de hojas del Excel a nombres de tablas en BigQuery
 SHEET_TO_TABLE_MAPPING = {
@@ -115,7 +115,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc", "ejecución:manual"],
-    description="Lee Excel IDC desde GCS (con 3 hojas), transforma mínimamente y carga a BigQuery en test_idc_bronze como 3 tablas separadas. Luego ejecuta el DAG de transformación src_planeacion_transf_idc.",
+    description="Lee Excel IDC desde GCS (con 3 hojas), transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev como 3 tablas separadas. Luego ejecuta el DAG de transformación src_planeacion_transf_idc.",
 ) as dag:
 
     # Tarea inicial vacía

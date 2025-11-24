@@ -2,7 +2,7 @@
   
     
 
-    create or replace table `datagov-473122`.`test_idc_silver`.`idc_transformed_data_valor_ranking`
+    create or replace table `datagov-473122`.`silver_dpt_planeacion_municipal_dev`.`idc_transformed_data_valor_ranking`
       
     
     
@@ -149,7 +149,7 @@ SELECT
   `INN-2-3` AS INN_2_3,
   `INN-2-4` AS INN_2_4
   
-FROM `datagov-473122`.`test_idc_bronze`.`idc_raw_data_valor_ranking`
+FROM `datagov-473122`.`bronze_dpt_planeacion_municipal_dev`.`idc_raw_data_valor_ranking`
 ),  __dbt__cte__idc_lowercase_columns_valor_ranking as (
 
 

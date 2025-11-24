@@ -5,12 +5,12 @@ sources:
     tables:
       - name: ipm_raw_data
   - name: bronze_idc
-    schema: test_idc_bronze
+    schema: bronze_dpt_planeacion_municipal_dev
     tables:
       - name: idc_raw_data_dato_original
       - name: idc_raw_data_valor_normalizado
       - name: idc_raw_data_valor_ranking
   - name: gold_idc
-    schema: test_idc_gold
+    schema: gold_dpt_planeacion_municipal_dev
     tables:
       - name: dim_idc

@@ -1,7 +1,7 @@
 {{
   config(
     materialized='table',
-    schema='test_idc_gold',
+    schema='gold_dpt_planeacion_municipal_dev',
     alias='fact_idc'
   )
 }}

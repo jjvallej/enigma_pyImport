@@ -1,7 +1,7 @@
 {{
   config(
     materialized='table',
-    schema='test_idc_silver',
+    schema='silver_dpt_planeacion_municipal_dev',
     alias='idc_transformed_data_valor_normalizado'
   )
 }}
