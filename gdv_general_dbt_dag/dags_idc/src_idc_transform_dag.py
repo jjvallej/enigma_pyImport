@@ -34,11 +34,16 @@ from modules.idc.idc_load import (
 
 # === CONFIGURACIÓN ===
 DATASET_ID_SILVER = "test_idc_silver"
+DATASET_ID_GOLD = "test_idc_gold"
 DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
 
 def _ensure_dataset_silver_task():
     """Asegura que el dataset silver exista."""
     ensure_dataset(dataset_id=DATASET_ID_SILVER)
+
+def _ensure_dataset_gold_task():
+    """Asegura que el dataset gold exista."""
+    ensure_dataset(dataset_id=DATASET_ID_GOLD)
 
 with DAG(
     dag_id="src_planeacion_transf_idc",
@@ -46,7 +51,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:idc", "ejecución:manual"],
-    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Espera que los datos ya estén en test_idc_bronze.",
+    description="Normaliza los nombres de columnas del IDC a snake_case, convierte a minúsculas, normaliza departamento a mayúsculas sin acentos, reemplaza NULL/NaN por 0 y redondea/convierte columnas numéricas desde bronze a silver utilizando modelos dbt. Crea las tablas finales: idc_transformed_data_*. Luego une las 3 tablas en la capa gold creando idc_processed_data. Espera que los datos ya estén en test_idc_bronze.",
 ) as dag:
 
     # Tarea inicial vacía
@@ -231,10 +236,35 @@ with DAG(
         s12_dbt_fill_nulls_valor_normalizado >> s15_dbt_round_decimals_valor_normalizado
         s13_dbt_fill_nulls_valor_ranking >> s16_dbt_round_integers_valor_ranking
 
+    # Grupo de tareas para la capa gold
+    with TaskGroup(group_id="gold") as gold_group:
+        g1_ensure_dataset = PythonOperator(
+            task_id="ensure_dataset",
+            python_callable=_ensure_dataset_gold_task,
+        )
+
+        # Unir las 3 tablas en una estructura final
+        g2_dbt_idc_processed_data = BashOperator(
+            task_id="dbt_idc_processed_data",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select idc_processed_data || dbt run --select idc_processed_data",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        # Dependencias: ensure_dataset -> dbt_idc_processed_data
+        # Nota: dbt_idc_processed_data depende de las 3 tablas finales de silver (s14, s15, s16)
+        g1_ensure_dataset >> g2_dbt_idc_processed_data
+
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
-    # Dependencias: start -> silver -> end
-    start >> silver_group >> end
+    # Dependencias: 
+    # - start -> silver -> gold -> end
+    # - Las 3 tablas finales de silver (s14, s15, s16) deben completarse antes de gold
+    start >> silver_group
+    [s14_dbt_round_decimals_dato_original, s15_dbt_round_decimals_valor_normalizado, s16_dbt_round_integers_valor_ranking] >> gold_group >> end
