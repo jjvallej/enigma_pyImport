@@ -1,7 +1,7 @@
-# dags/src_idc_extract_dag.py
+# dags/src_idc_ingest_dag.py
 """
-DAG para mover archivos Excel desde Google Drive (enlace público) a Google Cloud Storage.
-Descarga el archivo desde Drive usando un enlace público y lo sube al bucket GCS 
+DAG para ingerir archivos Excel desde Google Drive (enlace público) a Google Cloud Storage.
+Ingiere el archivo desde Drive usando un enlace público y lo sube al bucket GCS 
 en la carpeta 'idc' dentro de 'data_staging/dpt_planeacion_municipal/'.
 
 Requiere: Enlace público de Google Drive (no requiere autenticación)
@@ -18,7 +18,7 @@ import sys
 # Agregar el directorio raíz del proyecto al path para importar módulos
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
-from modules.idc.idc_extract import move_file_from_drive_to_gcs
+from modules.idc.idc_ingest import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
 DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
@@ -59,12 +59,12 @@ def _upload_file_task():
     return gcs_uri
 
 with DAG(
-    dag_id="src_planeacion_extrac_idc",
+    dag_id="src_planeacion_ingest_idc",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,  # Ejecución manual
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:extraccion", "fuente:idc", "ejecución:manual"],
-    description="Descarga el archivo Excel IDC desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta idc dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_idc que carga los datos a BigQuery.",
+    tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc", "ejecución:manual"],
+    description="Ingiere el archivo Excel IDC desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta idc dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_idc que carga los datos a BigQuery.",
 ) as dag:
 
     # Tarea inicial
