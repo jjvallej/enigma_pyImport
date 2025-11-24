@@ -1,6 +1,6 @@
 {{
   config(
-    materialized='view',
+    materialized='ephemeral',
     schema='silver_dpt_planeacion_municipal_dev'
   )
 }}
