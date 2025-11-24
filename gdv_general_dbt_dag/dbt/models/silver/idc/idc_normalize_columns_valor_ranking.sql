@@ -1,7 +1,6 @@
 {{
   config(
-    materialized='view',
-    schema='test_idc_silver'
+    materialized='ephemeral'
   )
 }}
 
