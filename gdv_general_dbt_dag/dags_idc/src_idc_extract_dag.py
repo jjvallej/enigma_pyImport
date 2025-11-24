@@ -23,7 +23,7 @@ from modules.idc.idc_extract import move_file_from_drive_to_gcs
 # === CONFIGURACIÓN ===
 DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
 DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/idc"  # Carpeta idc (minúsculas) dentro de dpt_planeacion_municipal
-DRIVE_URL = "https://docs.google.com/spreadsheets/d/1lAiRpLoTs4iA7ViqWCCnTwip4hRZMDWyzqicwdmgXFw/edit?usp=sharing"  # URL fija del archivo IDC en Google Drive
+DRIVE_URL = "https://docs.google.com/spreadsheets/d/1J42xKC3VnkjhwHQENKxo2DDQzuBINYxY/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"  # URL fija del archivo IDC en Google Drive
 
 def _upload_file_task():
     """

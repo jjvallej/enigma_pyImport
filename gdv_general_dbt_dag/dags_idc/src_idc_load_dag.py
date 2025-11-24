@@ -2,10 +2,21 @@
 """
 DAG para extraer datos del archivo Excel IDC desde Google Cloud Storage,
 transformarlos mínimamente y cargarlos en la capa bronze de BigQuery.
-El archivo tiene 3 hojas que se cargan como tablas separadas:
-- Dato_original -> idc_raw_data_dato_original
-- Valor_normalizado -> idc_raw_data_valor_normalizado
-- Valor_ranking -> idc_raw_data_valor_ranking
+
+El archivo SIEMPRE tiene 4 hojas:
+1. Primera hoja (índice 0): Estructura/metadatos → SE ELIMINA SIEMPRE
+2. Segunda hoja (índice 1): Dato_original → idc_raw_data_dato_original
+3. Tercera hoja (índice 2): Valor_normalizado -> idc_raw_data_valor_normalizado
+4. Cuarta hoja (índice 3): Valor_ranking -> idc_raw_data_valor_ranking
+
+PROCESO AUTOMÁTICO (siempre se ejecuta):
+1. Se elimina SIEMPRE la primera hoja del Excel (hoja de estructura/metadatos)
+2. De las 3 hojas restantes, en cada una se elimina SIEMPRE la primera fila (fila de metadatos/estructura)
+3. La segunda fila de cada hoja se usa como encabezados (nombres de columnas)
+4. Las hojas se mapean por índice (no por nombre), por lo que el orden es crítico:
+   - Primera hoja restante (índice 0) = Dato_original
+   - Segunda hoja restante (índice 1) = Valor_normalizado
+   - Tercera hoja restante (índice 2) = Valor_ranking
 """
 from datetime import datetime
 from airflow import DAG

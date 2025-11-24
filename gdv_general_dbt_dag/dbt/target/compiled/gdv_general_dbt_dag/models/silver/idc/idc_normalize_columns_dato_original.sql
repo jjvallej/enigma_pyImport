@@ -8,7 +8,7 @@
 SELECT
   -- Columnas base
   Departamento AS departamento,
-  `Año IDC` AS ano_idc,
+  `Año_IDC` AS ano_idc,
   fecha_lectura,
   
   -- Columnas INS-* (Insuficiencia de Condiciones de Vida)
