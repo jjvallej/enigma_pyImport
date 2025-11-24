@@ -1,6 +1,6 @@
-# modules/ipm_extract.py
+# modules/ipm_ingest.py
 """
-Módulo para descargar archivos Excel desde Google Drive usando enlaces públicos
+Módulo para ingerir archivos Excel desde Google Drive usando enlaces públicos
 y subirlos a Google Cloud Storage.
 
 Soporta:
@@ -326,7 +326,7 @@ def move_file_from_drive_to_gcs(
     destination_file_name: Optional[str] = None
 ) -> str:
     """
-    Función completa que descarga un archivo desde Google Drive (enlace público) y lo sube a GCS.
+    Función completa que ingiere un archivo desde Google Drive (enlace público) y lo sube a GCS.
     
     Args:
         drive_url_or_id: URL pública de Google Drive o File ID
