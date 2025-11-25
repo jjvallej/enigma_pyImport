@@ -16,7 +16,7 @@ CONFIGURACION PRINCIPAL
 El archivo comienza importando las librerias necesarias de Airflow y el modulo local ipm_load que contiene las funciones de utilidad para extraer desde GCS, transformar y cargar a BigQuery.
 
 Constantes dentro del DAG:
-- GCS_BUCKET_NAME: bucket de origen en GCS. Por defecto "datalake_gdv". Esta constante define donde se buscara el archivo.
+- GCS_BUCKET_NAME: bucket de origen en GCS. Por defecto "datalake_gdv_dev". Esta constante define donde se buscara el archivo.
 - GCS_FOLDER_PATH: carpeta con los Excel. Por defecto "data_staging/dpt_planeacion_municipal/ipm". Esta ruta estandariza la ubicacion de los archivos fuente del IPM.
 - DATASET_ID_BRONZE: dataset de bronze en BigQuery, "bronze_dpt_planeacion_municipal_dev".
 - TABLE_NAME_BRONZE: nombre de la tabla bronze, "ipm_raw_data".

@@ -32,7 +32,7 @@ from modules.idc.idc_dictionary_load import (
 # === CONFIGURACIÓN ===
 # Configuración para buscar el último archivo CSV en la carpeta idc
 # El DAG buscará automáticamente el archivo .csv más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv"
+GCS_BUCKET_NAME = "datalake_gdv_dev"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
 DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
 TABLE_NAME = "dim_idc"

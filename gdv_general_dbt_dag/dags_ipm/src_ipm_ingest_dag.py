@@ -21,7 +21,7 @@ sys.path.append(project_root)
 from modules.ipm.ipm_ingest import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
+DEFAULT_BUCKET_NAME = "datalake_gdv_dev"  # Cambiar según el bucket deseado
 DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/ipm"  # Carpeta ipm (minúsculas) dentro de dpt_planeacion_municipal
 DRIVE_URL = "https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"  # URL fija del archivo IPM en Google Drive
 

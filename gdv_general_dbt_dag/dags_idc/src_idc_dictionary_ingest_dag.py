@@ -21,7 +21,7 @@ sys.path.append(project_root)
 from modules.idc.idc_dictionary_ingest import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv"  # Cambiar según el bucket deseado
+DEFAULT_BUCKET_NAME = "datalake_gdv_dev"  # Cambiar según el bucket deseado
 DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/idc"  # Carpeta idc dentro de dpt_planeacion_municipal
 DRIVE_URL = "https://drive.google.com/file/d/1GgHo_KojqPPP4gTm5fymtbCmX1Ujz1tk/view?usp=sharing"  # URL fija del archivo CSV del diccionario en Google Drive
 

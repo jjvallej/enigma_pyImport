@@ -16,7 +16,7 @@ Las constantes principales son:
 - PROJECT_ID: Identificador del proyecto de Google Cloud, actualmente "datagov-473122"
 - SA_PATH: Ruta al archivo de credenciales de servicio, ubicado en "/opt/airflow/include/sa.json"
 - DEBUG: Variable booleana que controla si se muestran mensajes de depuracion detallados
-- GCS_BUCKET_NAME: Nombre del bucket de GCS por defecto, "datalake_gdv"
+- GCS_BUCKET_NAME: Nombre del bucket de GCS por defecto, "datalake_gdv_dev"
 - GCS_FOLDER_PATH: Ruta de la carpeta por defecto en GCS, "data_staging/dpt_planeacion_municipal/ipm"
 
 FUNCIONES DE CLIENTES

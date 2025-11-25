@@ -30,7 +30,7 @@ from modules.ipm.ipm_load import (
 # === CONFIGURACIÓN ===
 # Configuración para buscar el último archivo Excel en la carpeta ipm
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv"
+GCS_BUCKET_NAME = "datalake_gdv_dev"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/ipm"
 DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
 TABLE_NAME_BRONZE = "ipm_raw_data"

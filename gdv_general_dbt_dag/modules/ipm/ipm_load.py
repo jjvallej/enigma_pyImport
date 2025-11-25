@@ -15,7 +15,7 @@ SA_PATH = "/opt/airflow/include/sa.json"
 DEBUG = True
 
 # Valores por defecto
-GCS_BUCKET_NAME = "datalake_gdv"
+GCS_BUCKET_NAME = "datalake_gdv_dev"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/ipm"
 
 # ---------------------------

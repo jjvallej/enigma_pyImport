@@ -44,7 +44,7 @@ from modules.idc.idc_load import (
 # === CONFIGURACIÓN ===
 # Configuración para buscar el último archivo Excel en la carpeta idc
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv"
+GCS_BUCKET_NAME = "datalake_gdv_dev"
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
 DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
 

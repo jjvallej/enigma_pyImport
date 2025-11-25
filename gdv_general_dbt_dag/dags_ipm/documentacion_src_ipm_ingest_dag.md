@@ -11,7 +11,7 @@ CONFIGURACION PRINCIPAL
 El archivo comienza importando las librerias necesarias de Airflow y el modulo local ipm_extract que contiene las funciones de utilidad para descargar desde Google Drive y subir a GCS.
 
 Constantes dentro del DAG:
-- DEFAULT_BUCKET_NAME: bucket de destino en GCS. Por defecto "datalake_gdv". Esta constante define donde se almacenara el archivo descargado.
+- DEFAULT_BUCKET_NAME: bucket de destino en GCS. Por defecto "datalake_gdv_dev". Esta constante define donde se almacenara el archivo descargado.
 - DEFAULT_FOLDER_NAME: carpeta destino dentro del bucket. Por defecto "data_staging/dpt_planeacion_municipal/ipm". Esta ruta estandariza la ubicacion de los archivos fuente del IPM.
 - DRIVE_URL: URL fija del archivo IPM en Google Drive. Esta URL esta hardcodeada en el codigo y apunta al archivo especifico del IPM que se procesa. La URL completa es: https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true
 
@@ -102,7 +102,7 @@ El DAG se ejecuta de manera muy simple ya que no requiere configuracion adiciona
    - La tarea trigger_load_ipm ejecutara el DAG src_planeacion_load_ipm que extraera los datos a bronze y luego ejecutara automaticamente el DAG src_planeacion_transf_ipm para transformar los datos a silver y gold. Esta tarea puede tardar varios minutos dependiendo del tamano del archivo y la complejidad de las transformaciones.
    - Finalmente, la tarea end marcara el final del flujo.
 
-4. Verificar en los logs de la tarea upload_file_from_drive_to_gcs la URI final de GCS retornada. Los logs mostraran mensajes informativos sobre el proceso, incluyendo la URL de Drive que se esta usando, el bucket y carpeta destino, y finalmente un mensaje de confirmacion con la URI completa del archivo en GCS, por ejemplo: gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx.
+4. Verificar en los logs de la tarea upload_file_from_drive_to_gcs la URI final de GCS retornada. Los logs mostraran mensajes informativos sobre el proceso, incluyendo la URL de Drive que se esta usando, el bucket y carpeta destino, y finalmente un mensaje de confirmacion con la URI completa del archivo en GCS, por ejemplo: gs://datalake_gdv_dev/data_staging/dpt_planeacion_municipal/ipm/archivo.xlsx.
 
 5. Una vez completada exitosamente toda la ejecucion, el archivo estara disponible en GCS, habra sido procesado y transformado a traves de las capas bronze, silver y gold en BigQuery, y el DAG principal habra finalizado correctamente.
 
@@ -110,7 +110,7 @@ REQUISITOS PREVIOS
 
 Para que el DAG funcione correctamente, se deben cumplir los siguientes requisitos:
 
-La cuenta de servicio configurada en el entorno de Airflow debe tener permisos de escritura en el bucket de GCS especificado en DEFAULT_BUCKET_NAME. Esto significa que la cuenta de servicio debe tener el rol Storage Object Admin o Storage Object Creator en el bucket datalake_gdv, o al menos permisos para crear y escribir objetos en la carpeta data_staging/dpt_planeacion_municipal/ipm.
+La cuenta de servicio configurada en el entorno de Airflow debe tener permisos de escritura en el bucket de GCS especificado en DEFAULT_BUCKET_NAME. Esto significa que la cuenta de servicio debe tener el rol Storage Object Admin o Storage Object Creator en el bucket datalake_gdv_dev, o al menos permisos para crear y escribir objetos en la carpeta data_staging/dpt_planeacion_municipal/ipm.
 
 El archivo en Google Drive debe ser accesible publicamente mediante enlace. Esto significa que el archivo debe estar configurado como "Cualquier persona con el enlace puede ver" en la configuracion de compartir de Google Drive. Si el archivo no es publico, este DAG no funcionara porque utiliza exclusivamente enlaces publicos. Para que funcione, es necesario que el archivo tenga permisos publicos en Google Drive.
 
@@ -120,7 +120,7 @@ La URL hardcodeada DRIVE_URL debe ser valida y apuntar al archivo correcto. Si e
 
 RESUMEN
 
-El DAG src_planeacion_extrac_ipm es el primer componente del pipeline de datos del IPM. Su funcion es mover el archivo Excel del IPM desde un enlace publico fijo de Google Drive (hardcodeado en el codigo como constante DRIVE_URL) a una ubicacion estandarizada en GCS (gs://datalake_gdv/data_staging/dpt_planeacion_municipal/ipm/), y luego ejecutar automaticamente el DAG de carga src_planeacion_load_ipm que a su vez ejecutara el DAG de transformacion src_planeacion_transf_ipm, procesando el archivo a traves de las capas bronze, silver y gold en BigQuery.
+El DAG src_planeacion_extrac_ipm es el primer componente del pipeline de datos del IPM. Su funcion es mover el archivo Excel del IPM desde un enlace publico fijo de Google Drive (hardcodeado en el codigo como constante DRIVE_URL) a una ubicacion estandarizada en GCS (gs://datalake_gdv_dev/data_staging/dpt_planeacion_municipal/ipm/), y luego ejecutar automaticamente el DAG de carga src_planeacion_load_ipm que a su vez ejecutara el DAG de transformacion src_planeacion_transf_ipm, procesando el archivo a traves de las capas bronze, silver y gold en BigQuery.
 
 El DAG consta de cuatro tareas secuenciales: una tarea de inicio, la descarga y subida del archivo a GCS, la ejecucion del DAG de ingesta (que espera su finalizacion), y una tarea de fin. No requiere parametros de ejecucion ya que la URL del archivo esta definida directamente en el codigo como constante. Esto simplifica su uso pero significa que siempre descargara el mismo archivo desde la misma ubicacion.
 
