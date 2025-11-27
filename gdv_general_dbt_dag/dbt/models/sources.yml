@@ -10,6 +10,14 @@ sources:
       - name: idc_raw_data_dato_original
       - name: idc_raw_data_valor_normalizado
       - name: idc_raw_data_valor_ranking
+  - name: bronze_evaplan
+    schema: bronze_dpt_planeacion_municipal_dev
+    tables:
+      - name: evaplan_api_periodos_raw_data
+      - name: evaplan_api_avance_mr_raw_data
+      - name: evaplan_api_avance_mp_raw_data
+      - name: evaplan_api_avance_x_subprograma_raw_data
+      - name: evaplan_api_avance_general_raw_data
   - name: gold_idc
     schema: gold_dpt_planeacion_municipal_dev
     tables:

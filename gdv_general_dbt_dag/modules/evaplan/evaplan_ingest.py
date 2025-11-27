@@ -7,7 +7,7 @@ from google.cloud import storage
 import os
 import json
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 PROJECT_ID = "datagov-473122"
@@ -229,6 +229,9 @@ def get_avance_mr(token: str, peri_idp: int) -> Dict[str, Any]:
             error_msg = result.get("message", "Error desconocido al obtener AvanceMR")
             raise Exception(f"Error al obtener AvanceMR: {error_msg}")
         
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
+        
         if DEBUG:
             data = result.get("data", {})
             avance_mr = data.get("AvanceMR", [])
@@ -288,6 +291,9 @@ def get_avance_mp(token: str, peri_idp: int) -> Dict[str, Any]:
         if not result.get("success"):
             error_msg = result.get("message", "Error desconocido al obtener AvanceMP")
             raise Exception(f"Error al obtener AvanceMP: {error_msg}")
+        
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
         
         if DEBUG:
             data = result.get("data", {})
@@ -349,6 +355,9 @@ def get_avance_x_subprograma(token: str, peri_idp: int) -> Dict[str, Any]:
             error_msg = result.get("message", "Error desconocido al obtener AvanceXSubprograma")
             raise Exception(f"Error al obtener AvanceXSubprograma: {error_msg}")
         
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
+        
         if DEBUG:
             data = result.get("data", {})
             avance_x_subprograma = data.get("AvanceXSubprograma", [])
@@ -408,6 +417,9 @@ def get_avance_general(token: str, peri_idp: int) -> Dict[str, Any]:
         if not result.get("success"):
             error_msg = result.get("message", "Error desconocido al obtener AvanceGeneral")
             raise Exception(f"Error al obtener AvanceGeneral: {error_msg}")
+        
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
         
         if DEBUG:
             data = result.get("data", {})
@@ -563,6 +575,89 @@ def save_periodos_to_gcs(
     
     return gcs_uri
 
+def read_latest_periodos_json_from_gcs(
+    bucket_name: str,
+    folder_name: str = "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
+) -> Dict[str, Any]:
+    """
+    Lee el JSON más reciente de periodos desde GCS (el de la fecha actual).
+    
+    Args:
+        bucket_name: Nombre del bucket en GCS
+        folder_name: Nombre de la carpeta dentro del bucket
+    
+    Returns:
+        Diccionario con el JSON completo de periodos
+    
+    Raises:
+        Exception: Si no se encuentra el archivo o hay error al leerlo
+    """
+    gcs_client = _gcs_client()
+    
+    # Normalizar la ruta de la carpeta
+    if not folder_name.endswith('/'):
+        folder_name = folder_name + '/'
+    
+    # Obtener el bucket
+    try:
+        bucket = gcs_client.bucket(bucket_name)
+    except Exception as e:
+        raise ValueError(f"No se pudo acceder al bucket '{bucket_name}': {e}")
+    
+    # Obtener fecha actual en formato YYYYMMDD
+    fecha_actual = datetime.now().strftime("%Y%m%d")
+    
+    # Buscar archivo con la fecha actual
+    file_name = f"periodo_{fecha_actual}.json"
+    blob_name = f"{folder_name}{file_name}"
+    
+    if DEBUG:
+        print(f"[INFO] Buscando archivo de periodos más reciente: {blob_name}")
+    
+    try:
+        blob = bucket.blob(blob_name)
+        
+        if not blob.exists():
+            raise Exception(f"No se encontró el archivo de periodos para la fecha actual: {blob_name}")
+        
+        # Descargar y leer el JSON
+        json_string = blob.download_as_text()
+        periodos_data = json.loads(json_string)
+        
+        if DEBUG:
+            print(f"[OK] Archivo de periodos leído exitosamente: {blob_name}")
+            data = periodos_data.get("data", {})
+            periodos = data.get("periodos", [])
+            print(f"[INFO] Se encontraron {len(periodos)} periodo(s) en el JSON")
+        
+        return periodos_data
+        
+    except Exception as e:
+        raise Exception(f"Error al leer el archivo de periodos desde GCS: {e}")
+
+def get_all_periodos_from_json(periodos_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Extrae todos los periodos del JSON de periodos.
+    
+    Args:
+        periodos_data: Diccionario con la respuesta completa de la API de periodos
+    
+    Returns:
+        Lista de diccionarios con todos los periodos
+    """
+    data = periodos_data.get("data", {})
+    periodos = data.get("periodos", [])
+    
+    if not periodos:
+        raise Exception("No se encontraron periodos en el JSON")
+    
+    if DEBUG:
+        print(f"[INFO] Se extrajeron {len(periodos)} periodo(s) del JSON")
+        for periodo in periodos:
+            print(f"[DEBUG]   - {periodo.get('peri_nombre', 'N/A')} (ID: {periodo.get('peri_idp', 'N/A')})")
+    
+    return periodos
+
 def save_avance_to_gcs(
     avance_data: Dict[str, Any],
     bucket_name: str,
@@ -616,8 +711,8 @@ def save_avance_to_gcs(
         now = datetime.now()
         fecha_consulta = now.strftime("%Y%m%d")
     
-    # Generar nombre de archivo con el formato: avance_mr_{fechadeconsulta}.json
-    file_name = f"{tipo_avance_normalizado}_{fecha_consulta}.json"
+    # Generar nombre de archivo con el formato: avance_mr_{fechadeconsulta}_peri_idp_{peri_idp}.json
+    file_name = f"{tipo_avance_normalizado}_{fecha_consulta}_peri_idp_{peri_idp}.json"
     
     # Construir ruta destino en GCS
     folder_name = folder_name.strip('/')

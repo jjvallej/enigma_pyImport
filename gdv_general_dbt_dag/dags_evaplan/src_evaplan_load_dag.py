@@ -3,22 +3,28 @@
 DAG para extraer datos JSON desde Google Cloud Storage y cargarlos
 en la capa bronze de BigQuery para las fuentes de Evaplan.
 
-Maneja múltiples JSON por carpeta con lógica inteligente:
-1. Si solo hay 1 JSON: crea la tabla basada en ese JSON
-2. Si hay múltiples JSON y la tabla existe: carga solo el más reciente, reemplaza registros del mismo día
-3. Si hay múltiples JSON y la tabla NO existe: carga todos los JSON con sus fechas correspondientes
-4. Si hay registros del mismo día: los reemplaza para evitar duplicados
+Nueva lógica:
+1. Busca solo archivos JSON de la fecha actual en cada carpeta de fuente
+2. Lee todos los JSON de la fecha actual para cada fuente
+3. Extrae peri_idp de cada JSON (del nivel raíz o del nombre del archivo)
+4. Une todos los registros de todos los JSON de la fecha actual
+5. Agrega fecha_lectura (fecha de carga) y peri_idp a cada registro
+6. Si la tabla existe y hay registros del mismo día y mismo peri_idp, los elimina antes de cargar
 
 Flujo:
 1. Asegura que el dataset bronze exista
 2. Para cada fuente (periodos, avance_mr, avance_mp, avance_x_subprograma, avance_general):
-   - Procesa todos los JSON de la carpeta según la lógica indicada
+   - Busca todos los JSON de la fecha actual en la carpeta
+   - Procesa todos los JSON y une los registros
+   - Agrega fecha_lectura y peri_idp a cada registro
+   - Elimina registros duplicados (mismo día y mismo peri_idp) si la tabla existe
    - Carga los datos a BigQuery en una tabla con nombre evaplan_api_{fuente}_raw_data
 """
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 import os
@@ -83,7 +89,7 @@ with DAG(
     schedule_interval=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:evaplan", "ejecución:manual"],
-    description="Lee archivos JSON de Evaplan desde GCS y carga a BigQuery en bronze_dpt_planeacion_municipal_dev con nomenclatura evaplan_api_{fuente}_raw_data. Maneja múltiples JSON por carpeta con lógica inteligente de carga y reemplazo de registros duplicados por fecha.",
+    description="Lee archivos JSON de Evaplan desde GCS (solo de la fecha actual) y carga a BigQuery en bronze_dpt_planeacion_municipal_dev con nomenclatura evaplan_api_{fuente}_raw_data. Une todos los JSON de la fecha actual, agrega fecha_lectura y peri_idp a cada registro, y elimina registros duplicados (mismo día y mismo peri_idp) antes de cargar.",
 ) as dag:
 
     # Tarea inicial
@@ -115,11 +121,18 @@ with DAG(
         # Dependencias dentro del grupo bronze: ensure_dataset -> todas las cargas
         ensure_dataset_task >> load_tasks
 
+    # Tarea para disparar el DAG de transformación
+    trigger_transform_dag = TriggerDagRunOperator(
+        task_id="trigger_transform_evaplan",
+        trigger_dag_id="src_planeacion_transform_evaplan",
+        wait_for_completion=False,  # No esperar a que termine el DAG de transformación
+    )
+
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
-    # Dependencias: start -> bronze (ensure_dataset -> todas las cargas en paralelo) -> end
-    start >> bronze_group >> end
+    # Dependencias: start -> bronze (ensure_dataset -> todas las cargas en paralelo) -> trigger_transform -> end
+    start >> bronze_group >> trigger_transform_dag >> end
 

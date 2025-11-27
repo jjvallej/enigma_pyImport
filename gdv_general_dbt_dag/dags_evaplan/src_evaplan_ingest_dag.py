@@ -20,6 +20,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 import os
 
 # Asegura que podamos importar el módulo local
@@ -30,8 +31,9 @@ sys.path.append(project_root)
 from modules.evaplan.evaplan_ingest import (
     authenticate,
     get_periodos,
-    get_periodo_mas_reciente,
     save_periodos_to_gcs,
+    read_latest_periodos_json_from_gcs,
+    get_all_periodos_from_json,
     get_avance_mr,
     get_avance_mp,
     get_avance_x_subprograma,
@@ -62,7 +64,7 @@ def _get_periodos_task(ti):
     """
     Task que obtiene la lista de periodos desde la API de Evaplan.
     Usa el token obtenido en la tarea anterior mediante XCom.
-    Retorna tanto los datos de periodos como el peri_idp del periodo más reciente.
+    Retorna los datos de periodos para guardarlos en GCS.
     """
     # Obtener token desde XCom (de la tarea anterior)
     token = ti.xcom_pull(task_ids="authenticate")
@@ -76,21 +78,10 @@ def _get_periodos_task(ti):
     # Obtener periodos
     periodos_data = get_periodos(token=token)
     
-    # Obtener el periodo más reciente
-    periodo_mas_reciente = get_periodo_mas_reciente(periodos_data)
+    print(f"[OK] Periodos obtenidos exitosamente.")
     
-    if periodo_mas_reciente:
-        peri_idp = periodo_mas_reciente.get('peri_idp')
-        print(f"[OK] Periodos obtenidos exitosamente.")
-        print(f"[INFO] Periodo más reciente: {periodo_mas_reciente.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
-        
-        # Retornar tanto los datos como el peri_idp
-        return {
-            "periodos_data": periodos_data,
-            "peri_idp": peri_idp
-        }
-    else:
-        raise ValueError("No se encontró periodo más reciente. No se puede continuar.")
+    # Retornar los datos para guardarlos en GCS
+    return periodos_data
 
 def _save_periodos_to_gcs_task(ti):
     """
@@ -98,13 +89,10 @@ def _save_periodos_to_gcs_task(ti):
     Usa los datos obtenidos en la tarea anterior mediante XCom.
     """
     # Obtener datos desde XCom (de la tarea anterior)
-    result = ti.xcom_pull(task_ids="get_periodos")
+    periodos_data = ti.xcom_pull(task_ids="get_periodos")
     
-    if not result:
+    if not periodos_data:
         raise ValueError("No se encontraron datos de periodos. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    # Extraer periodos_data del resultado
-    periodos_data = result.get("periodos_data") if isinstance(result, dict) else result
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = DEFAULT_FOLDER_NAME
@@ -124,289 +112,371 @@ def _save_periodos_to_gcs_task(ti):
     
     return gcs_uri
 
+def _read_periodos_from_gcs_task(ti):
+    """
+    Task que lee el JSON más reciente de periodos desde GCS (el de la fecha actual).
+    Retorna todos los periodos encontrados en el JSON.
+    """
+    bucket_name = DEFAULT_BUCKET_NAME
+    folder_name = DEFAULT_FOLDER_NAME
+    
+    print(f"[INFO] Leyendo periodos desde GCS...")
+    print(f"[INFO] Bucket: {bucket_name}")
+    print(f"[INFO] Carpeta: {folder_name}")
+    
+    # Leer el JSON más reciente desde GCS
+    periodos_data = read_latest_periodos_json_from_gcs(
+        bucket_name=bucket_name,
+        folder_name=folder_name
+    )
+    
+    # Extraer todos los periodos del JSON
+    periodos = get_all_periodos_from_json(periodos_data)
+    
+    print(f"[OK] Se leyeron {len(periodos)} periodo(s) desde GCS")
+    
+    # Retornar la lista de periodos
+    return periodos
+
 def _get_avance_mr_task(ti):
     """
-    Task que obtiene los datos de AvanceMR desde la API de Evaplan.
-    Usa el token y peri_idp obtenidos en tareas anteriores mediante XCom.
+    Task que obtiene los datos de AvanceMR desde la API de Evaplan para TODOS los periodos.
+    Lee los periodos desde GCS y procesa cada uno.
     """
     # Obtener token desde XCom
     token = ti.xcom_pull(task_ids="authenticate")
     
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
-    
     if not token:
         raise ValueError("No se encontró token de autenticación. La tarea de autenticación debe ejecutarse primero.")
     
-    print(f"[INFO] Obteniendo AvanceMR desde la API de Evaplan...")
-    print(f"[DEBUG] Periodo ID: {peri_idp}")
+    # Obtener todos los periodos desde GCS
+    periodos = ti.xcom_pull(task_ids="read_periodos_from_gcs")
     
-    # Obtener AvanceMR
-    avance_mr_data = get_avance_mr(token=token, peri_idp=peri_idp)
+    if not periodos or not isinstance(periodos, list):
+        raise ValueError("No se encontraron periodos. La tarea de leer periodos desde GCS debe ejecutarse primero.")
     
-    print(f"[OK] AvanceMR obtenido exitosamente.")
+    print(f"[INFO] Obteniendo AvanceMR desde la API de Evaplan para {len(periodos)} periodo(s)...")
     
-    # Retornar datos para que estén disponibles en XCom
-    return avance_mr_data
+    # Procesar todos los periodos
+    avances_mr = []
+    for periodo in periodos:
+        peri_idp = periodo.get('peri_idp')
+        if not peri_idp:
+            print(f"[WARN] Periodo sin peri_idp, se omite: {periodo}")
+            continue
+        
+        print(f"[DEBUG] Procesando periodo: {periodo.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
+        
+        # Obtener AvanceMR para este periodo
+        avance_mr_data = get_avance_mr(token=token, peri_idp=peri_idp)
+        avances_mr.append({
+            'periodo': periodo,
+            'avance_data': avance_mr_data
+        })
+    
+    print(f"[OK] AvanceMR obtenido exitosamente para {len(avances_mr)} periodo(s).")
+    
+    # Retornar lista de avances con sus periodos
+    return avances_mr
 
 def _save_avance_mr_to_gcs_task(ti):
     """
-    Task que guarda la respuesta de AvanceMR en un archivo JSON en GCS.
-    Usa los datos obtenidos en la tarea anterior mediante XCom.
+    Task que guarda las respuestas de AvanceMR en archivos JSON en GCS para TODOS los periodos.
     """
     # Obtener datos desde XCom
-    avance_mr_data = ti.xcom_pull(task_ids="get_avance_mr")
+    avances_mr = ti.xcom_pull(task_ids="get_avance_mr")
     
-    if not avance_mr_data:
+    if not avances_mr or not isinstance(avances_mr, list):
         raise ValueError("No se encontraron datos de AvanceMR. La tarea de obtener AvanceMR debe ejecutarse primero.")
-    
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_mr"
     
-    print(f"[INFO] Guardando AvanceMR en GCS...")
+    print(f"[INFO] Guardando {len(avances_mr)} archivo(s) de AvanceMR en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
     print(f"[INFO] Carpeta destino: {folder_name}")
     
-    # Guardar en GCS
-    gcs_uri = save_avance_to_gcs(
-        avance_data=avance_mr_data,
-        bucket_name=bucket_name,
-        folder_name=folder_name,
-        tipo_avance="AvanceMR",
-        peri_idp=peri_idp
-    )
+    # Guardar cada avance en GCS
+    gcs_uris = []
+    for item in avances_mr:
+        periodo = item.get('periodo')
+        avance_data = item.get('avance_data')
+        peri_idp = periodo.get('peri_idp')
+        
+        if not peri_idp or not avance_data:
+            print(f"[WARN] Datos incompletos para periodo {periodo.get('peri_nombre', 'N/A')}, se omite")
+            continue
+        
+        # Guardar en GCS
+        gcs_uri = save_avance_to_gcs(
+            avance_data=avance_data,
+            bucket_name=bucket_name,
+            folder_name=folder_name,
+            tipo_avance="AvanceMR",
+            peri_idp=peri_idp
+        )
+        
+        gcs_uris.append(gcs_uri)
+        print(f"[OK] AvanceMR guardado para periodo {periodo.get('peri_nombre', 'N/A')}: {gcs_uri}")
     
-    print(f"[OK] AvanceMR guardado exitosamente en: {gcs_uri}")
+    print(f"[OK] Se guardaron {len(gcs_uris)} archivo(s) de AvanceMR exitosamente.")
     
-    return gcs_uri
+    return gcs_uris
 
 def _get_avance_mp_task(ti):
     """
-    Task que obtiene los datos de AvanceMP desde la API de Evaplan.
-    Usa el token y peri_idp obtenidos en tareas anteriores mediante XCom.
+    Task que obtiene los datos de AvanceMP desde la API de Evaplan para TODOS los periodos.
+    Lee los periodos desde GCS y procesa cada uno.
     """
     # Obtener token desde XCom
     token = ti.xcom_pull(task_ids="authenticate")
     
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
-    
     if not token:
         raise ValueError("No se encontró token de autenticación. La tarea de autenticación debe ejecutarse primero.")
     
-    print(f"[INFO] Obteniendo AvanceMP desde la API de Evaplan...")
-    print(f"[DEBUG] Periodo ID: {peri_idp}")
+    # Obtener todos los periodos desde GCS
+    periodos = ti.xcom_pull(task_ids="read_periodos_from_gcs")
     
-    # Obtener AvanceMP
-    avance_mp_data = get_avance_mp(token=token, peri_idp=peri_idp)
+    if not periodos or not isinstance(periodos, list):
+        raise ValueError("No se encontraron periodos. La tarea de leer periodos desde GCS debe ejecutarse primero.")
     
-    print(f"[OK] AvanceMP obtenido exitosamente.")
+    print(f"[INFO] Obteniendo AvanceMP desde la API de Evaplan para {len(periodos)} periodo(s)...")
     
-    # Retornar datos para que estén disponibles en XCom
-    return avance_mp_data
+    # Procesar todos los periodos
+    avances_mp = []
+    for periodo in periodos:
+        peri_idp = periodo.get('peri_idp')
+        if not peri_idp:
+            print(f"[WARN] Periodo sin peri_idp, se omite: {periodo}")
+            continue
+        
+        print(f"[DEBUG] Procesando periodo: {periodo.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
+        
+        # Obtener AvanceMP para este periodo
+        avance_mp_data = get_avance_mp(token=token, peri_idp=peri_idp)
+        avances_mp.append({
+            'periodo': periodo,
+            'avance_data': avance_mp_data
+        })
+    
+    print(f"[OK] AvanceMP obtenido exitosamente para {len(avances_mp)} periodo(s).")
+    
+    # Retornar lista de avances con sus periodos
+    return avances_mp
 
 def _save_avance_mp_to_gcs_task(ti):
     """
-    Task que guarda la respuesta de AvanceMP en un archivo JSON en GCS.
-    Usa los datos obtenidos en la tarea anterior mediante XCom.
+    Task que guarda las respuestas de AvanceMP en archivos JSON en GCS para TODOS los periodos.
     """
     # Obtener datos desde XCom
-    avance_mp_data = ti.xcom_pull(task_ids="get_avance_mp")
+    avances_mp = ti.xcom_pull(task_ids="get_avance_mp")
     
-    if not avance_mp_data:
+    if not avances_mp or not isinstance(avances_mp, list):
         raise ValueError("No se encontraron datos de AvanceMP. La tarea de obtener AvanceMP debe ejecutarse primero.")
-    
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_mp"
     
-    print(f"[INFO] Guardando AvanceMP en GCS...")
+    print(f"[INFO] Guardando {len(avances_mp)} archivo(s) de AvanceMP en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
     print(f"[INFO] Carpeta destino: {folder_name}")
     
-    # Guardar en GCS
-    gcs_uri = save_avance_to_gcs(
-        avance_data=avance_mp_data,
-        bucket_name=bucket_name,
-        folder_name=folder_name,
-        tipo_avance="AvanceMP",
-        peri_idp=peri_idp
-    )
+    # Guardar cada avance en GCS
+    gcs_uris = []
+    for item in avances_mp:
+        periodo = item.get('periodo')
+        avance_data = item.get('avance_data')
+        peri_idp = periodo.get('peri_idp')
+        
+        if not peri_idp or not avance_data:
+            print(f"[WARN] Datos incompletos para periodo {periodo.get('peri_nombre', 'N/A')}, se omite")
+            continue
+        
+        # Guardar en GCS
+        gcs_uri = save_avance_to_gcs(
+            avance_data=avance_data,
+            bucket_name=bucket_name,
+            folder_name=folder_name,
+            tipo_avance="AvanceMP",
+            peri_idp=peri_idp
+        )
+        
+        gcs_uris.append(gcs_uri)
+        print(f"[OK] AvanceMP guardado para periodo {periodo.get('peri_nombre', 'N/A')}: {gcs_uri}")
     
-    print(f"[OK] AvanceMP guardado exitosamente en: {gcs_uri}")
+    print(f"[OK] Se guardaron {len(gcs_uris)} archivo(s) de AvanceMP exitosamente.")
     
-    return gcs_uri
+    return gcs_uris
 
 def _get_avance_x_subprograma_task(ti):
     """
-    Task que obtiene los datos de AvanceXSubprograma desde la API de Evaplan.
-    Usa el token y peri_idp obtenidos en tareas anteriores mediante XCom.
+    Task que obtiene los datos de AvanceXSubprograma desde la API de Evaplan para TODOS los periodos.
+    Lee los periodos desde GCS y procesa cada uno.
     """
     # Obtener token desde XCom
     token = ti.xcom_pull(task_ids="authenticate")
     
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
-    
     if not token:
         raise ValueError("No se encontró token de autenticación. La tarea de autenticación debe ejecutarse primero.")
     
-    print(f"[INFO] Obteniendo AvanceXSubprograma desde la API de Evaplan...")
-    print(f"[DEBUG] Periodo ID: {peri_idp}")
+    # Obtener todos los periodos desde GCS
+    periodos = ti.xcom_pull(task_ids="read_periodos_from_gcs")
     
-    # Obtener AvanceXSubprograma
-    avance_x_subprograma_data = get_avance_x_subprograma(token=token, peri_idp=peri_idp)
+    if not periodos or not isinstance(periodos, list):
+        raise ValueError("No se encontraron periodos. La tarea de leer periodos desde GCS debe ejecutarse primero.")
     
-    print(f"[OK] AvanceXSubprograma obtenido exitosamente.")
+    print(f"[INFO] Obteniendo AvanceXSubprograma desde la API de Evaplan para {len(periodos)} periodo(s)...")
     
-    # Retornar datos para que estén disponibles en XCom
-    return avance_x_subprograma_data
+    # Procesar todos los periodos
+    avances_x_subprograma = []
+    for periodo in periodos:
+        peri_idp = periodo.get('peri_idp')
+        if not peri_idp:
+            print(f"[WARN] Periodo sin peri_idp, se omite: {periodo}")
+            continue
+        
+        print(f"[DEBUG] Procesando periodo: {periodo.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
+        
+        # Obtener AvanceXSubprograma para este periodo
+        avance_x_subprograma_data = get_avance_x_subprograma(token=token, peri_idp=peri_idp)
+        avances_x_subprograma.append({
+            'periodo': periodo,
+            'avance_data': avance_x_subprograma_data
+        })
+    
+    print(f"[OK] AvanceXSubprograma obtenido exitosamente para {len(avances_x_subprograma)} periodo(s).")
+    
+    # Retornar lista de avances con sus periodos
+    return avances_x_subprograma
 
 def _save_avance_x_subprograma_to_gcs_task(ti):
     """
-    Task que guarda la respuesta de AvanceXSubprograma en un archivo JSON en GCS.
-    Usa los datos obtenidos en la tarea anterior mediante XCom.
+    Task que guarda las respuestas de AvanceXSubprograma en archivos JSON en GCS para TODOS los periodos.
     """
     # Obtener datos desde XCom
-    avance_x_subprograma_data = ti.xcom_pull(task_ids="get_avance_x_subprograma")
+    avances_x_subprograma = ti.xcom_pull(task_ids="get_avance_x_subprograma")
     
-    if not avance_x_subprograma_data:
+    if not avances_x_subprograma or not isinstance(avances_x_subprograma, list):
         raise ValueError("No se encontraron datos de AvanceXSubprograma. La tarea de obtener AvanceXSubprograma debe ejecutarse primero.")
-    
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_x_subprograma"
     
-    print(f"[INFO] Guardando AvanceXSubprograma en GCS...")
+    print(f"[INFO] Guardando {len(avances_x_subprograma)} archivo(s) de AvanceXSubprograma en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
     print(f"[INFO] Carpeta destino: {folder_name}")
     
-    # Guardar en GCS
-    gcs_uri = save_avance_to_gcs(
-        avance_data=avance_x_subprograma_data,
-        bucket_name=bucket_name,
-        folder_name=folder_name,
-        tipo_avance="AvanceXSubprograma",
-        peri_idp=peri_idp
-    )
+    # Guardar cada avance en GCS
+    gcs_uris = []
+    for item in avances_x_subprograma:
+        periodo = item.get('periodo')
+        avance_data = item.get('avance_data')
+        peri_idp = periodo.get('peri_idp')
+        
+        if not peri_idp or not avance_data:
+            print(f"[WARN] Datos incompletos para periodo {periodo.get('peri_nombre', 'N/A')}, se omite")
+            continue
+        
+        # Guardar en GCS
+        gcs_uri = save_avance_to_gcs(
+            avance_data=avance_data,
+            bucket_name=bucket_name,
+            folder_name=folder_name,
+            tipo_avance="AvanceXSubprograma",
+            peri_idp=peri_idp
+        )
+        
+        gcs_uris.append(gcs_uri)
+        print(f"[OK] AvanceXSubprograma guardado para periodo {periodo.get('peri_nombre', 'N/A')}: {gcs_uri}")
     
-    print(f"[OK] AvanceXSubprograma guardado exitosamente en: {gcs_uri}")
+    print(f"[OK] Se guardaron {len(gcs_uris)} archivo(s) de AvanceXSubprograma exitosamente.")
     
-    return gcs_uri
+    return gcs_uris
 
 def _get_avance_general_task(ti):
     """
-    Task que obtiene los datos de AvanceGeneral desde la API de Evaplan.
-    Usa el token y peri_idp obtenidos en tareas anteriores mediante XCom.
+    Task que obtiene los datos de AvanceGeneral desde la API de Evaplan para TODOS los periodos.
+    Lee los periodos desde GCS y procesa cada uno.
     """
     # Obtener token desde XCom
     token = ti.xcom_pull(task_ids="authenticate")
     
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
-    
     if not token:
         raise ValueError("No se encontró token de autenticación. La tarea de autenticación debe ejecutarse primero.")
     
-    print(f"[INFO] Obteniendo AvanceGeneral desde la API de Evaplan...")
-    print(f"[DEBUG] Periodo ID: {peri_idp}")
+    # Obtener todos los periodos desde GCS
+    periodos = ti.xcom_pull(task_ids="read_periodos_from_gcs")
     
-    # Obtener AvanceGeneral
-    avance_general_data = get_avance_general(token=token, peri_idp=peri_idp)
+    if not periodos or not isinstance(periodos, list):
+        raise ValueError("No se encontraron periodos. La tarea de leer periodos desde GCS debe ejecutarse primero.")
     
-    print(f"[OK] AvanceGeneral obtenido exitosamente.")
+    print(f"[INFO] Obteniendo AvanceGeneral desde la API de Evaplan para {len(periodos)} periodo(s)...")
     
-    # Retornar datos para que estén disponibles en XCom
-    return avance_general_data
+    # Procesar todos los periodos
+    avances_general = []
+    for periodo in periodos:
+        peri_idp = periodo.get('peri_idp')
+        if not peri_idp:
+            print(f"[WARN] Periodo sin peri_idp, se omite: {periodo}")
+            continue
+        
+        print(f"[DEBUG] Procesando periodo: {periodo.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
+        
+        # Obtener AvanceGeneral para este periodo
+        avance_general_data = get_avance_general(token=token, peri_idp=peri_idp)
+        avances_general.append({
+            'periodo': periodo,
+            'avance_data': avance_general_data
+        })
+    
+    print(f"[OK] AvanceGeneral obtenido exitosamente para {len(avances_general)} periodo(s).")
+    
+    # Retornar lista de avances con sus periodos
+    return avances_general
 
 def _save_avance_general_to_gcs_task(ti):
     """
-    Task que guarda la respuesta de AvanceGeneral en un archivo JSON en GCS.
-    Usa los datos obtenidos en la tarea anterior mediante XCom.
+    Task que guarda las respuestas de AvanceGeneral en archivos JSON en GCS para TODOS los periodos.
     """
     # Obtener datos desde XCom
-    avance_general_data = ti.xcom_pull(task_ids="get_avance_general")
+    avances_general = ti.xcom_pull(task_ids="get_avance_general")
     
-    if not avance_general_data:
+    if not avances_general or not isinstance(avances_general, list):
         raise ValueError("No se encontraron datos de AvanceGeneral. La tarea de obtener AvanceGeneral debe ejecutarse primero.")
-    
-    # Obtener peri_idp desde XCom
-    result = ti.xcom_pull(task_ids="get_periodos")
-    if not result or not isinstance(result, dict):
-        raise ValueError("No se encontró peri_idp. La tarea de obtener periodos debe ejecutarse primero.")
-    
-    peri_idp = result.get("peri_idp")
-    if not peri_idp:
-        raise ValueError("No se encontró peri_idp en los datos de periodos.")
     
     bucket_name = DEFAULT_BUCKET_NAME
     folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_general"
     
-    print(f"[INFO] Guardando AvanceGeneral en GCS...")
+    print(f"[INFO] Guardando {len(avances_general)} archivo(s) de AvanceGeneral en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
     print(f"[INFO] Carpeta destino: {folder_name}")
     
-    # Guardar en GCS (usar "AvanceGeneral" como tipo_avance para el nombre del archivo)
-    gcs_uri = save_avance_to_gcs(
-        avance_data=avance_general_data,
-        bucket_name=bucket_name,
-        folder_name=folder_name,
-        tipo_avance="AvanceGeneral",
-        peri_idp=peri_idp
-    )
+    # Guardar cada avance en GCS
+    gcs_uris = []
+    for item in avances_general:
+        periodo = item.get('periodo')
+        avance_data = item.get('avance_data')
+        peri_idp = periodo.get('peri_idp')
+        
+        if not peri_idp or not avance_data:
+            print(f"[WARN] Datos incompletos para periodo {periodo.get('peri_nombre', 'N/A')}, se omite")
+            continue
+        
+        # Guardar en GCS
+        gcs_uri = save_avance_to_gcs(
+            avance_data=avance_data,
+            bucket_name=bucket_name,
+            folder_name=folder_name,
+            tipo_avance="AvanceGeneral",
+            peri_idp=peri_idp
+        )
+        
+        gcs_uris.append(gcs_uri)
+        print(f"[OK] AvanceGeneral guardado para periodo {periodo.get('peri_nombre', 'N/A')}: {gcs_uri}")
     
-    print(f"[OK] AvanceGeneral guardado exitosamente en: {gcs_uri}")
+    print(f"[OK] Se guardaron {len(gcs_uris)} archivo(s) de AvanceGeneral exitosamente.")
     
-    return gcs_uri
+    return gcs_uris
 
 with DAG(
     dag_id="src_planeacion_ingest_evaplan",
@@ -440,52 +510,65 @@ with DAG(
         python_callable=_save_periodos_to_gcs_task,
     )
 
-    # Tarea 4: Obtener AvanceMR
+    # Tarea 4: Leer periodos desde GCS (el JSON más reciente de la fecha actual)
+    read_periodos_from_gcs_task = PythonOperator(
+        task_id="read_periodos_from_gcs",
+        python_callable=_read_periodos_from_gcs_task,
+    )
+
+    # Tarea 5: Obtener AvanceMR
     get_avance_mr_task = PythonOperator(
         task_id="get_avance_mr",
         python_callable=_get_avance_mr_task,
     )
 
-    # Tarea 5: Guardar AvanceMR en GCS
+    # Tarea 6: Guardar AvanceMR en GCS
     save_avance_mr_task = PythonOperator(
         task_id="save_avance_mr_to_gcs",
         python_callable=_save_avance_mr_to_gcs_task,
     )
 
-    # Tarea 6: Obtener AvanceMP
+    # Tarea 7: Obtener AvanceMP
     get_avance_mp_task = PythonOperator(
         task_id="get_avance_mp",
         python_callable=_get_avance_mp_task,
     )
 
-    # Tarea 7: Guardar AvanceMP en GCS
+    # Tarea 8: Guardar AvanceMP en GCS
     save_avance_mp_task = PythonOperator(
         task_id="save_avance_mp_to_gcs",
         python_callable=_save_avance_mp_to_gcs_task,
     )
 
-    # Tarea 8: Obtener AvanceXSubprograma
+    # Tarea 9: Obtener AvanceXSubprograma
     get_avance_x_subprograma_task = PythonOperator(
         task_id="get_avance_x_subprograma",
         python_callable=_get_avance_x_subprograma_task,
     )
 
-    # Tarea 9: Guardar AvanceXSubprograma en GCS
+    # Tarea 10: Guardar AvanceXSubprograma en GCS
     save_avance_x_subprograma_task = PythonOperator(
         task_id="save_avance_x_subprograma_to_gcs",
         python_callable=_save_avance_x_subprograma_to_gcs_task,
     )
 
-    # Tarea 10: Obtener AvanceGeneral
+    # Tarea 11: Obtener AvanceGeneral
     get_avance_general_task = PythonOperator(
         task_id="get_avance_general",
         python_callable=_get_avance_general_task,
     )
 
-    # Tarea 11: Guardar AvanceGeneral en GCS
+    # Tarea 12: Guardar AvanceGeneral en GCS
     save_avance_general_task = PythonOperator(
         task_id="save_avance_general_to_gcs",
         python_callable=_save_avance_general_to_gcs_task,
+    )
+
+    # Tarea para disparar el DAG de load
+    trigger_load_dag = TriggerDagRunOperator(
+        task_id="trigger_load_evaplan",
+        trigger_dag_id="src_planeacion_load_evaplan",
+        wait_for_completion=False,  # No esperar a que termine el DAG de load
     )
 
     # Tarea final
@@ -494,9 +577,8 @@ with DAG(
     )
 
     # Dependencias
-    # Flujo: autenticar -> obtener periodos -> [guardar periodos, obtener todos los avances] -> guardar todos los avances -> fin
-    start >> authenticate_task >> get_periodos_task >> [
-        save_periodos_task,
+    # Flujo: autenticar -> obtener periodos -> guardar periodos -> leer periodos desde GCS -> obtener todos los avances -> guardar todos los avances -> disparar load -> fin
+    start >> authenticate_task >> get_periodos_task >> save_periodos_task >> read_periodos_from_gcs_task >> [
         get_avance_mr_task,
         get_avance_mp_task,
         get_avance_x_subprograma_task,
@@ -509,12 +591,11 @@ with DAG(
     get_avance_x_subprograma_task >> save_avance_x_subprograma_task
     get_avance_general_task >> save_avance_general_task
     
-    # Finalizar cuando todas las tareas de guardado terminen
+    # Disparar el DAG de load cuando todas las tareas de guardado terminen
     [
-        save_periodos_task,
         save_avance_mr_task,
         save_avance_mp_task,
         save_avance_x_subprograma_task,
         save_avance_general_task
-    ] >> end
+    ] >> trigger_load_dag >> end
 
