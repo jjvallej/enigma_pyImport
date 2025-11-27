@@ -18,6 +18,14 @@ sources:
       - name: evaplan_api_avance_mp_raw_data
       - name: evaplan_api_avance_x_subprograma_raw_data
       - name: evaplan_api_avance_general_raw_data
+  - name: silver_evaplan
+    schema: silver_dpt_planeacion_municipal_dev
+    tables:
+      - name: evaplan_api_periodos_transformed_data
+      - name: evaplan_api_avance_mr_transformed_data
+      - name: evaplan_api_avance_mp_transformed_data
+      - name: evaplan_api_avance_x_subprograma_transformed_data
+      - name: evaplan_api_avance_general_transformed_data
   - name: gold_idc
     schema: gold_dpt_planeacion_municipal_dev
     tables:

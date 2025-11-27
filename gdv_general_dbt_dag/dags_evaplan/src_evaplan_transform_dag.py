@@ -15,6 +15,7 @@ que tengan los ids de periodo que estamos trabajando en el proyecto.
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 import os
@@ -31,6 +32,8 @@ from modules.evaplan.evaplan_transform import (
 
 # === CONFIGURACIÓN ===
 DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
+DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
+DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
 
 # Lista de fuentes a procesar
 FUENTES = [
@@ -44,6 +47,10 @@ FUENTES = [
 def _ensure_dataset_silver_task():
     """Asegura que el dataset silver exista."""
     ensure_dataset(dataset_id=DATASET_ID_SILVER)
+
+def _ensure_dataset_gold_task():
+    """Asegura que el dataset gold exista."""
+    ensure_dataset(dataset_id=DATASET_ID_GOLD)
 
 def _get_peri_idps_task():
     """Obtiene todos los peri_idp únicos de las tablas bronze de la fecha actual."""
@@ -80,7 +87,7 @@ with DAG(
     schedule_interval=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:evaplan", "ejecución:manual"],
-    description="Transforma datos de Evaplan desde bronze a silver. Obtiene los peri_idp únicos de las tablas bronze de la fecha actual, elimina registros con esos peri_idp de las tablas silver, y copia los nuevos datos de bronze a silver. Las tablas silver siempre tienen los últimos datos de los endpoints para cada periodo que se está trabajando.",
+    description="Transforma datos de Evaplan desde bronze a silver y crea vistas en gold. Obtiene los peri_idp únicos de las tablas bronze de la fecha actual, elimina registros con esos peri_idp de las tablas silver, y copia los nuevos datos de bronze a silver (transformando nombres de columnas a minúsculas). Luego crea vistas en gold que unen la tabla de periodos con cada tabla de avance mediante JOIN por peri_idp.",
 ) as dag:
 
     # Tarea inicial
@@ -118,12 +125,64 @@ with DAG(
         # Dependencias dentro del grupo silver: ensure_dataset -> todas las transformaciones
         ensure_dataset_task >> transform_tasks
 
+    # Grupo de tareas para la capa gold
+    with TaskGroup(group_id="gold") as gold_group:
+        # Tarea para asegurar que el dataset exista
+        ensure_dataset_gold_task = PythonOperator(
+            task_id="ensure_dataset",
+            python_callable=_ensure_dataset_gold_task,
+        )
+
+        # Tareas dbt para crear las vistas en gold
+        dbt_avance_mr = BashOperator(
+            task_id="dbt_avance_mr_processed_data",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_mr_processed_data || dbt run --select evaplan_api_avance_mr_processed_data",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        dbt_avance_mp = BashOperator(
+            task_id="dbt_avance_mp_processed_data",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_mp_processed_data || dbt run --select evaplan_api_avance_mp_processed_data",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        dbt_avance_x_subprograma = BashOperator(
+            task_id="dbt_avance_x_subprograma_processed_data",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_x_subprograma_processed_data || dbt run --select evaplan_api_avance_x_subprograma_processed_data",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        dbt_avance_general = BashOperator(
+            task_id="dbt_avance_general_processed_data",
+            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_general_processed_data || dbt run --select evaplan_api_avance_general_processed_data",
+            env={
+                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
+                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
+                "PATH": "/home/airflow/.local/bin:$PATH",
+            },
+        )
+
+        # Dependencias dentro del grupo gold: ensure_dataset -> todas las vistas en paralelo
+        ensure_dataset_gold_task >> [dbt_avance_mr, dbt_avance_mp, dbt_avance_x_subprograma, dbt_avance_general]
+
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
     # Dependencias: 
-    # - start -> get_peri_idps -> silver (ensure_dataset -> todas las transformaciones en paralelo) -> end
-    start >> get_peri_idps_task >> silver_group >> end
+    # - start -> get_peri_idps -> silver (ensure_dataset -> todas las transformaciones en paralelo) -> gold -> end
+    start >> get_peri_idps_task >> silver_group >> gold_group >> end
 
