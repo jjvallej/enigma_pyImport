@@ -91,30 +91,35 @@ with DAG(
         task_id="start",
     )
 
-    # Tarea para asegurar que el dataset exista
-    ensure_dataset_task = PythonOperator(
-        task_id="ensure_dataset",
-        python_callable=_ensure_dataset_bronze_task,
-    )
+    # Grupo de tareas para la carga (capa bronze)
+    with TaskGroup(group_id="bronze") as bronze_group:
+        # Tarea para asegurar que el dataset exista
+        ensure_dataset_task = PythonOperator(
+            task_id="ensure_dataset",
+            python_callable=_ensure_dataset_bronze_task,
+        )
 
-    # Crear TaskGroups para cada fuente (pueden ejecutarse en paralelo)
-    load_tasks = []
-    
-    for fuente in FUENTES:
-        with TaskGroup(group_id=f"load_{fuente}") as fuente_group:
-            # Task única que maneja toda la lógica de carga para esta fuente
-            load_task = PythonOperator(
-                task_id="load_to_bq",
-                python_callable=_load_fuente_task(fuente),
-            )
-            
-            load_tasks.append(fuente_group)
+        # Crear TaskGroups para cada fuente (pueden ejecutarse en paralelo)
+        load_tasks = []
+        
+        for fuente in FUENTES:
+            with TaskGroup(group_id=f"load_{fuente}") as fuente_group:
+                # Task única que maneja toda la lógica de carga para esta fuente
+                load_task = PythonOperator(
+                    task_id="load_to_bq",
+                    python_callable=_load_fuente_task(fuente),
+                )
+                
+                load_tasks.append(fuente_group)
+        
+        # Dependencias dentro del grupo bronze: ensure_dataset -> todas las cargas
+        ensure_dataset_task >> load_tasks
 
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
-    # Dependencias: start -> ensure_dataset -> todas las cargas en paralelo -> end
-    start >> ensure_dataset_task >> load_tasks >> end
+    # Dependencias: start -> bronze (ensure_dataset -> todas las cargas en paralelo) -> end
+    start >> bronze_group >> end
 
