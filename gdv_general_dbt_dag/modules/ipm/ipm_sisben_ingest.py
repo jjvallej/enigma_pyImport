@@ -89,11 +89,17 @@ def copy_file_within_gcs(
     if not source_blob.exists():
         raise FileNotFoundError(f"El archivo origen no existe: gs://{bucket_name}/{source_blob_name}")
     
+    # Recargar el blob para obtener todas sus propiedades (incluyendo el tamaño)
+    source_blob.reload()
+    
     if DEBUG:
         print(f"[INFO] Archivo origen encontrado: gs://{bucket_name}/{source_blob_name}")
         file_size = source_blob.size
-        file_size_mb = file_size / (1024 * 1024) if file_size > 0 else 0
-        print(f"[INFO] Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)")
+        if file_size is not None and file_size > 0:
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"[INFO] Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)")
+        else:
+            print(f"[INFO] Tamaño del archivo: desconocido")
     
     # Verificar si el archivo destino ya existe
     destination_blob = bucket.blob(destination_blob_name)
@@ -325,11 +331,17 @@ def copy_file_between_buckets(
     if not source_blob.exists():
         raise FileNotFoundError(f"El archivo origen no existe: gs://{source_bucket_name}/{source_blob_name}")
     
+    # Recargar el blob para obtener todas sus propiedades (incluyendo el tamaño)
+    source_blob.reload()
+    
     if DEBUG:
         print(f"[INFO] Archivo origen encontrado: gs://{source_bucket_name}/{source_blob_name}")
         file_size = source_blob.size
-        file_size_mb = file_size / (1024 * 1024) if file_size > 0 else 0
-        print(f"[INFO] Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)")
+        if file_size is not None and file_size > 0:
+            file_size_mb = file_size / (1024 * 1024)
+            print(f"[INFO] Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)")
+        else:
+            print(f"[INFO] Tamaño del archivo: desconocido")
     
     # Verificar si el archivo destino ya existe
     destination_blob = destination_bucket.blob(destination_blob_name)

@@ -3,7 +3,7 @@
 DAG para ingerir archivos IPM SISBEN desde la carpeta temporal en GCS
 y copiarlos a la carpeta de destino ipm/sisben.
 
-El archivo se encuentra en: datalake_gdv_dev/data_staging/dpt_planeacion_municipal/tmp
+El archivo se encuentra en: gs://datalake_gdv_dev/data_staging/dpt_planeacion_municipal/tmp/IPM_SISBEN.xlsx
 Y se copia a: datalake_gdv_dev/data_staging/dpt_planeacion_municipal/ipm/sisben
 """
 from datetime import datetime
@@ -21,12 +21,12 @@ sys.path.append(project_root)
 from modules.ipm.ipm_sisben_ingest import copy_file_from_gcs_uri_to_destination
 
 # === CONFIGURACIÓN ===
-# URL completa del archivo o carpeta origen en GCS (puede ser de cualquier bucket/proyecto)
+# URL completa del archivo origen en GCS (puede ser de cualquier bucket/proyecto)
 # Formato: 
 #   - Archivo específico: gs://bucket-name/path/to/file.xlsx
 #   - Carpeta (buscará el último .xlsx): gs://bucket-name/path/to/folder/
-# Ejemplo actual: carpeta temporal donde está el archivo
-SOURCE_GCS_URI = "gs://datalake_gdv_dev/data_staging/dpt_planeacion_municipal/tmp"  # Carpeta o archivo específico
+# URL del archivo IPM SISBEN en la carpeta temporal
+SOURCE_GCS_URI = "gs://datalake_gdv_dev/data_staging/dpt_planeacion_municipal/tmp/IPM_SISBEN.xlsx"
 
 # Configuración del destino
 DESTINATION_BUCKET_NAME = "datalake_gdv_dev"
