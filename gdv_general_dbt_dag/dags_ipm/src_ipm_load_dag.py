@@ -23,9 +23,7 @@ from modules.ipm.ipm_load import (
     download_excel_from_gcs,
     get_latest_excel_from_gcs_folder,
     transform_excel,
-    read_excel_raw,
     load_dataframe_to_bq,
-    load_dataframe_to_bq_raw,
     cleanup_temp_paths,
 )
 
@@ -34,10 +32,8 @@ from modules.ipm.ipm_load import (
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
 GCS_BUCKET_NAME = "datalake_gdv_dev"
 GCS_FOLDER_PATH_DANE = "data_staging/dpt_planeacion_municipal/ipm/dane"  # Subcarpeta 'dane' dentro de ipm
-GCS_FOLDER_PATH_SISBEN = "data_staging/dpt_planeacion_municipal/ipm/sisben"  # Subcarpeta 'sisben' dentro de ipm
 DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
 TABLE_NAME_BRONZE_IPM = "ipm_raw_data"
-TABLE_NAME_BRONZE_SISBEN = "ipm_sisben_raw_data"
 SHEET_INDEX = 0
 
 def _ensure_dataset_bronze_task():
@@ -63,26 +59,6 @@ def _download_excel_task():
     print(f"[INFO] Descargando archivo desde GCS: {gcs_uri}")
     return download_excel_from_gcs(gcs_uri=gcs_uri)
 
-def _download_excel_sisben_task():
-    # Obtener el último archivo Excel de la carpeta sisben en GCS
-    try:
-        # Intentar obtener configuración desde Variables de Airflow
-        bucket_name = Variable.get("ipm_gcs_bucket", default_var=GCS_BUCKET_NAME)
-        folder_path = Variable.get("ipm_gcs_folder_sisben", default_var=GCS_FOLDER_PATH_SISBEN)
-        print(f"[INFO] Usando configuración: bucket={bucket_name}, carpeta={folder_path}")
-    except:
-        # Si no existen las variables, usar valores por defecto hardcodeados
-        bucket_name = GCS_BUCKET_NAME
-        folder_path = GCS_FOLDER_PATH_SISBEN
-        print(f"[INFO] Usando configuración por defecto: bucket={bucket_name}, carpeta={folder_path}")
-    
-    # Buscar el último archivo Excel en la carpeta
-    print(f"[INFO] Buscando el último archivo .xlsx en gs://{bucket_name}/{folder_path}")
-    gcs_uri = get_latest_excel_from_gcs_folder(bucket_name=bucket_name, folder_path=folder_path)
-    
-    print(f"[INFO] Descargando archivo SISBEN desde GCS: {gcs_uri}")
-    return download_excel_from_gcs(gcs_uri=gcs_uri)
-
 def _transform_task(ti):
     local_excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
     if not local_excel_path:
@@ -101,35 +77,9 @@ def _load_task(ti):
     df = pd.read_pickle(pickle_path)
     load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME_BRONZE_IPM)
 
-def _transform_sisben_task(ti):
-    local_excel_path = ti.xcom_pull(task_ids="bronze_sisben.download_excel_sisben")
-    if not local_excel_path:
-        raise ValueError("No se recibió la ruta del Excel SISBEN en XCom (task download_excel_sisben).")
-    # Leer el Excel tal cual, sin transformaciones
-    df = read_excel_raw(local_path=local_excel_path, sheet_index=SHEET_INDEX)
-    tmp = tempfile.NamedTemporaryFile(suffix=".pkl", delete=False)
-    tmp_path = tmp.name
-    tmp.close()
-    df.to_pickle(tmp_path)
-    return tmp_path
-
-def _load_sisben_task(ti):
-    pickle_path = ti.xcom_pull(task_ids="bronze_sisben.transform_dataframe_sisben")
-    if not pickle_path:
-        raise ValueError("No se recibió la ruta del DataFrame transformado SISBEN en XCom (task transform_dataframe_sisben).")
-    df = pd.read_pickle(pickle_path)
-    # Usar load_dataframe_to_bq_raw para cargar sin esquema predefinido
-    # BigQuery inferirá el esquema automáticamente desde el DataFrame
-    load_dataframe_to_bq_raw(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME_BRONZE_SISBEN)
-
 def _cleanup_temp_files_task(ti):
     excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
     pickle_path = ti.xcom_pull(task_ids="bronze.transform_dataframe")
-    cleanup_temp_paths([excel_path, pickle_path])
-
-def _cleanup_temp_files_sisben_task(ti):
-    excel_path = ti.xcom_pull(task_ids="bronze_sisben.download_excel_sisben")
-    pickle_path = ti.xcom_pull(task_ids="bronze_sisben.transform_dataframe_sisben")
     cleanup_temp_paths([excel_path, pickle_path])
 
 with DAG(
@@ -138,7 +88,7 @@ with DAG(
     schedule_interval=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Lee Excel IPM desde GCS, transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego ejecuta el DAG de transformación src_planeacion_transf_ipm.",
+    description="Lee Excel IPM desde GCS (carpeta ipm/dane), transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego ejecuta el DAG de transformación src_planeacion_transf_ipm.",
 ) as dag:
 
     # Tarea inicial vacía
@@ -176,36 +126,6 @@ with DAG(
 
         t1_ensure_dataset >> t2_download_excel >> t3_transform_dataframe >> t4_load_to_bq >> t5_cleanup_temp_files
 
-    # Grupo de tareas para la extracción del archivo IPM SISBEN (capa bronze)
-    with TaskGroup(group_id="bronze_sisben") as bronze_sisben_group:
-        s1_ensure_dataset = PythonOperator(
-            task_id="ensure_dataset",
-            python_callable=_ensure_dataset_bronze_task,
-        )
-
-        s2_download_excel_sisben = PythonOperator(
-            task_id="download_excel_sisben",
-            python_callable=_download_excel_sisben_task,
-        )
-
-        s3_transform_dataframe_sisben = PythonOperator(
-            task_id="transform_dataframe_sisben",
-            python_callable=_transform_sisben_task,
-        )
-
-        s4_load_to_bq_sisben = PythonOperator(
-            task_id="load_to_bq_sisben",
-            python_callable=_load_sisben_task,
-        )
-
-        s5_cleanup_temp_files_sisben = PythonOperator(
-            task_id="cleanup_temp_files_sisben",
-            python_callable=_cleanup_temp_files_sisben_task,
-            trigger_rule=TriggerRule.ALL_DONE,
-        )
-
-        s1_ensure_dataset >> s2_download_excel_sisben >> s3_transform_dataframe_sisben >> s4_load_to_bq_sisben >> s5_cleanup_temp_files_sisben
-
     # Tarea para ejecutar el DAG de transformación
     trigger_transf_dag = TriggerDagRunOperator(
         task_id="trigger_transf_ipm",
@@ -218,5 +138,5 @@ with DAG(
         task_id="end",
     )
 
-    # Dependencias: start -> [bronze, bronze_sisben] (en paralelo) -> trigger_transf_dag -> end
-    start >> [bronze_group, bronze_sisben_group] >> trigger_transf_dag >> end
+    # Dependencias: start -> bronze -> trigger_transf_dag -> end
+    start >> bronze_group >> trigger_transf_dag >> end
