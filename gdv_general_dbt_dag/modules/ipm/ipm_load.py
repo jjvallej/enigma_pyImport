@@ -98,19 +98,117 @@ def download_excel_from_gcs(gcs_uri: str) -> str:
     """
     Descarga el archivo Excel desde GCS hacia un archivo temporal
     y devuelve la ruta local generada.
+    Optimizado para archivos grandes.
     """
     gcs = _gcs_client()
     bucket_name = gcs_uri.split("/")[2]
     blob_name = "/".join(gcs_uri.split("/")[3:])
     blob = gcs.bucket(bucket_name).blob(blob_name)
 
+    # Obtener el tamaño del archivo antes de descargar
+    blob.reload()
+    file_size = blob.size
+    file_size_mb = file_size / (1024 * 1024)
+    
+    if DEBUG:
+        print(f"[DEBUG] Descargando archivo desde GCS: {gcs_uri}")
+        print(f"[DEBUG] Tamaño del archivo en GCS: {file_size_mb:.2f} MB ({file_size} bytes)")
+        if file_size_mb > 100:
+            print(f"[WARN] Archivo grande detectado ({file_size_mb:.2f} MB). La descarga puede tomar varios minutos...")
+
     fd, tmp_path = tempfile.mkstemp(suffix=".xlsx")
     os.close(fd)
+    
+    # Descargar el archivo
     blob.download_to_filename(tmp_path)
+    
+    # Verificar que el archivo se descargó completamente
+    downloaded_size = os.path.getsize(tmp_path)
+    if downloaded_size != file_size:
+        raise ValueError(
+            f"El archivo no se descargó completamente. "
+            f"Tamaño esperado: {file_size} bytes, "
+            f"Tamaño descargado: {downloaded_size} bytes"
+        )
+    
     if DEBUG:
-        print(f"[DEBUG] Archivo descargado en {tmp_path}")
+        print(f"[DEBUG] Archivo descargado completamente en {tmp_path}")
+        print(f"[DEBUG] Tamaño verificado: {downloaded_size} bytes ({file_size_mb:.2f} MB)")
+    
     return tmp_path
 
+
+def read_excel_raw(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
+    """
+    Lee un archivo Excel tal cual, sin aplicar ninguna transformación.
+    Devuelve el DataFrame exactamente como está en el archivo.
+    Optimizado para archivos grandes (hasta varios GB).
+    
+    Args:
+        local_path: Ruta local del archivo Excel
+        sheet_index: Índice de la hoja a leer (por defecto 0)
+    
+    Returns:
+        DataFrame con los datos tal cual están en el Excel
+    """
+    import os
+    
+    # Verificar que el archivo existe
+    if not os.path.exists(local_path):
+        raise FileNotFoundError(f"El archivo no existe: {local_path}")
+    
+    # Verificar el tamaño del archivo
+    file_size = os.path.getsize(local_path)
+    if file_size == 0:
+        raise ValueError(f"El archivo está vacío: {local_path}")
+    
+    # Convertir bytes a MB para logging
+    file_size_mb = file_size / (1024 * 1024)
+    
+    if DEBUG:
+        print(f"[DEBUG] Leyendo archivo: {local_path}")
+        print(f"[DEBUG] Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)")
+    
+    # Verificar que el archivo comience con los bytes de un Excel (ZIP signature)
+    with open(local_path, 'rb') as f:
+        first_bytes = f.read(8)
+        # ZIP signature (xlsx files are ZIP archives)
+        if first_bytes[:2] != b'PK':
+            raise ValueError(f"El archivo no parece ser un Excel válido (.xlsx). "
+                           f"Los archivos .xlsx deben comenzar con la firma ZIP 'PK'. "
+                           f"Primeros bytes: {first_bytes[:8].hex()}")
+    
+    # Para archivos grandes, usar openpyxl que es más eficiente
+    # y puede manejar archivos grandes mejor que xlrd
+    try:
+        if DEBUG:
+            print(f"[DEBUG] Intentando leer archivo grande con engine: openpyxl")
+            print(f"[DEBUG] Esto puede tomar varios minutos para archivos de {file_size_mb:.2f} MB...")
+        
+        # Leer con openpyxl que maneja mejor archivos grandes
+        df = pd.read_excel(
+            local_path, 
+            sheet_name=sheet_index, 
+            header=0, 
+            engine='openpyxl'
+        )
+        
+        if DEBUG:
+            print(f"[DEBUG] Archivo leído exitosamente con engine: openpyxl")
+            print(f"[DEBUG] Filas: {len(df)}, Columnas: {len(df.columns)}")
+            print(f"[DEBUG] Encabezados: {list(df.columns)}")
+        
+    except Exception as e:
+        error_msg = f"No se pudo leer el archivo Excel: {local_path}\n"
+        error_msg += f"Tamaño del archivo: {file_size_mb:.2f} MB ({file_size} bytes)\n"
+        error_msg += f"Error: {str(e)}\n"
+        error_msg += f"\nSugerencias:\n"
+        error_msg += f"- Verifica que el archivo se descargó completamente\n"
+        error_msg += f"- Verifica que el archivo no esté corrupto\n"
+        error_msg += f"- Para archivos muy grandes (>2GB), considera dividirlos o usar otro formato"
+        raise ValueError(error_msg) from e
+    
+    return df
 
 def transform_excel(local_path: str, sheet_index: int = 0) -> pd.DataFrame:
     """
@@ -213,6 +311,46 @@ def _load_df_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
 def load_dataframe_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str):
     """Función pública para cargar un DataFrame transformado a BigQuery."""
     _load_df_to_bq(df, dataset_id=dataset_id, table_name=table_name)
+
+def load_dataframe_to_bq_raw(df: pd.DataFrame, dataset_id: str, table_name: str):
+    """
+    Carga un DataFrame a BigQuery sin esquema predefinido.
+    Todas las columnas se convierten a STRING para preservar los datos tal cual están.
+    Útil para archivos con estructura desconocida (como IPM SISBEN).
+    """
+    client = _bq_client()
+    table_fqn = f"{PROJECT_ID}.{dataset_id}.{table_name}"
+    
+    if DEBUG:
+        print(f"[DEBUG] Cargando DataFrame sin esquema predefinido a {table_fqn}")
+        print(f"[DEBUG] Columnas del DataFrame: {list(df.columns)}")
+        print(f"[DEBUG] Filas: {len(df)}")
+    
+    # Crear una copia del DataFrame para no modificar el original
+    df_to_load = df.copy()
+    
+    # Convertir todas las columnas a STRING para preservar los datos tal cual
+    # Esto evita problemas con tipos mixtos y valores NaN
+    for col in df_to_load.columns:
+        # Convertir a string, reemplazando NaN con string vacío
+        df_to_load[col] = df_to_load[col].astype(str).replace('nan', '').replace('None', '')
+    
+    if DEBUG:
+        print(f"[DEBUG] Todas las columnas convertidas a STRING para preservar datos originales")
+    
+    # Crear esquema dinámico basado en las columnas del DataFrame
+    # Todas las columnas serán STRING para preservar los datos tal cual
+    schema = [bigquery.SchemaField(col, "STRING") for col in df_to_load.columns]
+    
+    # Configuración con esquema dinámico (todas las columnas como STRING)
+    job_config = bigquery.LoadJobConfig(
+        write_disposition="WRITE_TRUNCATE",
+        schema=schema,
+    )
+    
+    job = client.load_table_from_dataframe(df_to_load, table_fqn, job_config=job_config)
+    job.result()
+    print(f"[OK] Cargadas {len(df_to_load)} filas en {table_fqn} (todas las columnas como STRING)")
 
 
 def cleanup_temp_paths(paths: Iterable[Optional[str]]):
