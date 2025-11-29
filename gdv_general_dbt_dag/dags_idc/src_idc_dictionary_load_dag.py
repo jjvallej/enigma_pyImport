@@ -12,6 +12,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.models import Variable
@@ -144,6 +145,13 @@ with DAG(
         task_id="end",
     )
 
+    # Disparar el DAG de ingest_idc después de completar la carga del diccionario
+    trigger_ingest_dag = TriggerDagRunOperator(
+        task_id="trigger_ingest_idc",
+        trigger_dag_id="src_planeacion_ingest_idc",
+        wait_for_completion=False,  # No espera a que el DAG de ingest termine
+    )
+
     # Dependencias
-    start >> gold_group >> end
+    start >> gold_group >> end >> trigger_ingest_dag
 

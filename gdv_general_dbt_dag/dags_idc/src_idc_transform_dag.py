@@ -44,12 +44,10 @@ from modules.idc.idc_load import (
     ensure_dataset,
 )
 from modules.idc.idc_transform import (
-    normalize_columns,
-    lowercase_columns,
-    uppercase_departamento,
-    fill_nulls,
-    round_decimals,
-    round_integers,
+    normalize_columns_step,
+    uppercase_departamento_step,
+    fill_nulls_step,
+    transform_table_complete,
 )
 
 # === CONFIGURACIÓN ===
@@ -87,115 +85,93 @@ with DAG(
             python_callable=_ensure_dataset_silver_task,
         )
 
-        # Paso 1: Normalizar nombres de columnas a snake_case (para las 3 tablas en paralelo)
-        s2_normalize_columns_dato_original = PythonOperator(
+        # Paso 1: Normalizar columnas (para las 3 tablas en paralelo)
+        s2_normalize_dato_original = PythonOperator(
             task_id="normalize_columns_dato_original",
-            python_callable=lambda: normalize_columns('dato_original'),
+            python_callable=lambda: normalize_columns_step('dato_original'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s3_normalize_columns_valor_normalizado = PythonOperator(
+        s3_normalize_valor_normalizado = PythonOperator(
             task_id="normalize_columns_valor_normalizado",
-            python_callable=lambda: normalize_columns('valor_normalizado'),
+            python_callable=lambda: normalize_columns_step('valor_normalizado'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s4_normalize_columns_valor_ranking = PythonOperator(
+        s4_normalize_valor_ranking = PythonOperator(
             task_id="normalize_columns_valor_ranking",
-            python_callable=lambda: normalize_columns('valor_ranking'),
+            python_callable=lambda: normalize_columns_step('valor_ranking'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        # Paso 2: Convertir nombres de columnas a minúsculas (depende de normalize_columns, para las 3 tablas en paralelo)
-        s5_lowercase_columns_dato_original = PythonOperator(
-            task_id="lowercase_columns_dato_original",
-            python_callable=lambda: lowercase_columns('dato_original'),
+        # Paso 2: Normalizar departamento (para las 3 tablas en paralelo)
+        s5_uppercase_dato_original = PythonOperator(
+            task_id="uppercase_departamento_dato_original",
+            python_callable=lambda: uppercase_departamento_step('dato_original'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s6_lowercase_columns_valor_normalizado = PythonOperator(
-            task_id="lowercase_columns_valor_normalizado",
-            python_callable=lambda: lowercase_columns('valor_normalizado'),
+        s6_uppercase_valor_normalizado = PythonOperator(
+            task_id="uppercase_departamento_valor_normalizado",
+            python_callable=lambda: uppercase_departamento_step('valor_normalizado'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s7_lowercase_columns_valor_ranking = PythonOperator(
-            task_id="lowercase_columns_valor_ranking",
-            python_callable=lambda: lowercase_columns('valor_ranking'),
+        s7_uppercase_valor_ranking = PythonOperator(
+            task_id="uppercase_departamento_valor_ranking",
+            python_callable=lambda: uppercase_departamento_step('valor_ranking'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        # Paso 3: Normalizar departamento a mayúsculas sin acentos (depende de lowercase_columns, crea tablas finales)
-        s8_uppercase_dato_original = PythonOperator(
-            task_id="uppercase_dato_original",
-            python_callable=lambda: uppercase_departamento('dato_original'),
-            execution_timeout=timedelta(minutes=30),
-        )
-
-        s9_uppercase_valor_normalizado = PythonOperator(
-            task_id="uppercase_valor_normalizado",
-            python_callable=lambda: uppercase_departamento('valor_normalizado'),
-            execution_timeout=timedelta(minutes=30),
-        )
-
-        s10_uppercase_valor_ranking = PythonOperator(
-            task_id="uppercase_valor_ranking",
-            python_callable=lambda: uppercase_departamento('valor_ranking'),
-            execution_timeout=timedelta(minutes=30),
-        )
-
-        # Paso 4: Reemplazar NULL/NaN por 0 en columnas numéricas (depende de uppercase, tablas intermedias)
-        s11_fill_nulls_dato_original = PythonOperator(
+        # Paso 3: Validar reemplazo de NULLs (para las 3 tablas en paralelo)
+        s8_fill_nulls_dato_original = PythonOperator(
             task_id="fill_nulls_dato_original",
-            python_callable=lambda: fill_nulls('dato_original'),
+            python_callable=lambda: fill_nulls_step('dato_original'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s12_fill_nulls_valor_normalizado = PythonOperator(
+        s9_fill_nulls_valor_normalizado = PythonOperator(
             task_id="fill_nulls_valor_normalizado",
-            python_callable=lambda: fill_nulls('valor_normalizado'),
+            python_callable=lambda: fill_nulls_step('valor_normalizado'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s13_fill_nulls_valor_ranking = PythonOperator(
+        s10_fill_nulls_valor_ranking = PythonOperator(
             task_id="fill_nulls_valor_ranking",
-            python_callable=lambda: fill_nulls('valor_ranking'),
+            python_callable=lambda: fill_nulls_step('valor_ranking'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        # Paso 5: Redondear/Convertir columnas numéricas (depende de fill_nulls, crea tablas finales)
-        s14_round_decimals_dato_original = PythonOperator(
-            task_id="round_decimals_dato_original",
-            python_callable=lambda: round_decimals('dato_original'),
+        # Paso 4: Crear tablas finales con todas las transformaciones (para las 3 tablas en paralelo)
+        s11_transform_dato_original = PythonOperator(
+            task_id="transform_dato_original",
+            python_callable=lambda: transform_table_complete('dato_original'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s15_round_decimals_valor_normalizado = PythonOperator(
-            task_id="round_decimals_valor_normalizado",
-            python_callable=lambda: round_decimals('valor_normalizado'),
+        s12_transform_valor_normalizado = PythonOperator(
+            task_id="transform_valor_normalizado",
+            python_callable=lambda: transform_table_complete('valor_normalizado'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        s16_round_integers_valor_ranking = PythonOperator(
-            task_id="round_integers_valor_ranking",
-            python_callable=lambda: round_integers(),
+        s13_transform_valor_ranking = PythonOperator(
+            task_id="transform_valor_ranking",
+            python_callable=lambda: transform_table_complete('valor_ranking'),
             execution_timeout=timedelta(minutes=30),
         )
 
-        # Dependencias: ensure_dataset -> [normalize_columns en paralelo] -> [lowercase_columns en paralelo] -> [uppercase en paralelo] -> [fill_nulls en paralelo] -> [round_decimals/round_integers en paralelo]
-        s1_ensure_dataset >> [s2_normalize_columns_dato_original, s3_normalize_columns_valor_normalizado, s4_normalize_columns_valor_ranking]
-        s2_normalize_columns_dato_original >> s5_lowercase_columns_dato_original
-        s3_normalize_columns_valor_normalizado >> s6_lowercase_columns_valor_normalizado
-        s4_normalize_columns_valor_ranking >> s7_lowercase_columns_valor_ranking
-        s5_lowercase_columns_dato_original >> s8_uppercase_dato_original
-        s6_lowercase_columns_valor_normalizado >> s9_uppercase_valor_normalizado
-        s7_lowercase_columns_valor_ranking >> s10_uppercase_valor_ranking
-        s8_uppercase_dato_original >> s11_fill_nulls_dato_original
-        s9_uppercase_valor_normalizado >> s12_fill_nulls_valor_normalizado
-        s10_uppercase_valor_ranking >> s13_fill_nulls_valor_ranking
-        s11_fill_nulls_dato_original >> s14_round_decimals_dato_original
-        s12_fill_nulls_valor_normalizado >> s15_round_decimals_valor_normalizado
-        s13_fill_nulls_valor_ranking >> s16_round_integers_valor_ranking
+        # Dependencias: ensure_dataset -> [normalize en paralelo] -> [uppercase en paralelo] -> [fill_nulls en paralelo] -> [transform final en paralelo]
+        s1_ensure_dataset >> [s2_normalize_dato_original, s3_normalize_valor_normalizado, s4_normalize_valor_ranking]
+        s2_normalize_dato_original >> s5_uppercase_dato_original
+        s3_normalize_valor_normalizado >> s6_uppercase_valor_normalizado
+        s4_normalize_valor_ranking >> s7_uppercase_valor_ranking
+        s5_uppercase_dato_original >> s8_fill_nulls_dato_original
+        s6_uppercase_valor_normalizado >> s9_fill_nulls_valor_normalizado
+        s7_uppercase_valor_ranking >> s10_fill_nulls_valor_ranking
+        s8_fill_nulls_dato_original >> s11_transform_dato_original
+        s9_fill_nulls_valor_normalizado >> s12_transform_valor_normalizado
+        s10_fill_nulls_valor_ranking >> s13_transform_valor_ranking
 
     # Grupo de tareas para la capa gold
     with TaskGroup(group_id="gold") as gold_group:
@@ -223,6 +199,6 @@ with DAG(
 
     # Dependencias: 
     # - start -> silver -> gold -> end
-    # - Las 3 tablas finales de silver (s14, s15, s16) deben completarse antes de gold
+    # - Las 3 tablas finales de silver (s11, s12, s13) deben completarse antes de gold
     start >> silver_group
-    [s14_round_decimals_dato_original, s15_round_decimals_valor_normalizado, s16_round_integers_valor_ranking] >> gold_group >> end
+    [s11_transform_dato_original, s12_transform_valor_normalizado, s13_transform_valor_ranking] >> gold_group >> end
