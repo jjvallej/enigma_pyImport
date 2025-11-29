@@ -262,7 +262,7 @@ def upload_file_to_gcs(
     Returns:
         URI completa del archivo en GCS (gs://bucket/path)
     """
-    gcs_client = _gcs_client()
+    gcs_client = get_gcs_client()
     
     # Obtener el bucket
     try:

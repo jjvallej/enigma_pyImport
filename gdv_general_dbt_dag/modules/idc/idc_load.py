@@ -9,15 +9,17 @@ import pandas as pd
 import os, tempfile, re
 from datetime import datetime, timezone
 from typing import Iterable, Optional, Dict, List
-from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE, CONF
 from modules.gcp_utils import get_bq_client, get_gcs_client
+
+DEBUG = CONF.global_config.debug
 
 # ---------------------------
 # Helpers
 # ---------------------------
 def ensure_dataset(dataset_id: str, location: str = "us-central1"):
     """Crea el dataset si no existe."""
-    client = _bq_client()
+    client = get_bq_client()
     ds_fqn = f"{PROJECT_ID}.{dataset_id}"
     try:
         ds = client.get_dataset(ds_fqn)
@@ -41,7 +43,7 @@ def get_latest_excel_from_gcs_folder(bucket_name: str, folder_path: str) -> str:
     Returns:
         URI completa del archivo más reciente (gs://bucket/folder/file.xlsx)
     """
-    gcs = _gcs_client()
+    gcs = get_gcs_client()
     
     # Normalizar la ruta de la carpeta (asegurar que termine con /)
     if not folder_path.endswith('/'):
@@ -82,7 +84,7 @@ def download_excel_from_gcs(gcs_uri: str) -> str:
     Descarga el archivo Excel desde GCS hacia un archivo temporal
     y devuelve la ruta local generada.
     """
-    gcs = _gcs_client()
+    gcs = get_gcs_client()
     bucket_name = gcs_uri.split("/")[2]
     blob_name = "/".join(gcs_uri.split("/")[3:])
     blob = gcs.bucket(bucket_name).blob(blob_name)
@@ -247,7 +249,7 @@ def load_dataframe_to_bq(df: pd.DataFrame, dataset_id: str, table_name: str, sch
         table_name: Nombre de la tabla
         schema: Esquema opcional (si no se proporciona, se infiere del DataFrame)
     """
-    client = _bq_client()
+    client = get_bq_client()
     table_fqn = f"{PROJECT_ID}.{dataset_id}.{table_name}"
     
     # Si no se proporciona esquema, crear uno basado en el DataFrame
