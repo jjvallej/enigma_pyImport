@@ -78,20 +78,17 @@ with DAG(
     )
 
     # Tarea para ejecutar el DAG de carga (después de que el archivo se haya copiado)
-    # Nota: El DAG de carga aún no existe, se puede agregar cuando esté listo
-    # trigger_load_dag = TriggerDagRunOperator(
-    #     task_id="trigger_load_ipm_sisben",
-    #     trigger_dag_id="src_planeacion_load_ipm_sisben",
-    #     wait_for_completion=True,
-    # )
+    trigger_load_dag = TriggerDagRunOperator(
+        task_id="trigger_load_ipm_sisben",
+        trigger_dag_id="src_planeacion_load_ipm_sisben",
+        wait_for_completion=True,  # Espera a que el DAG de carga termine
+    )
 
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
-    # Dependencias: se copia el archivo IPM SISBEN, luego termina
-    # Cuando el DAG de carga esté listo, descomentar la línea del trigger y actualizar:
-    # start >> copy_file_ipm_sisben >> trigger_load_dag >> end
-    start >> copy_file_ipm_sisben >> end
+    # Dependencias: se copia el archivo IPM SISBEN, luego se dispara el DAG de carga
+    start >> copy_file_ipm_sisben >> trigger_load_dag >> end
 
