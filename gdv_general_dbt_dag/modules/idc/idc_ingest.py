@@ -10,6 +10,7 @@ from google.cloud import storage
 import requests
 import re
 import os
+import tempfile
 from datetime import datetime
 from typing import Optional
 from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, CONF

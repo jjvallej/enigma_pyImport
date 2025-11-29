@@ -1,6 +1,7 @@
 {{
   config(
-    materialized='ephemeral'
+    materialized='table',
+    schema='silver_dpt_planeacion_municipal_dev'
   )
 }}
 
