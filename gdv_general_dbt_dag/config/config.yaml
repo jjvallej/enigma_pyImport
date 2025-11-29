@@ -19,14 +19,14 @@ environments:
     dataset_gold: "gold_dpt_planeacion_municipal_dev"
 
 evaplan:
-  auth_endpoint: "https://api.evaplan.com/auth/login"
-  api_base_url: "https://api.evaplan.com/v1"
+  auth_endpoint: "http://207.246.89.62/ApiEvaplan/auth/login"
+  api_base_url: "http://207.246.89.62/ApiEvaplan"
   endpoints:
-    periodos: "/periodos"
-    avance_mr: "/avance-mr"
-    avance_mp: "/avance-mp"
-    avance_x_subprograma: "/avance-x-subprograma"
-    avance_general: "/avance-general"
+    periodos: "/datos/periodos"
+    avance_mr: "/datos/AvanceMR"
+    avance_mp: "/datos/AvanceMP"
+    avance_x_subprograma: "/datos/AvanceXSubprograma"
+    avance_general: "/datos/AvanceEvaGeneral"
   gcs_folder: "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
   fuentes:
     - "periodos"
@@ -34,6 +34,11 @@ evaplan:
     - "avance_mp"
     - "avance_x_subprograma"
     - "avance_general"
+  # Credenciales de autenticación
+  # NOTA: Configurar las credenciales aquí para que el código funcione
+  credentials:
+    usuario: "usuario_api"  # Configurar el usuario de la API
+    password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
 
 idc:
   drive_url: "https://docs.google.com/spreadsheets/d/1J42xKC3VnkjhwHQENKxo2DDQzuBINYxY/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"

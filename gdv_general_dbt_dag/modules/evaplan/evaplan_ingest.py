@@ -8,12 +8,59 @@ import json
 import os
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Tuple
+from urllib.parse import urlencode
 from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, CONF
+from modules.gcp_utils import get_gcs_client
 
 # === CONFIGURACIÓN ===
 AUTH_ENDPOINT = CONF.evaplan.auth_endpoint
 API_BASE_URL = CONF.evaplan.api_base_url
 DEBUG = CONF.global_config.debug
+
+# Construir endpoints completos
+PERIODOS_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.periodos}"
+AVANCE_MR_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_mr}"
+AVANCE_MP_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_mp}"
+AVANCE_X_SUBPROGRAMA_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_x_subprograma}"
+AVANCE_GENERAL_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_general}"
+
+def get_auth_credentials() -> Dict[str, str]:
+    """
+    Obtiene las credenciales de autenticación desde config.yaml.
+    
+    Returns:
+        Diccionario con usuario y password (formato requerido por la API)
+    
+    Raises:
+        ValueError: Si las credenciales no están configuradas en config.yaml
+    """
+    try:
+        config_creds = CONF.evaplan.credentials
+        # Acceder a los atributos del SimpleNamespace
+        usuario = getattr(config_creds, "usuario", "") or ""
+        password = getattr(config_creds, "password", "") or ""
+        
+        # Convertir a string y limpiar espacios
+        usuario = str(usuario).strip() if usuario else ""
+        password = str(password).strip() if password else ""
+        
+    except (AttributeError, KeyError) as e:
+        raise ValueError(
+            f"No se pudieron leer las credenciales desde config.yaml: {e}\n"
+            "Por favor, configura evaplan.credentials.usuario y evaplan.credentials.password en config.yaml"
+        )
+    
+    # Validar que ambas credenciales estén presentes
+    if not usuario or not password:
+        raise ValueError(
+            "Las credenciales de Evaplan no están configuradas en config.yaml.\n"
+            "Por favor, configura evaplan.credentials.usuario y evaplan.credentials.password en config.yaml"
+        )
+    
+    return {
+        "usuario": usuario,
+        "password": password
+    }
 
 def authenticate():
     """
@@ -25,17 +72,52 @@ def authenticate():
     Raises:
         Exception: Si la autenticación falla
     """
+    # Print de versión para verificar que el archivo está actualizado
+    print("[VERSION_CHECK] evaplan_ingest.py v2.0 - Usando get_auth_credentials() desde config.yaml")
+    print("[VERSION_CHECK] Si ves este mensaje, el archivo está actualizado correctamente")
+    
     if DEBUG:
         print(f"[INFO] Autenticando con la API de Evaplan...")
         print(f"[DEBUG] Endpoint: {AUTH_ENDPOINT}")
+        print(f"[DEBUG] Timeout configurado: 90 segundos")
+    
+    # Obtener credenciales
+    auth_credentials = get_auth_credentials()
+    print(f"[DEBUG] Credenciales obtenidas desde config.yaml (usuario: {auth_credentials.get('usuario', 'N/A')[:10]}...)")
+    
+    # Intentar hacer un test de conectividad básico
+    import socket
+    try:
+        host = "207.246.89.62"
+        port = 80
+        print(f"[DEBUG] Intentando conectar a {host}:{port}...")
+        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        test_socket.settimeout(5)
+        result = test_socket.connect_ex((host, port))
+        test_socket.close()
+        if result == 0:
+            print(f"[DEBUG] ✓ Conectividad básica OK a {host}:{port}")
+        else:
+            print(f"[WARN] ✗ No se pudo conectar a {host}:{port} (código: {result})")
+            print(f"[WARN] Esto puede indicar un problema de firewall/VPC en Composer")
+    except Exception as e:
+        print(f"[WARN] Error al probar conectividad: {e}")
     
     try:
-        response = requests.post(
+        print(f"[DEBUG] Iniciando petición POST a {AUTH_ENDPOINT}...")
+        # Usar Session como en los otros módulos (IDC, IPM) para mejor compatibilidad
+        session = requests.Session()
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = session.post(
             AUTH_ENDPOINT,
-            json=AUTH_CREDENTIALS,
-            headers={"Content-Type": "application/json"},
-            timeout=30
+            json=auth_credentials,
+            headers=headers,
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
+        print(f"[DEBUG] ✓ Petición completada, status code: {response.status_code}")
         
         response.raise_for_status()
         
@@ -87,15 +169,18 @@ def get_periodos(token: str) -> Dict[str, Any]:
         print(f"[DEBUG] Endpoint: {PERIODOS_ENDPOINT}")
     
     try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
-        response = requests.get(
+        response = session.get(
             PERIODOS_ENDPOINT,
             headers=headers,
-            timeout=30
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
         
         response.raise_for_status()
@@ -174,22 +259,29 @@ def get_avance_mr(token: str, peri_idp: int) -> Dict[str, Any]:
     """
     if DEBUG:
         print(f"[INFO] Obteniendo AvanceMR desde la API de Evaplan...")
-        print(f"[DEBUG] Endpoint: {AVANCE_MR_ENDPOINT}")
+        print(f"[DEBUG] Endpoint base: {AVANCE_MR_ENDPOINT}")
         print(f"[DEBUG] Periodo ID: {peri_idp}")
     
     try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
         params = {"id": peri_idp}
         
-        response = requests.get(
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_MR_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
             AVANCE_MR_ENDPOINT,
             headers=headers,
             params=params,
-            timeout=30
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
         
         response.raise_for_status()
@@ -237,22 +329,29 @@ def get_avance_mp(token: str, peri_idp: int) -> Dict[str, Any]:
     """
     if DEBUG:
         print(f"[INFO] Obteniendo AvanceMP desde la API de Evaplan...")
-        print(f"[DEBUG] Endpoint: {AVANCE_MP_ENDPOINT}")
+        print(f"[DEBUG] Endpoint base: {AVANCE_MP_ENDPOINT}")
         print(f"[DEBUG] Periodo ID: {peri_idp}")
     
     try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
         params = {"id": peri_idp}
         
-        response = requests.get(
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_MP_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
             AVANCE_MP_ENDPOINT,
             headers=headers,
             params=params,
-            timeout=30
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
         
         response.raise_for_status()
@@ -300,22 +399,29 @@ def get_avance_x_subprograma(token: str, peri_idp: int) -> Dict[str, Any]:
     """
     if DEBUG:
         print(f"[INFO] Obteniendo AvanceXSubprograma desde la API de Evaplan...")
-        print(f"[DEBUG] Endpoint: {AVANCE_X_SUBPROGRAMA_ENDPOINT}")
+        print(f"[DEBUG] Endpoint base: {AVANCE_X_SUBPROGRAMA_ENDPOINT}")
         print(f"[DEBUG] Periodo ID: {peri_idp}")
     
     try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
         params = {"id": peri_idp}
         
-        response = requests.get(
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_X_SUBPROGRAMA_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
             AVANCE_X_SUBPROGRAMA_ENDPOINT,
             headers=headers,
             params=params,
-            timeout=30
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
         
         response.raise_for_status()
@@ -363,22 +469,29 @@ def get_avance_general(token: str, peri_idp: int) -> Dict[str, Any]:
     """
     if DEBUG:
         print(f"[INFO] Obteniendo AvanceGeneral desde la API de Evaplan...")
-        print(f"[DEBUG] Endpoint: {AVANCE_GENERAL_ENDPOINT}")
+        print(f"[DEBUG] Endpoint base: {AVANCE_GENERAL_ENDPOINT}")
         print(f"[DEBUG] Periodo ID: {peri_idp}")
     
     try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
         headers = {
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
         params = {"id": peri_idp}
         
-        response = requests.get(
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_GENERAL_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
             AVANCE_GENERAL_ENDPOINT,
             headers=headers,
             params=params,
-            timeout=30
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
         )
         
         response.raise_for_status()
@@ -434,7 +547,7 @@ def upload_json_to_gcs(
     Returns:
         URI completa del archivo en GCS (gs://bucket/path)
     """
-    gcs_client = _gcs_client()
+    gcs_client = get_gcs_client()
     
     # Obtener el bucket
     try:
@@ -567,7 +680,7 @@ def read_latest_periodos_json_from_gcs(
     Raises:
         Exception: Si no se encuentra el archivo o hay error al leerlo
     """
-    gcs_client = _gcs_client()
+    gcs_client = get_gcs_client()
     
     # Normalizar la ruta de la carpeta
     if not folder_name.endswith('/'):

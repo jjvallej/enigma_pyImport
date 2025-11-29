@@ -10,8 +10,21 @@ import pandas as pd
 import os, tempfile, json, re
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple, Dict, Any, Iterable
-from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE, CONF
 from modules.gcp_utils import get_bq_client, get_gcs_client
+
+# === CONFIGURACIÓN ===
+DEBUG = CONF.global_config.debug
+GCS_BASE_FOLDER = "data_staging/dpt_planeacion_municipal/api_evaplan"
+
+# Mapeo de fuentes a carpetas en GCS
+FUENTE_FOLDERS = {
+    "periodos": "periodos",
+    "avance_mr": "avance_mr",
+    "avance_mp": "avance_mp",
+    "avance_x_subprograma": "avance_x_subprograma",
+    "avance_general": "avance_general"
+}
 
 # Mapeo de fuentes a carpetas en GCS (y prefijos de tablas)
 SOURCES = {

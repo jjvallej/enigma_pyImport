@@ -148,28 +148,25 @@ with DAG(
         
         dbt_avance_mr = BashOperator(
             task_id="dbt_avance_mr_processed_data",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mr_processed_data",
-            env={
-                "PATH": "/opt/bitnami/airflow/venv/bin:$PATH", # Ensure dbt is in path if needed, but usually it is
-            },
+            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mr_processed_data 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
             append_env=True,
         )
 
         dbt_avance_mp = BashOperator(
             task_id="dbt_avance_mp_processed_data",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mp_processed_data",
+            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mp_processed_data 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
             append_env=True,
         )
 
         dbt_avance_x_subprograma = BashOperator(
             task_id="dbt_avance_x_subprograma_processed_data",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_x_subprograma_processed_data",
+            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_x_subprograma_processed_data 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
             append_env=True,
         )
 
         dbt_avance_general = BashOperator(
             task_id="dbt_avance_general_processed_data",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_general_processed_data",
+            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_general_processed_data 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
             append_env=True,
         )
 

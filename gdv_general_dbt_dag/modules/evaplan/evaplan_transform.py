@@ -12,8 +12,11 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import List, Set, Optional
-from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD
+from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD, CONF
 from modules.gcp_utils import get_bq_client
+
+# === CONFIGURACIÓN ===
+DEBUG = CONF.global_config.debug
 
 # Mapeo de nombre de fuente a nombre de tabla en Bronze
 FUENTE_TO_BRONZE_TABLE = {
