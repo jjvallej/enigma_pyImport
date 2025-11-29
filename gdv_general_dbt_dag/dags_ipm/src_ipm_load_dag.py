@@ -101,7 +101,7 @@ with DAG(
     schedule=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Lee Excel IPM desde GCS, transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego ejecuta el DAG de transformación src_planeacion_transf_ipm.",
+    description="Lee Excel IPM desde GCS, transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego dispara el DAG de transformación src_planeacion_transf_ipm (sin esperar a que termine).",
 ) as dag:
 
     # Tarea inicial vacía
@@ -140,10 +140,12 @@ with DAG(
         t1_ensure_dataset >> t2_download_excel >> t3_transform_dataframe >> t4_load_to_bq >> t5_cleanup_temp_files
 
     # Tarea para ejecutar el DAG de transformación
+    # wait_for_completion=False permite que este DAG termine exitosamente
+    # sin esperar a que el DAG de transformación termine completamente
     trigger_transf_dag = TriggerDagRunOperator(
         task_id="trigger_transf_ipm",
         trigger_dag_id="src_planeacion_transf_ipm",
-        wait_for_completion=True,  # Espera a que el DAG de transformación termine
+        wait_for_completion=False,  # Dispara el DAG de transformación y continúa sin esperar
     )
 
     # Tarea final

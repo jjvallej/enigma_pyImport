@@ -3,7 +3,7 @@
 DAG para transformar los datos del IPM desde la capa bronze a las capas silver y gold
 utilizando modelos dbt.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
@@ -84,6 +84,7 @@ with DAG(
             task_id="dbt_run_transform_types",
             bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_transform_types",
             append_env=True,
+            execution_timeout=timedelta(minutes=15),  # Timeout de 15 minutos
         )
 
         s5_dbt_run_clean_numbers = BashOperator(

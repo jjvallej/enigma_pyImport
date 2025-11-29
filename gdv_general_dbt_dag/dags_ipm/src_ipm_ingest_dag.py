@@ -80,7 +80,7 @@ with DAG(
     schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Ingiere el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm/dane dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_ipm que carga los datos a BigQuery.",
+    description="Ingiere el archivo Excel IPM desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta ipm/dane dentro de data_staging/dpt_planeacion_municipal/, y luego dispara el DAG de carga src_planeacion_load_ipm (sin esperar a que termine).",
 ) as dag:
 
     # Tarea inicial
@@ -95,10 +95,12 @@ with DAG(
     )
 
     # Tarea para ejecutar el DAG de carga
+    # wait_for_completion=False permite que este DAG termine exitosamente
+    # sin esperar a que el DAG de carga termine completamente
     trigger_load_dag = TriggerDagRunOperator(
         task_id="trigger_load_ipm",
         trigger_dag_id="src_planeacion_load_ipm",
-        wait_for_completion=True,  # Espera a que el DAG de carga termine
+        wait_for_completion=False,  # Dispara el DAG de carga y continúa sin esperar
     )
 
     # Tarea final
