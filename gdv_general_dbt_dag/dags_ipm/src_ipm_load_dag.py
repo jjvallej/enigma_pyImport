@@ -11,13 +11,26 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.models import Variable
-import os, sys, tempfile
+import os
+import sys
+import tempfile
 import pandas as pd
 
-# Asegura que podamos importar el módulo local
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
+
 from modules.ipm.ipm_load import (
     ensure_dataset,
     download_excel_from_gcs,
@@ -28,28 +41,28 @@ from modules.ipm.ipm_load import (
 )
 
 # === CONFIGURACIÓN ===
-# Configuración para buscar el último archivo Excel en la carpeta ipm/dane
+# Configuración para buscar el último archivo Excel en la carpeta ipm
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv_dev"
-GCS_FOLDER_PATH_DANE = "data_staging/dpt_planeacion_municipal/ipm/dane"  # Subcarpeta 'dane' dentro de ipm
-DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
-TABLE_NAME_BRONZE_IPM = "ipm_raw_data"
+from modules.config import CONF, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+GCS_BUCKET_NAME = DEFAULT_BUCKET_NAME
+GCS_FOLDER_PATH = CONF.ipm.gcs_folder
+TABLE_NAME_BRONZE = CONF.ipm.tables.bronze
 SHEET_INDEX = 0
 
 def _ensure_dataset_bronze_task():
     ensure_dataset(dataset_id=DATASET_ID_BRONZE)
 
 def _download_excel_task():
-    # Obtener el último archivo Excel de la carpeta dane en GCS
+    # Obtener el último archivo Excel de la carpeta en GCS
     try:
         # Intentar obtener configuración desde Variables de Airflow
         bucket_name = Variable.get("ipm_gcs_bucket", default_var=GCS_BUCKET_NAME)
-        folder_path = Variable.get("ipm_gcs_folder_dane", default_var=GCS_FOLDER_PATH_DANE)
+        folder_path = Variable.get("ipm_gcs_folder", default_var=GCS_FOLDER_PATH)
         print(f"[INFO] Usando configuración: bucket={bucket_name}, carpeta={folder_path}")
     except:
         # Si no existen las variables, usar valores por defecto hardcodeados
         bucket_name = GCS_BUCKET_NAME
-        folder_path = GCS_FOLDER_PATH_DANE
+        folder_path = GCS_FOLDER_PATH
         print(f"[INFO] Usando configuración por defecto: bucket={bucket_name}, carpeta={folder_path}")
     
     # Buscar el último archivo Excel en la carpeta
@@ -75,7 +88,7 @@ def _load_task(ti):
     if not pickle_path:
         raise ValueError("No se recibió la ruta del DataFrame transformado en XCom (task transform_dataframe).")
     df = pd.read_pickle(pickle_path)
-    load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME_BRONZE_IPM)
+    load_dataframe_to_bq(df, dataset_id=DATASET_ID_BRONZE, table_name=TABLE_NAME_BRONZE)
 
 def _cleanup_temp_files_task(ti):
     excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
@@ -85,10 +98,10 @@ def _cleanup_temp_files_task(ti):
 with DAG(
     dag_id="src_planeacion_load_ipm",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
-    description="Lee Excel IPM desde GCS (carpeta ipm/dane), transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego ejecuta el DAG de transformación src_planeacion_transf_ipm.",
+    description="Lee Excel IPM desde GCS, transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego ejecuta el DAG de transformación src_planeacion_transf_ipm.",
 ) as dag:
 
     # Tarea inicial vacía
@@ -96,7 +109,7 @@ with DAG(
         task_id="start",
     )
 
-    # Grupo de tareas para la extracción del archivo IPM (capa bronze)
+    # Grupo de tareas para la extracción (capa bronze)
     with TaskGroup(group_id="bronze") as bronze_group:
         t1_ensure_dataset = PythonOperator(
             task_id="ensure_dataset",

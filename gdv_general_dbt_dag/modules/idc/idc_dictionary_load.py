@@ -11,7 +11,9 @@ from typing import Iterable, Optional
 
 PROJECT_ID = "datagov-473122"
 SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
+
+from modules.config import CONF
+DEBUG = CONF.global_config.debug
 
 # Valores por defecto
 GCS_BUCKET_NAME = "datalake_gdv_dev"

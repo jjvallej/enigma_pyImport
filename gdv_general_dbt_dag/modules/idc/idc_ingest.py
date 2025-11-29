@@ -7,28 +7,17 @@ Soporta:
 - Enlaces públicos de Google Drive (sin autenticación)
 """
 from google.cloud import storage
-import os
-import tempfile
 import requests
 import re
+import os
+from datetime import datetime
 from typing import Optional
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, CONF
+from modules.gcp_utils import get_gcs_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
+DEBUG = CONF.global_config.debug
 
-# ---------------------------
-# Clientes
-# ---------------------------
-def _gcs_client() -> storage.Client:
-    """Crea un cliente de Google Cloud Storage."""
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
-
-# ---------------------------
-# Funciones de utilidad
-# ---------------------------
-def extract_file_id_from_url(drive_url: str) -> str:
+def extract_file_id_from_url(drive_url):
     """
     Extrae el File ID de una URL de Google Drive.
     

@@ -12,17 +12,10 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import List, Set, Optional
-import pandas as pd
+from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD
+from modules.gcp_utils import get_bq_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
-
-# Valores por defecto
-DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
-DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
-
-# Mapeo de fuentes a nombres de tablas
+# Mapeo de nombre de fuente a nombre de tabla en Bronze
 FUENTE_TO_BRONZE_TABLE = {
     "periodos": "evaplan_api_periodos_raw_data",
     "avance_mr": "evaplan_api_avance_mr_raw_data",
@@ -43,8 +36,7 @@ FUENTE_TO_SILVER_TABLE = {
 # Clientes
 # ---------------------------
 def _bq_client() -> bigquery.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return bigquery.Client(project=PROJECT_ID)
+    return get_bq_client()
 
 # ---------------------------
 # Helpers

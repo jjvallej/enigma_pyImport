@@ -15,12 +15,24 @@ from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.models import Variable
-import os, sys
+import os
+import sys
 
-# Asegura que podamos importar el módulo local
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
+
 from modules.idc.idc_dictionary_load import (
     ensure_dataset,
     download_csv_from_gcs,
@@ -32,10 +44,10 @@ from modules.idc.idc_dictionary_load import (
 # === CONFIGURACIÓN ===
 # Configuración para buscar el último archivo CSV en la carpeta idc
 # El DAG buscará automáticamente el archivo .csv más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv_dev"
-GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
-DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
-TABLE_NAME = "dim_idc"
+from modules.config import CONF, DEFAULT_BUCKET_NAME, DATASET_ID_GOLD
+GCS_BUCKET_NAME = DEFAULT_BUCKET_NAME
+GCS_FOLDER_PATH = CONF.idc.gcs_folder
+TABLE_NAME = CONF.idc.tables.dictionary
 
 def _ensure_dataset_gold_task():
     """Asegura que el dataset gold exista."""
@@ -91,7 +103,7 @@ def _cleanup_temp_files_task(ti):
 with DAG(
     dag_id="src_planeacion_load_idc_dictionary",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc_dictionary", "ejecución:manual"],
     description="Lee CSV del diccionario IDC desde GCS, transforma mínimamente y carga a BigQuery en gold_dpt_planeacion_municipal_dev como tabla dim_idc.",

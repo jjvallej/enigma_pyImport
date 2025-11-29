@@ -16,7 +16,9 @@ from typing import Optional
 
 PROJECT_ID = "datagov-473122"
 SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
+
+from modules.config import CONF
+DEBUG = CONF.global_config.debug
 
 # ---------------------------
 # Clientes

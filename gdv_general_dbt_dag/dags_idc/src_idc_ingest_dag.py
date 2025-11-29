@@ -15,15 +15,29 @@ import os
 
 # Asegura que podamos importar el módulo local
 import sys
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+import os
+
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
 from modules.idc.idc_ingest import move_file_from_drive_to_gcs
+from modules.config import CONF
 
 # === CONFIGURACIÓN ===
 DEFAULT_BUCKET_NAME = "datalake_gdv_dev"  # Cambiar según el bucket deseado
-DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/idc"  # Carpeta idc (minúsculas) dentro de dpt_planeacion_municipal
-DRIVE_URL = "https://docs.google.com/spreadsheets/d/1J42xKC3VnkjhwHQENKxo2DDQzuBINYxY/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"  # URL fija del archivo IDC en Google Drive
+DEFAULT_FOLDER_NAME = CONF.idc.gcs_folder
+DRIVE_URL = CONF.idc.drive_url
 
 def _upload_file_task():
     """
@@ -61,7 +75,7 @@ def _upload_file_task():
 with DAG(
     dag_id="src_planeacion_ingest_idc",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # Ejecución manual
+    schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc", "ejecución:manual"],
     description="Ingiere el archivo Excel IDC desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta idc dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_idc que carga los datos a BigQuery.",

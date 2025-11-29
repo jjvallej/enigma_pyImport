@@ -4,18 +4,10 @@ Módulo para transformar datos del IPM desde bronze a silver y gold.
 Contiene funciones auxiliares para la gestión de datasets en BigQuery.
 """
 from google.cloud import bigquery
-import os
+from modules.config import PROJECT_ID, CONF
+from modules.gcp_utils import get_bq_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
-
-# ---------------------------
-# Clientes
-# ---------------------------
-def _bq_client() -> bigquery.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return bigquery.Client(project=PROJECT_ID)
+DEBUG = CONF.global_config.debug
 
 # ---------------------------
 # Helpers
@@ -28,7 +20,7 @@ def ensure_dataset(dataset_id: str, location: str = "us-central1"):
         dataset_id: ID del dataset (sin el project_id)
         location: Ubicación del dataset (por defecto us-central1)
     """
-    client = _bq_client()
+    client = get_bq_client()
     ds_fqn = f"{PROJECT_ID}.{dataset_id}"
     try:
         ds = client.get_dataset(ds_fqn)

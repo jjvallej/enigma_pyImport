@@ -1,0 +1,9 @@
+apache-airflow
+dbt-bigquery
+pandas
+google-cloud-bigquery
+google-cloud-storage
+openpyxl
+pytest
+flake8
+PyYAML

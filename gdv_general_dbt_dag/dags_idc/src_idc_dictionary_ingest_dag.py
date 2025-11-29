@@ -15,9 +15,22 @@ import os
 
 # Asegura que podamos importar el módulo local
 import sys
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+import os
+
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
 from modules.idc.idc_dictionary_ingest import move_file_from_drive_to_gcs
 
 # === CONFIGURACIÓN ===
@@ -61,7 +74,7 @@ def _upload_file_task():
 with DAG(
     dag_id="src_planeacion_ingest_idc_dictionary",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # Ejecución manual
+    schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc_dictionary", "ejecución:manual"],
     description="Ingiere el archivo CSV del diccionario IDC desde Google Drive (enlace público fijo), lo sube a GCS en la carpeta idc dentro de data_staging/dpt_planeacion_municipal/, y luego ejecuta el DAG de carga src_planeacion_load_idc_dictionary que carga los datos a BigQuery.",

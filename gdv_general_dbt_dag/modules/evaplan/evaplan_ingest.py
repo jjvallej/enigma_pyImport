@@ -3,44 +3,19 @@
 Módulo para ingerir datos desde la API de Evaplan.
 Consume endpoints de la API, obtiene tokens de autenticación y almacena respuestas JSON en GCS.
 """
-from google.cloud import storage
-import os
-import json
 import requests
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+import json
+import os
+from datetime import datetime, timezone
+from typing import Dict, Any, Optional, List, Tuple
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, CONF
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
+# === CONFIGURACIÓN ===
+AUTH_ENDPOINT = CONF.evaplan.auth_endpoint
+API_BASE_URL = CONF.evaplan.api_base_url
+DEBUG = CONF.global_config.debug
 
-# Configuración de la API
-API_BASE_URL = "http://207.246.89.62/ApiEvaplan"
-AUTH_ENDPOINT = f"{API_BASE_URL}/auth/login"
-PERIODOS_ENDPOINT = f"{API_BASE_URL}/datos/periodos"
-AVANCE_MR_ENDPOINT = f"{API_BASE_URL}/datos/AvanceMR"
-AVANCE_MP_ENDPOINT = f"{API_BASE_URL}/datos/AvanceMP"
-AVANCE_X_SUBPROGRAMA_ENDPOINT = f"{API_BASE_URL}/datos/AvanceXSubprograma"
-AVANCE_GENERAL_ENDPOINT = f"{API_BASE_URL}/datos/AvanceGeneral"
-
-# Credenciales de autenticación
-AUTH_CREDENTIALS = {
-    "usuario": "usuario_api",
-    "password": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"
-}
-
-# ---------------------------
-# Clientes
-# ---------------------------
-def _gcs_client() -> storage.Client:
-    """Crea un cliente de Google Cloud Storage."""
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
-
-# ---------------------------
-# Funciones de API
-# ---------------------------
-def authenticate() -> str:
+def authenticate():
     """
     Autentica con la API de Evaplan y obtiene un token de acceso.
     

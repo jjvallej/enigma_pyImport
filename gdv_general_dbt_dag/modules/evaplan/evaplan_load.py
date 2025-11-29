@@ -9,18 +9,12 @@ from google.cloud import bigquery, storage
 import pandas as pd
 import os, tempfile, json, re
 from datetime import datetime, timezone
-from typing import Iterable, Optional, Dict, Any, List, Tuple
+from typing import Optional, List, Tuple, Dict, Any, Iterable
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+from modules.gcp_utils import get_bq_client, get_gcs_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
-
-# Valores por defecto
-GCS_BUCKET_NAME = "datalake_gdv_dev"
-GCS_BASE_FOLDER = "data_staging/dpt_planeacion_municipal/api_evaplan"
-
-# Mapeo de fuentes a carpetas en GCS
-FUENTE_FOLDERS = {
+# Mapeo de fuentes a carpetas en GCS (y prefijos de tablas)
+SOURCES = {
     "periodos": "periodos",
     "avance_mr": "avance_mr",
     "avance_mp": "avance_mp",
@@ -32,12 +26,10 @@ FUENTE_FOLDERS = {
 # Clientes
 # ---------------------------
 def _bq_client() -> bigquery.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return bigquery.Client(project=PROJECT_ID)
+    return get_bq_client()
 
 def _gcs_client() -> storage.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
+    return get_gcs_client()
 
 # ---------------------------
 # Helpers

@@ -31,9 +31,23 @@ import os
 
 # Asegura que podamos importar el módulo local
 import sys
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+import os
+
+# Función para encontrar la raíz del proyecto (donde está la carpeta modules)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
 from modules.evaplan.evaplan_load import (
     ensure_dataset,
     load_json_files_to_bq,
@@ -41,17 +55,10 @@ from modules.evaplan.evaplan_load import (
 )
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv_dev"
-DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
+from modules.config import CONF, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
 
 # Lista de fuentes a procesar
-FUENTES = [
-    "periodos",
-    "avance_mr",
-    "avance_mp",
-    "avance_x_subprograma",
-    "avance_general"
-]
+FUENTES = CONF.evaplan.fuentes
 
 def _ensure_dataset_bronze_task():
     """Asegura que el dataset bronze exista."""
@@ -86,7 +93,7 @@ def _load_fuente_task(fuente: str):
 with DAG(
     dag_id="src_planeacion_load_evaplan",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # Ejecución manual
+    schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:evaplan", "ejecución:manual"],
     description="Lee archivos JSON de Evaplan desde GCS (solo de la fecha actual) y carga a BigQuery en bronze_dpt_planeacion_municipal_dev con nomenclatura evaplan_api_{fuente}_raw_data. Une todos los JSON de la fecha actual, agrega fecha_lectura y peri_idp a cada registro, y elimina registros duplicados (mismo día y mismo peri_idp) antes de cargar.",

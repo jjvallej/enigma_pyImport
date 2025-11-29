@@ -14,16 +14,29 @@ que tengan los ids de periodo que estamos trabajando en el proyecto.
 """
 from datetime import datetime
 from airflow import DAG
-from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.task_group import TaskGroup
 import os
 import sys
 
-# Asegura que podamos importar el módulo local
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+# Función para encontrar la raíz del proyecto (donde está la carpeta modules)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
+
 from modules.evaplan.evaplan_transform import (
     ensure_dataset,
     get_all_peri_idps_from_bronze,
@@ -31,18 +44,14 @@ from modules.evaplan.evaplan_transform import (
 )
 
 # === CONFIGURACIÓN ===
-DATASET_ID_SILVER = "silver_dpt_planeacion_municipal_dev"
-DATASET_ID_GOLD = "gold_dpt_planeacion_municipal_dev"
-DBT_PROJECT_DIR = "/opt/airflow/dags/gdv_general_dbt_dag/dbt"
+from modules.config import CONF, DATASET_ID_SILVER, DATASET_ID_GOLD
+# Usar project_root (calculado arriba) para encontrar la carpeta dbt dinámicamente
+# Nota: project_root no está definido globalmente, debemos recalcularlo o usar una ruta relativa segura
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DBT_PROJECT_DIR = os.path.join(project_root, "dbt")
 
 # Lista de fuentes a procesar
-FUENTES = [
-    "periodos",
-    "avance_mr",
-    "avance_mp",
-    "avance_x_subprograma",
-    "avance_general"
-]
+FUENTES = CONF.evaplan.fuentes
 
 def _ensure_dataset_silver_task():
     """Asegura que el dataset silver exista."""
@@ -84,7 +93,7 @@ def _transform_fuente_task(fuente: str):
 with DAG(
     dag_id="src_planeacion_transform_evaplan",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # Ejecución manual
+    schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:transformacion", "fuente:evaplan", "ejecución:manual"],
     description="Transforma datos de Evaplan desde bronze a silver y crea vistas en gold. Obtiene los peri_idp únicos de las tablas bronze de la fecha actual, elimina registros con esos peri_idp de las tablas silver, y copia los nuevos datos de bronze a silver (transformando nombres de columnas a minúsculas). Luego crea vistas en gold que unen la tabla de periodos con cada tabla de avance mediante JOIN por peri_idp.",
@@ -134,44 +143,34 @@ with DAG(
         )
 
         # Tareas dbt para crear las vistas en gold
+        # Nota: En Composer, dbt debe estar instalado en el entorno.
+        # Usamos 'dbt' directamente.
+        
         dbt_avance_mr = BashOperator(
             task_id="dbt_avance_mr_processed_data",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_mr_processed_data || dbt run --select evaplan_api_avance_mr_processed_data",
+            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mr_processed_data",
             env={
-                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
-                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
-                "PATH": "/home/airflow/.local/bin:$PATH",
+                "PATH": "/opt/bitnami/airflow/venv/bin:$PATH", # Ensure dbt is in path if needed, but usually it is
             },
+            append_env=True,
         )
 
         dbt_avance_mp = BashOperator(
             task_id="dbt_avance_mp_processed_data",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_mp_processed_data || dbt run --select evaplan_api_avance_mp_processed_data",
-            env={
-                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
-                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
-                "PATH": "/home/airflow/.local/bin:$PATH",
-            },
+            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_mp_processed_data",
+            append_env=True,
         )
 
         dbt_avance_x_subprograma = BashOperator(
             task_id="dbt_avance_x_subprograma_processed_data",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_x_subprograma_processed_data || dbt run --select evaplan_api_avance_x_subprograma_processed_data",
-            env={
-                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
-                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
-                "PATH": "/home/airflow/.local/bin:$PATH",
-            },
+            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_x_subprograma_processed_data",
+            append_env=True,
         )
 
         dbt_avance_general = BashOperator(
             task_id="dbt_avance_general_processed_data",
-            bash_command=f"cd {DBT_PROJECT_DIR} && ~/.local/bin/dbt run --select evaplan_api_avance_general_processed_data || dbt run --select evaplan_api_avance_general_processed_data",
-            env={
-                "DBT_PROFILES_DIR": "/opt/airflow/include/dbt",
-                "GOOGLE_APPLICATION_CREDENTIALS": "/opt/airflow/include/sa.json",
-                "PATH": "/home/airflow/.local/bin:$PATH",
-            },
+            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select evaplan_api_avance_general_processed_data",
+            append_env=True,
         )
 
         # Dependencias dentro del grupo gold: ensure_dataset -> todas las vistas en paralelo

@@ -7,28 +7,18 @@ Soporta:
 - Enlaces públicos de Google Drive (sin autenticación)
 """
 from google.cloud import storage
-import os
-import tempfile
 import requests
 import re
+import os
+import tempfile
+from datetime import datetime
 from typing import Optional
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, CONF
+from modules.gcp_utils import get_gcs_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
+DEBUG = CONF.global_config.debug
 
-# ---------------------------
-# Clientes
-# ---------------------------
-def _gcs_client() -> storage.Client:
-    """Crea un cliente de Google Cloud Storage."""
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
-
-# ---------------------------
-# Funciones de utilidad
-# ---------------------------
-def extract_file_id_from_url(drive_url: str) -> str:
+def extract_file_id_from_url(drive_url):
     """
     Extrae el File ID de una URL de Google Drive.
     
@@ -95,29 +85,40 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
     if DEBUG:
         print(f"[DEBUG] File ID extraído: {file_id}")
     
-    # Nota: Una URL con '/spreadsheets/d/' puede ser tanto un Google Sheet nativo
-    # como un archivo Excel subido a Google Drive. Intentaremos ambos métodos.
-    # Primero intentamos como archivo normal, luego como Google Sheet si falla.
+    # Detectar si es un Google Sheet basándose en la URL
+    # Si la URL contiene '/spreadsheets/d/', es muy probable que sea un Google Sheet
+    is_google_sheet = '/spreadsheets/d/' in drive_url or '/spreadsheets/' in drive_url
+    
+    if DEBUG:
+        print(f"[DEBUG] Tipo detectado: {'Google Sheet' if is_google_sheet else 'Archivo Excel/Genérico'}")
     
     # Headers para evitar bloqueos
     session = requests.Session()
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     
-    # Intentar primero como archivo normal de Google Drive (método más común para archivos Excel subidos)
-    download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    is_google_sheet = False
+    # Intentar descargar con el método detectado primero
+    download_url = get_public_download_url(file_id, is_google_sheet=is_google_sheet)
     
     if DEBUG:
-        print(f"[DEBUG] Intentando descarga como archivo normal de Google Drive: {download_url}")
+        print(f"[DEBUG] Intentando descarga con método: {download_url}")
     
     try:
         response = session.get(download_url, stream=True, allow_redirects=True, headers=headers, timeout=30)
         
-        # Si Google Drive muestra la página de advertencia para archivos grandes o HTML
-        content_type = response.headers.get('Content-Type', '')
-        if content_type.startswith('text/html'):
+        # Si obtenemos un error 500 o 403, y no habíamos detectado como Google Sheet,
+        # intentar con el método de Google Sheets
+        if response.status_code in [403, 500] and not is_google_sheet:
+            if DEBUG:
+                print(f"[DEBUG] Error {response.status_code} con método genérico. Intentando como Google Sheet...")
+            # Intentar como Google Sheet
+            sheet_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
+            response = session.get(sheet_url, stream=True, allow_redirects=True, headers=headers, timeout=30)
+            is_google_sheet = True  # Actualizar para el procesamiento posterior
+        
+        # Si Google Drive muestra la página de advertencia para archivos grandes
+        if response.headers.get('Content-Type', '').startswith('text/html'):
             if DEBUG:
                 print(f"[DEBUG] Google Drive mostró página HTML, buscando enlace de descarga real...")
             # Buscar el link de descarga real en la página
@@ -128,8 +129,6 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
                 r'href="(/uc\?export=download[^"]+)"',
                 r'href="(/file/d/[^"]+/[^"]+)"',
                 r'id="uc-download-link"[^>]*href="([^"]+)"',
-                r'href="([^"]*uc\?[^"]*export=download[^"]*)"',
-                r'action="([^"]*uc\?[^"]*export=download[^"]*)"',
             ]
             
             download_url_found = None
@@ -143,88 +142,18 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
             
             if download_url_found:
                 if DEBUG:
-                    print(f"[DEBUG] Enlace de descarga encontrado en HTML: {download_url_found}")
+                    print(f"[DEBUG] Enlace de descarga encontrado: {download_url_found}")
                 response = session.get(download_url_found, stream=True, allow_redirects=True, headers=headers, timeout=30)
-            else:
-                # Si no encontramos el enlace, intentar método alternativo: Google Sheets export
+            elif not is_google_sheet:
+                # Si no encontramos el enlace y no es Google Sheet, intentar método de Google Sheets
                 if DEBUG:
-                    print(f"[DEBUG] No se encontró enlace en HTML. Intentando método de Google Sheets export...")
+                    print(f"[DEBUG] No se encontró enlace. Intentando método de Google Sheets...")
                 sheet_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
                 response = session.get(sheet_url, stream=True, allow_redirects=True, headers=headers, timeout=30)
                 is_google_sheet = True
-                
-                # Si aún devuelve HTML, intentar con confirmación de descarga
-                if response.headers.get('Content-Type', '').startswith('text/html'):
-                    if DEBUG:
-                        print(f"[DEBUG] Google Sheets export también devolvió HTML. Intentando descarga directa con confirmación...")
-                    # Método alternativo: usar el endpoint de confirmación con parámetro para archivos grandes
-                    # Para archivos grandes, Google Drive requiere un token de confirmación
-                    confirm_url = f"https://drive.google.com/uc?export=download&confirm=t&id={file_id}"
-                    response = session.get(confirm_url, stream=True, allow_redirects=True, headers=headers, timeout=300)
-                    
-                    # Si aún devuelve HTML, extraer el token de confirmación de la página
-                    if response.headers.get('Content-Type', '').startswith('text/html'):
-                        content = response.text
-                        # Buscar el token de confirmación en la página HTML
-                        token_match = re.search(r'id="downloadForm".*?action="([^"]+)"', content, re.DOTALL)
-                        if token_match:
-                            download_action = token_match.group(1)
-                            if not download_action.startswith('http'):
-                                download_action = 'https://drive.google.com' + download_action
-                            if DEBUG:
-                                print(f"[DEBUG] Token de confirmación encontrado. URL: {download_action}")
-                            response = session.get(download_action, stream=True, allow_redirects=True, headers=headers, timeout=300)
         
-        # Verificar el estado de la respuesta después de todos los intentos
-        # Si aún devuelve HTML, intentar un último método: descarga directa con confirmación y token
-        content_type_after = response.headers.get('Content-Type', '')
-        if content_type_after.startswith('text/html') and response.status_code not in [200, 302]:
-            if DEBUG:
-                print(f"[DEBUG] Último intento: descarga directa con confirmación y extracción de token...")
-            
-            # Leer el contenido HTML para extraer el token
-            content = response.text
-            
-            # Buscar diferentes patrones para el token de confirmación
-            token_patterns = [
-                r'id="downloadForm".*?action="([^"]+)"',
-                r'href="(/uc\?export=download[^"]*confirm=[^"]*)"',
-                r'action="(/uc\?export=download[^"]*)"',
-            ]
-            
-            download_url_with_token = None
-            for pattern in token_patterns:
-                match = re.search(pattern, content, re.DOTALL)
-                if match:
-                    download_url_with_token = match.group(1)
-                    if not download_url_with_token.startswith('http'):
-                        download_url_with_token = 'https://drive.google.com' + download_url_with_token.replace('&amp;', '&')
-                    break
-            
-            if download_url_with_token:
-                if DEBUG:
-                    print(f"[DEBUG] Token encontrado. Intentando descarga con: {download_url_with_token[:100]}...")
-                response = session.get(download_url_with_token, stream=True, allow_redirects=True, headers=headers, timeout=300)
-            else:
-                # Último intento: usar el método de confirmación simple
-                confirm_url = f"https://drive.google.com/uc?export=download&confirm=t&id={file_id}"
-                response = session.get(confirm_url, stream=True, allow_redirects=True, headers=headers, timeout=300)
-            
-            # Si aún devuelve HTML, el archivo probablemente no es público o es demasiado grande
-            if response.headers.get('Content-Type', '').startswith('text/html') and response.status_code not in [200, 302]:
-                error_msg = f"Error: Google Drive devolvió una página HTML en lugar del archivo (código {response.status_code}).\n"
-                error_msg += "Esto puede ocurrir cuando:\n"
-                error_msg += "1. El archivo no está configurado como público\n"
-                error_msg += "2. El archivo es muy grande (>100MB) y Google Drive requiere autenticación\n"
-                error_msg += "3. El archivo requiere permisos especiales\n\n"
-                error_msg += "Sugerencias:\n"
-                error_msg += "- Verifica que el archivo esté configurado como 'Cualquier persona con el enlace puede ver'\n"
-                error_msg += "- Para archivos muy grandes, considera usar la API de Google Drive con autenticación\n"
-                if DEBUG:
-                    error_msg += f"\n[DEBUG] Contenido de la respuesta (primeros 500 caracteres): {response.text[:500]}"
-                raise Exception(error_msg)
-        
-        if response.status_code not in [200, 302]:
+        # Verificar el estado de la respuesta
+        if response.status_code != 200:
             error_msg = f"Error HTTP {response.status_code} al descargar el archivo. "
             if response.status_code == 403:
                 error_msg += "El archivo puede no ser público. Verifica que el archivo esté configurado como 'Cualquier persona con el enlace puede ver'."
@@ -232,8 +161,6 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
                 error_msg += "El archivo no fue encontrado. Verifica que la URL sea correcta."
             elif response.status_code == 500:
                 error_msg += "Error del servidor de Google Drive. Esto puede ocurrir si el archivo es muy grande o requiere autenticación. Verifica que el archivo sea público."
-            elif response.status_code == 432:
-                error_msg += "Error 432: Google Drive está bloqueando la descarga. Verifica que el archivo esté configurado como público y que el enlace sea correcto."
             else:
                 error_msg += f"Respuesta: {response.text[:200]}"
             raise Exception(error_msg)
@@ -246,7 +173,7 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
             if DEBUG:
                 print(f"[DEBUG] Error con método genérico: {e}. Intentando como Google Sheet...")
             try:
-                sheet_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx&id={file_id}"
+                sheet_url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"
                 response = session.get(sheet_url, stream=True, allow_redirects=True, headers=headers, timeout=30)
                 response.raise_for_status()
                 is_google_sheet = True
@@ -276,39 +203,9 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
     # Guardar el nombre original en el contexto (se retornará junto con el path)
     # Lo haremos retornando una tupla o modificando la función para retornar ambos
     
-    # Verificar que la respuesta no sea HTML antes de descargar
-    content_type = response.headers.get('Content-Type', '')
-    if content_type.startswith('text/html'):
-        # Leer los primeros bytes para verificar
-        first_chunk = next(response.iter_content(chunk_size=1024), b'')
-        response.close()
-        
-        # Verificar si es HTML
-        if first_chunk.startswith(b'<!DOCTYPE') or first_chunk.startswith(b'<html') or b'<html' in first_chunk[:500]:
-            error_msg = f"Error: Google Drive devolvió una página HTML en lugar del archivo Excel.\n"
-            error_msg += f"Esto generalmente ocurre cuando:\n"
-            error_msg += f"1. El archivo no está configurado como público\n"
-            error_msg += f"2. El archivo es muy grande y Google Drive requiere confirmación\n"
-            error_msg += f"3. El archivo requiere autenticación\n\n"
-            error_msg += f"Verifica que el archivo esté configurado como 'Cualquier persona con el enlace puede ver' en Google Drive.\n"
-            if DEBUG:
-                error_msg += f"\n[DEBUG] Primeros 500 caracteres de la respuesta:\n{first_chunk[:500].decode('utf-8', errors='ignore')}"
-            raise Exception(error_msg)
-    
-    # Reiniciar la descarga si ya leímos el primer chunk
-    if 'first_chunk' in locals():
-        response = session.get(response.url, stream=True, allow_redirects=True, headers=headers, timeout=300)  # Timeout aumentado para archivos grandes
-    
     # Descargar el archivo
     total_size = int(response.headers.get('Content-Length', 0))
     downloaded = 0
-    file_size_mb = total_size / (1024 * 1024) if total_size > 0 else 0
-    
-    if DEBUG:
-        if total_size > 0:
-            print(f"[DEBUG] Iniciando descarga de archivo de {file_size_mb:.2f} MB ({total_size} bytes)")
-        else:
-            print(f"[DEBUG] Iniciando descarga (tamaño desconocido)")
     
     with open(tmp_path, 'wb') as f:
         for chunk in response.iter_content(chunk_size=8192):
@@ -318,49 +215,11 @@ def download_file_from_public_link(drive_url: str, file_name: Optional[str] = No
                 if DEBUG and total_size > 0:
                     progress = int((downloaded / total_size) * 100)
                     if progress % 25 == 0:  # Mostrar cada 25%
-                        print(f"[DEBUG] Descargando: {progress}% ({downloaded / (1024*1024):.2f} MB / {file_size_mb:.2f} MB)")
-    
-    # Verificar que el archivo descargado sea válido
-    downloaded_size = os.path.getsize(tmp_path)
-    if DEBUG:
-        print(f"[DEBUG] Archivo descargado: {downloaded_size} bytes ({downloaded_size / (1024*1024):.2f} MB)")
-    
-    # Verificar que el archivo no sea HTML
-    with open(tmp_path, 'rb') as f:
-        first_bytes = f.read(8)
-        if first_bytes[:2] != b'PK':
-            # Verificar si es HTML
-            f.seek(0)
-            first_chunk = f.read(1024)
-            if b'<!DOCTYPE' in first_chunk or b'<html' in first_chunk:
-                error_msg = f"Error: El archivo descargado es HTML, no un archivo Excel.\n"
-                error_msg += f"Tamaño descargado: {downloaded_size} bytes\n"
-                error_msg += f"Esto indica que Google Drive bloqueó la descarga del archivo.\n"
-                error_msg += f"Verifica que el archivo esté configurado como público.\n"
-                if DEBUG:
-                    error_msg += f"\n[DEBUG] Primeros 500 caracteres:\n{first_chunk[:500].decode('utf-8', errors='ignore')}"
-                os.remove(tmp_path)  # Eliminar archivo inválido
-                raise Exception(error_msg)
-            else:
-                error_msg = f"Error: El archivo descargado no parece ser un Excel válido.\n"
-                error_msg += f"Tamaño descargado: {downloaded_size} bytes\n"
-                error_msg += f"Primeros bytes (hex): {first_bytes.hex()}\n"
-                error_msg += f"Los archivos .xlsx deben comenzar con la firma ZIP 'PK'."
-                os.remove(tmp_path)  # Eliminar archivo inválido
-                raise Exception(error_msg)
-    
-    # Verificar que el tamaño coincida (si se conoce)
-    if total_size > 0 and downloaded_size != total_size:
-        error_msg = f"Error: El archivo no se descargó completamente.\n"
-        error_msg += f"Tamaño esperado: {total_size} bytes ({file_size_mb:.2f} MB)\n"
-        error_msg += f"Tamaño descargado: {downloaded_size} bytes ({downloaded_size / (1024*1024):.2f} MB)"
-        os.remove(tmp_path)  # Eliminar archivo incompleto
-        raise Exception(error_msg)
+                        print(f"[DEBUG] Descargando: {progress}%")
     
     if DEBUG:
-        print(f"[OK] Archivo descargado correctamente desde enlace público: {tmp_path}")
+        print(f"[OK] Archivo descargado desde enlace público: {tmp_path}")
         print(f"[DEBUG] Nombre original del archivo: {original_file_name}")
-        print(f"[DEBUG] Tamaño final: {downloaded_size} bytes ({downloaded_size / (1024*1024):.2f} MB)")
     
     # Retornar tanto la ruta temporal como el nombre original
     return tmp_path, original_file_name
@@ -404,7 +263,7 @@ def upload_file_to_gcs(
     Returns:
         URI completa del archivo en GCS (gs://bucket/path)
     """
-    gcs_client = _gcs_client()
+    gcs_client = get_gcs_client()
     
     # Obtener el bucket
     try:

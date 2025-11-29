@@ -25,9 +25,27 @@ import os
 
 # Asegura que podamos importar el módulo local
 import sys
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+import os
+
+# Función para encontrar la raíz del proyecto (donde está la carpeta modules)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Buscar hacia arriba hasta encontrar 'modules'
+    while current_dir != "/":
+        possible_modules = os.path.join(current_dir, "modules")
+        if os.path.exists(possible_modules):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    # Fallback
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
+
 from modules.evaplan.evaplan_ingest import (
     authenticate,
     get_periodos,
@@ -38,12 +56,15 @@ from modules.evaplan.evaplan_ingest import (
     get_avance_mp,
     get_avance_x_subprograma,
     get_avance_general,
-    save_avance_to_gcs
+    save_avance_to_gcs,
 )
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv_dev"
-DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
+from modules.config import CONF, DEFAULT_BUCKET_NAME
+
+# === CONFIGURACIÓN ===
+# DEFAULT_BUCKET_NAME viene de modules.config
+DEFAULT_FOLDER_NAME = CONF.evaplan.gcs_folder
 
 def _authenticate_task():
     """
@@ -481,7 +502,7 @@ def _save_avance_general_to_gcs_task(ti):
 with DAG(
     dag_id="src_planeacion_ingest_evaplan",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,  # Ejecución manual
+    schedule=None,  # Ejecución manual
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:evaplan", "ejecución:manual"],
     description="Ingiere datos desde la API de Evaplan. Autentica con la API, obtiene la lista de periodos, AvanceMR, AvanceMP, AvanceXSubprograma y AvanceGeneral, y almacena todas las respuestas JSON en GCS en las carpetas correspondientes dentro de data_staging/dpt_planeacion_municipal/api_evaplan/.",

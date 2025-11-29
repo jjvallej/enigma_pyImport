@@ -9,26 +9,8 @@ import pandas as pd
 import os, tempfile, re
 from datetime import datetime, timezone
 from typing import Iterable, Optional, Dict, List
-from airflow.models import Variable
-
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-DEBUG = True
-
-# Valores por defecto
-GCS_BUCKET_NAME = "datalake_gdv_dev"
-GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
-
-# ---------------------------
-# Clientes
-# ---------------------------
-def _bq_client() -> bigquery.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return bigquery.Client(project=PROJECT_ID)
-
-def _gcs_client() -> storage.Client:
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+from modules.gcp_utils import get_bq_client, get_gcs_client
 
 # ---------------------------
 # Helpers

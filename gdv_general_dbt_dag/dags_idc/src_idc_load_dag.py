@@ -26,13 +26,24 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.models import Variable
-import os, sys, tempfile
-import pandas as pd
+import os
+import sys
 
-# Asegura que podamos importar el módulo local
-# Agregar el directorio raíz del proyecto al path para importar módulos
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
+def add_project_root_to_path():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    while current_dir != "/":
+        if os.path.exists(os.path.join(current_dir, "modules")):
+            if current_dir not in sys.path:
+                sys.path.insert(0, current_dir)
+            return
+        current_dir = os.path.dirname(current_dir)
+    
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+add_project_root_to_path()
+
 from modules.idc.idc_load import (
     ensure_dataset,
     download_excel_from_gcs,
@@ -44,16 +55,13 @@ from modules.idc.idc_load import (
 # === CONFIGURACIÓN ===
 # Configuración para buscar el último archivo Excel en la carpeta idc
 # El DAG buscará automáticamente el archivo .xlsx más reciente en esta carpeta
-GCS_BUCKET_NAME = "datalake_gdv_dev"
-GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
-DATASET_ID_BRONZE = "bronze_dpt_planeacion_municipal_dev"
+from modules.config import CONF, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+GCS_BUCKET_NAME = DEFAULT_BUCKET_NAME
+GCS_FOLDER_PATH = CONF.idc.gcs_folder
 
 # Mapeo de hojas del Excel a nombres de tablas en BigQuery
-SHEET_TO_TABLE_MAPPING = {
-    "Dato_original": "idc_raw_data_dato_original",
-    "Valor_normalizado": "idc_raw_data_valor_normalizado",
-    "Valor_ranking": "idc_raw_data_valor_ranking",
-}
+# Convertimos el SimpleNamespace a dict para que sea iterable como antes
+SHEET_TO_TABLE_MAPPING = vars(CONF.idc.tables.raw_data_mapping)
 
 def _ensure_dataset_bronze_task():
     """Asegura que el dataset bronze exista."""
@@ -112,7 +120,7 @@ def _cleanup_temp_files_task(ti):
 with DAG(
     dag_id="src_planeacion_load_idc",
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     catchup=False,
     tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc", "ejecución:manual"],
     description="Lee Excel IDC desde GCS (con 3 hojas), transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev como 3 tablas separadas. Luego ejecuta el DAG de transformación src_planeacion_transf_idc.",

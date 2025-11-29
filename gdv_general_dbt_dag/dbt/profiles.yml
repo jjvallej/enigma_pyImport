@@ -1,0 +1,28 @@
+gdv_general_dbt_dag:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: datagov-473122
+      dataset: silver_dpt_planeacion_municipal_dev
+      threads: 4
+      timeout_seconds: 300
+      location: us-central1
+    local:
+      type: bigquery
+      method: service-account
+      project: datagov-473122
+      dataset: silver_dpt_planeacion_municipal_dev
+      threads: 4
+      keyfile: "{{ env_var('DBT_GOOGLE_KEYFILE', '/path/to/your/service-account.json') }}"
+      timeout_seconds: 300
+      location: us-central1
+    prod:
+      type: bigquery
+      method: oauth
+      project: datagov-473122
+      dataset: silver_dpt_planeacion_municipal_prod
+      threads: 4
+      timeout_seconds: 300
+      location: us-central1
