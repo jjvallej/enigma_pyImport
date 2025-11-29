@@ -12,10 +12,9 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 import os
+import sys
 
 # Asegura que podamos importar el módulo local
-import sys
-import os
 
 def add_project_root_to_path():
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -96,7 +95,7 @@ with DAG(
     trigger_load_dag = TriggerDagRunOperator(
         task_id="trigger_load_idc",
         trigger_dag_id="src_planeacion_load_idc",
-        wait_for_completion=True,  # Espera a que el DAG de carga termine
+        wait_for_completion=False,  # No espera a que el DAG de carga termine
     )
 
     # Tarea final

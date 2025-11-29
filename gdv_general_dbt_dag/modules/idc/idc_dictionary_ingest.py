@@ -13,20 +13,10 @@ import tempfile
 import requests
 import re
 from typing import Optional
+from modules.config import PROJECT_ID, CONF
+from modules.gcp_utils import get_gcs_client
 
-PROJECT_ID = "datagov-473122"
-SA_PATH = "/opt/airflow/include/sa.json"
-
-from modules.config import CONF
 DEBUG = CONF.global_config.debug
-
-# ---------------------------
-# Clientes
-# ---------------------------
-def _gcs_client() -> storage.Client:
-    """Crea un cliente de Google Cloud Storage."""
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = SA_PATH
-    return storage.Client(project=PROJECT_ID)
 
 # ---------------------------
 # Funciones de utilidad
@@ -223,7 +213,7 @@ def upload_file_to_gcs(
     Returns:
         URI completa del archivo en GCS (gs://bucket/path)
     """
-    gcs_client = _gcs_client()
+    gcs_client = get_gcs_client()
     
     # Obtener el bucket
     try:

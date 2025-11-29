@@ -160,7 +160,7 @@ with DAG(
     trigger_transf_dag = TriggerDagRunOperator(
         task_id="trigger_transf_idc",
         trigger_dag_id="src_planeacion_transf_idc",
-        wait_for_completion=True,  # Espera a que el DAG de transformación termine
+        wait_for_completion=False,  # No espera a que el DAG de transformación termine
     )
 
     # Tarea final
