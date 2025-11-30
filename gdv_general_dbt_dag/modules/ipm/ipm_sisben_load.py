@@ -132,17 +132,17 @@ def _normalize_column_name(col_name: str) -> str:
     return col_name
 
 def convert_excel_sheet_to_parquet(
-    local_path: str,
+    excel_file: pd.ExcelFile,
     sheet_name: str,
     bucket_name: str,
     gcs_folder: str
 ) -> str:
     """
-    Convierte una hoja del Excel a Parquet y la sube a GCS.
-    Esto es mucho más rápido que cargar desde DataFrame en memoria.
+    Convierte una hoja del Excel a Parquet y la sube a GCS (OPTIMIZADO).
+    Usa un ExcelFile ya abierto para evitar leer el archivo múltiples veces.
     
     Args:
-        local_path: Ruta local del archivo Excel
+        excel_file: Objeto pd.ExcelFile ya abierto (reutilizable)
         sheet_name: Nombre de la hoja a convertir
         bucket_name: Nombre del bucket en GCS
         gcs_folder: Carpeta en GCS donde subir el Parquet
@@ -155,8 +155,8 @@ def convert_excel_sheet_to_parquet(
     if DEBUG:
         print(f"[INFO] Convirtiendo hoja '{sheet_name}' a Parquet...")
     
-    # Leer solo las primeras filas para obtener los encabezados
-    df_header = pd.read_excel(local_path, sheet_name=sheet_name, nrows=2)
+    # Leer solo las primeras filas para obtener los encabezados (usando ExcelFile abierto)
+    df_header = excel_file.parse(sheet_name=sheet_name, nrows=2)
     
     # La primera fila puede ser metadatos, usar la segunda como encabezados si existe
     if len(df_header) >= 2:
@@ -174,9 +174,9 @@ def convert_excel_sheet_to_parquet(
         print(f"[INFO] Saltando {skip_rows} fila(s) inicial(es)")
         print(f"[INFO] Leyendo hoja completa...")
     
-    # Leer el archivo completo
+    # Leer el archivo completo usando ExcelFile (más eficiente)
     try:
-        df = pd.read_excel(local_path, sheet_name=sheet_name, skiprows=skip_rows, header=None)
+        df = excel_file.parse(sheet_name=sheet_name, skiprows=skip_rows, header=None)
         
         # Asignar encabezados
         if len(df.columns) == len(headers):
@@ -196,12 +196,15 @@ def convert_excel_sheet_to_parquet(
     except MemoryError:
         raise Exception(
             f"La hoja '{sheet_name}' es demasiado grande para leer en memoria. "
-            f"Tamaño del archivo: {os.path.getsize(local_path) / (1024*1024):.2f} MB."
+            f"Tamaño aproximado: {len(df_header) * 1000} filas estimadas."
         )
     
-    # Convertir todas las columnas a string (preservar datos originales en bronze)
-    for col in df.columns:
-        df[col] = df[col].astype(str)
+    # Convertir todas las columnas a string de manera optimizada (usando apply en lugar de loop)
+    if DEBUG:
+        print(f"[INFO] Convirtiendo columnas a string...")
+    
+    # Optimización: convertir todas las columnas a string de una vez
+    df = df.astype(str)
     
     # Agregar timestamp y nombre de hoja
     df["fecha_lectura"] = datetime.now(timezone.utc)
@@ -214,13 +217,19 @@ def convert_excel_sheet_to_parquet(
     if DEBUG:
         print(f"[INFO] Escribiendo Parquet temporal: {tmp_parquet}")
     
-    # Escribir a Parquet (mucho más rápido y eficiente que Excel)
+    # Escribir a Parquet con configuración optimizada
     table = pa.Table.from_pandas(df)
-    pq.write_table(table, tmp_parquet, compression='snappy')
+    # Usar compresión snappy (rápida) y row group size optimizado para BigQuery
+    pq.write_table(
+        table, 
+        tmp_parquet, 
+        compression='snappy',
+        row_group_size=100000  # 100k filas por grupo (óptimo para BigQuery)
+    )
     
     parquet_size = os.path.getsize(tmp_parquet)
     if DEBUG:
-        print(f"[INFO] Parquet creado: {parquet_size / (1024*1024):.2f} MB (reducción de {((1 - parquet_size/os.path.getsize(local_path)) * 100):.1f}%)")
+        print(f"[INFO] Parquet creado: {parquet_size / (1024*1024):.2f} MB")
     
     # Subir a GCS
     bucket = gcs_client.bucket(bucket_name)
@@ -234,7 +243,7 @@ def convert_excel_sheet_to_parquet(
     
     blob.upload_from_filename(tmp_parquet)
     
-    # Limpiar archivo temporal local
+    # Limpiar archivo temporal local inmediatamente para liberar espacio
     os.unlink(tmp_parquet)
     
     gcs_uri = f"gs://{bucket_name}/{blob_name}"
@@ -294,7 +303,7 @@ def load_parquet_from_gcs_to_bq(
     return rows_loaded
 
 def load_excel_sheet_to_bq_fast(
-    local_path: str,
+    excel_file: pd.ExcelFile,
     dataset_id: str,
     table_name: str,
     sheet_name: str,
@@ -303,15 +312,15 @@ def load_excel_sheet_to_bq_fast(
     write_disposition: str = "WRITE_APPEND"
 ):
     """
-    Carga una hoja del Excel a BigQuery usando el método rápido:
-    1. Convierte Excel a Parquet
+    Carga una hoja del Excel a BigQuery usando el método rápido (OPTIMIZADO):
+    1. Convierte Excel a Parquet (usando ExcelFile ya abierto)
     2. Sube Parquet a GCS
     3. Carga desde GCS a BigQuery
     
     Esto es MUCHO más rápido que cargar desde DataFrame en memoria.
     
     Args:
-        local_path: Ruta local del archivo Excel
+        excel_file: Objeto pd.ExcelFile ya abierto (reutilizable)
         dataset_id: ID del dataset en BigQuery
         table_name: Nombre de la tabla en BigQuery
         sheet_name: Nombre de la hoja a leer
@@ -323,13 +332,13 @@ def load_excel_sheet_to_bq_fast(
         Número de filas cargadas
     """
     if DEBUG:
-        print(f"\n[INFO] Procesando hoja (método rápido): {sheet_name}")
+        print(f"\n[INFO] Procesando hoja (método rápido optimizado): {sheet_name}")
         print(f"[INFO] Tabla destino: {PROJECT_ID}.{dataset_id}.{table_name}")
         print(f"[INFO] Modo: {write_disposition}")
     
-    # Paso 1: Convertir Excel a Parquet y subir a GCS
+    # Paso 1: Convertir Excel a Parquet y subir a GCS (usando ExcelFile abierto)
     parquet_uri = convert_excel_sheet_to_parquet(
-        local_path=local_path,
+        excel_file=excel_file,
         sheet_name=sheet_name,
         bucket_name=bucket_name,
         gcs_folder=gcs_temp_folder
@@ -467,8 +476,11 @@ def load_excel_to_bq(
     gcs_temp_folder: Optional[str] = None
 ):
     """
-    Carga un archivo Excel a BigQuery.
+    Carga un archivo Excel a BigQuery (OPTIMIZADO).
     Si sheet_name es None, procesa TODAS las hojas del Excel.
+    
+    OPTIMIZACIÓN: Abre el Excel UNA SOLA VEZ y reutiliza el objeto ExcelFile
+    para todas las hojas, evitando leer el archivo múltiples veces.
     
     Por defecto usa el método rápido (convertir a Parquet y cargar desde GCS),
     que es MUCHO más rápido para archivos grandes.
@@ -483,15 +495,19 @@ def load_excel_to_bq(
         gcs_temp_folder: Carpeta temporal en GCS (requerido si use_fast_method=True)
     """
     if DEBUG:
-        print(f"[INFO] Cargando Excel a BigQuery")
+        print(f"[INFO] Cargando Excel a BigQuery (MODO OPTIMIZADO)")
         print(f"[INFO] Archivo: {local_path}")
         print(f"[INFO] Tamaño del archivo: {os.path.getsize(local_path) / (1024*1024):.2f} MB")
         print(f"[INFO] Método: {'RÁPIDO (Parquet desde GCS)' if use_fast_method else 'DIRECTO (DataFrame en memoria)'}")
     
-    # Leer el Excel para obtener información básica
+    # OPTIMIZACIÓN: Abrir el Excel UNA SOLA VEZ y reutilizarlo para todas las hojas
+    if DEBUG:
+        print(f"[INFO] Abriendo archivo Excel (una sola vez para todas las hojas)...")
+    
     excel_file = pd.ExcelFile(local_path)
     
     if DEBUG:
+        print(f"[INFO] Excel abierto exitosamente")
         print(f"[INFO] Hojas disponibles: {excel_file.sheet_names}")
         print(f"[INFO] Total de hojas: {len(excel_file.sheet_names)}")
     
@@ -516,7 +532,7 @@ def load_excel_to_bq(
     
     total_rows = 0
     
-    # Procesar cada hoja
+    # Procesar cada hoja (reutilizando el ExcelFile abierto)
     for idx, sheet in enumerate(sheets_to_process):
         if DEBUG:
             print(f"\n{'='*60}")
@@ -527,8 +543,9 @@ def load_excel_to_bq(
         write_mode = "WRITE_TRUNCATE" if idx == 0 else "WRITE_APPEND"
         
         if use_fast_method:
+            # OPTIMIZACIÓN: Pasar el ExcelFile abierto en lugar de la ruta
             rows = load_excel_sheet_to_bq_fast(
-                local_path=local_path,
+                excel_file=excel_file,  # Reutilizar ExcelFile abierto
                 dataset_id=dataset_id,
                 table_name=table_name,
                 sheet_name=sheet,
@@ -549,6 +566,9 @@ def load_excel_to_bq(
         
         if DEBUG:
             print(f"[OK] Hoja {idx + 1}/{len(sheets_to_process)} completada: {rows} filas")
+    
+    # Cerrar el ExcelFile explícitamente para liberar recursos
+    excel_file.close()
     
     if DEBUG:
         print(f"\n{'='*60}")
