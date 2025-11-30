@@ -1,4 +1,5 @@
 # dags/src_evaplan_ingest_dag.py
+# VERSION: 2025-11-29-21:15 - Force reload
 """
 DAG para ingerir datos desde la API de Evaplan.
 Consume endpoints de autenticación y periodos, y almacena las respuestas JSON en Google Cloud Storage.
