@@ -63,6 +63,7 @@ ipm_sisben:
   gcs_folder: "data_staging/dpt_planeacion_municipal/ipm/sisben"
   gcs_temp_folder: "data_staging/dpt_planeacion_municipal/tmp_sisben"
   table_name: "ipm_sisben_raw_data"
+  excel_file_path: "data_staging/dpt_planeacion_municipal/ipm/sisben"  # Ruta del archivo Excel en el bucket (sin el nombre del archivo, se buscará el más reciente)
 
 idi:
   url_idi_2023: 
