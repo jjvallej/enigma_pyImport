@@ -131,127 +131,229 @@ def _normalize_column_name(col_name: str) -> str:
         col_name = "unnamed_column"
     return col_name
 
-def convert_excel_sheet_to_parquet(
-    excel_file: pd.ExcelFile,
-    sheet_name: str,
-    bucket_name: str,
-    gcs_folder: str
-) -> str:
+def _make_column_names_unique(headers: list) -> list:
     """
-    Convierte una hoja del Excel a Parquet y la sube a GCS (OPTIMIZADO).
-    Usa un ExcelFile ya abierto para evitar leer el archivo múltiples veces.
+    Asegura que todos los nombres de columnas sean únicos.
+    Si hay duplicados, agrega un sufijo numérico.
     
     Args:
-        excel_file: Objeto pd.ExcelFile ya abierto (reutilizable)
-        sheet_name: Nombre de la hoja a convertir
-        bucket_name: Nombre del bucket en GCS
-        gcs_folder: Carpeta en GCS donde subir el Parquet
+        headers: Lista de nombres de columnas (pueden tener duplicados)
     
     Returns:
-        URI del archivo Parquet en GCS (gs://bucket/folder/file.parquet)
+        Lista de nombres de columnas únicos
+    """
+    seen = {}
+    unique_headers = []
+    
+    for header in headers:
+        if header in seen:
+            # Si ya existe, agregar sufijo numérico
+            seen[header] += 1
+            unique_header = f"{header}_{seen[header]}"
+            unique_headers.append(unique_header)
+        else:
+            # Primera vez que vemos este nombre
+            seen[header] = 0
+            unique_headers.append(header)
+    
+    return unique_headers
+
+# Tamaño de chunk para procesar Excel en bloques (filas por chunk)
+# IMPORTANTE: Este tamaño debe ser lo suficientemente pequeño para evitar problemas de memoria,
+# pero lo suficientemente grande para ser eficiente. 50k es un buen balance.
+EXCEL_CHUNK_SIZE = 50000  # 50k filas por chunk para evitar problemas de memoria
+
+def process_excel_sheet_in_chunks(
+    excel_file: pd.ExcelFile,
+    sheet_name: str,
+    dataset_id: str,
+    table_name: str,
+    bucket_name: str,
+    gcs_temp_folder: str,
+    write_disposition: str = "WRITE_APPEND"
+) -> int:
+    """
+    Procesa una hoja del Excel en CHUNKS (bloques) para evitar problemas de memoria.
+    Lee la hoja en bloques pequeños, convierte cada bloque a Parquet, lo sube a GCS
+    y lo carga a BigQuery incrementalmente.
+    
+    Args:
+        excel_file: Objeto pd.ExcelFile ya abierto
+        sheet_name: Nombre de la hoja a procesar
+        dataset_id: ID del dataset en BigQuery
+        table_name: Nombre de la tabla en BigQuery
+        bucket_name: Nombre del bucket en GCS
+        gcs_temp_folder: Carpeta temporal en GCS
+        write_disposition: "WRITE_TRUNCATE" para el primer chunk, "WRITE_APPEND" para los siguientes
+    
+    Returns:
+        Número total de filas procesadas
     """
     gcs_client = get_gcs_client()
     
     if DEBUG:
-        print(f"[INFO] Convirtiendo hoja '{sheet_name}' a Parquet...")
+        print(f"[INFO] Procesando hoja '{sheet_name}' en CHUNKS (método para archivos grandes)...")
     
-    # Leer solo las primeras filas para obtener los encabezados (usando ExcelFile abierto)
-    df_header = excel_file.parse(sheet_name=sheet_name, nrows=2)
+    # Paso 1: Leer la primera fila para obtener los encabezados
+    # La fila 1 del Excel contiene los nombres de las columnas
+    # Las filas 2+ contienen los datos
+    df_header = excel_file.parse(sheet_name=sheet_name, nrows=1, header=0)
     
-    # La primera fila puede ser metadatos, usar la segunda como encabezados si existe
-    if len(df_header) >= 2:
-        headers = df_header.iloc[1].astype(str).tolist()
-        skip_rows = 2  # Saltar las primeras 2 filas
-    else:
-        headers = df_header.iloc[0].astype(str).tolist()
-        skip_rows = 1  # Saltar solo la primera fila
+    # Obtener los nombres de las columnas de la primera fila
+    headers = df_header.columns.astype(str).tolist()
     
     # Normalizar nombres de columnas
     headers = [_normalize_column_name(h) for h in headers]
     
+    # Asegurar que todos los nombres de columnas sean únicos (importante para PyArrow/Parquet)
+    headers = _make_column_names_unique(headers)
+    
     if DEBUG:
         print(f"[INFO] Encabezados detectados: {len(headers)} columnas")
-        print(f"[INFO] Saltando {skip_rows} fila(s) inicial(es)")
-        print(f"[INFO] Leyendo hoja completa...")
+        # Verificar si hubo duplicados
+        if len(set(headers)) < len(headers):
+            duplicates = len(headers) - len(set(headers))
+            print(f"[INFO] Se encontraron {duplicates} nombres de columnas duplicados, se agregaron sufijos únicos")
+        print(f"[INFO] Fila 1: Encabezados (se omite en los datos)")
+        print(f"[INFO] Filas 2+: Datos (se procesan en chunks)")
+        print(f"[INFO] Tamaño de chunk: {EXCEL_CHUNK_SIZE} filas")
+        print(f"[INFO] Procesando hoja en bloques...")
     
-    # Leer el archivo completo usando ExcelFile (más eficiente)
-    try:
-        df = excel_file.parse(sheet_name=sheet_name, skiprows=skip_rows, header=None)
-        
-        # Asignar encabezados
-        if len(df.columns) == len(headers):
-            df.columns = headers
-        else:
-            # Ajustar número de columnas
-            if len(df.columns) < len(headers):
-                for i in range(len(df.columns), len(headers)):
-                    df[headers[i]] = None
-            else:
-                df = df.iloc[:, :len(headers)]
-            df.columns = headers
+    # Paso 2: Procesar la hoja en chunks
+    # Empezamos desde la fila 2 (después de los encabezados)
+    # skiprows=1 significa: saltar la fila 1 (encabezados) y leer desde la fila 2 (datos)
+    total_rows = 0
+    chunk_number = 0
+    current_skip = 1  # Saltar la fila 1 (encabezados), empezar desde la fila 2 (datos)
+    
+    while True:
+        chunk_number += 1
         
         if DEBUG:
-            print(f"[INFO] Hoja leída: {len(df)} filas, {len(df.columns)} columnas")
+            # current_skip incluye la fila 1 (encabezados) + las filas ya procesadas
+            # Entonces la primera fila de datos que leemos es: current_skip + 1
+            first_data_row = current_skip + 1
+            last_data_row = current_skip + EXCEL_CHUNK_SIZE
+            print(f"\n[INFO] Procesando chunk {chunk_number} (filas {first_data_row} a {last_data_row} del Excel)...")
         
-    except MemoryError:
-        raise Exception(
-            f"La hoja '{sheet_name}' es demasiado grande para leer en memoria. "
-            f"Tamaño aproximado: {len(df_header) * 1000} filas estimadas."
-        )
+        try:
+            # Leer solo un chunk del Excel
+            # skiprows=current_skip: salta la fila 1 (encabezados) + las filas ya procesadas
+            # nrows=EXCEL_CHUNK_SIZE: lee EXCEL_CHUNK_SIZE filas de datos
+            # header=None: no hay encabezados en estos datos (ya los procesamos)
+            # NOTA: skiprows puede ser lento porque pandas tiene que leer desde el principio,
+            # pero es necesario para procesar archivos grandes sin cargar todo en memoria
+            df_chunk = excel_file.parse(
+                sheet_name=sheet_name,
+                skiprows=current_skip,
+                nrows=EXCEL_CHUNK_SIZE,
+                header=None
+            )
+            
+            # Si no hay más datos, terminar
+            if df_chunk.empty:
+                if DEBUG:
+                    print(f"[INFO] No hay más datos. Procesamiento completado.")
+                break
+            
+            # Asignar encabezados
+            if len(df_chunk.columns) == len(headers):
+                df_chunk.columns = headers
+            else:
+                # Ajustar número de columnas
+                if len(df_chunk.columns) < len(headers):
+                    for i in range(len(df_chunk.columns), len(headers)):
+                        df_chunk[headers[i]] = None
+                else:
+                    df_chunk = df_chunk.iloc[:, :len(headers)]
+                df_chunk.columns = headers
+            
+            if DEBUG:
+                print(f"[INFO] Chunk {chunk_number} leído: {len(df_chunk)} filas, {len(df_chunk.columns)} columnas")
+            
+            # Convertir todas las columnas a string
+            df_chunk = df_chunk.astype(str)
+            
+            # Agregar timestamp y nombre de hoja
+            df_chunk["fecha_lectura"] = datetime.now(timezone.utc)
+            df_chunk["nombre_hoja"] = sheet_name
+            
+            # Crear archivo Parquet temporal para este chunk
+            fd, tmp_parquet = tempfile.mkstemp(suffix=".parquet")
+            os.close(fd)
+            
+            if DEBUG:
+                print(f"[INFO] Convirtiendo chunk {chunk_number} a Parquet...")
+            
+            # Escribir chunk a Parquet
+            table = pa.Table.from_pandas(df_chunk)
+            pq.write_table(
+                table,
+                tmp_parquet,
+                compression='snappy',
+                row_group_size=min(50000, len(df_chunk))  # Ajustar según tamaño del chunk
+            )
+            
+            parquet_size = os.path.getsize(tmp_parquet)
+            if DEBUG:
+                print(f"[INFO] Parquet creado: {parquet_size / (1024*1024):.2f} MB")
+            
+            # Subir Parquet a GCS
+            bucket = gcs_client.bucket(bucket_name)
+            sheet_name_normalized = _normalize_column_name(sheet_name)
+            blob_name = f"{gcs_temp_folder}/temp/{sheet_name_normalized}_chunk{chunk_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet"
+            blob = bucket.blob(blob_name)
+            
+            if DEBUG:
+                print(f"[INFO] Subiendo Parquet a GCS: gs://{bucket_name}/{blob_name}")
+            
+            blob.upload_from_filename(tmp_parquet)
+            gcs_uri = f"gs://{bucket_name}/{blob_name}"
+            
+            # Limpiar archivo temporal local inmediatamente
+            os.unlink(tmp_parquet)
+            
+            # Cargar Parquet desde GCS a BigQuery
+            if DEBUG:
+                print(f"[INFO] Cargando chunk {chunk_number} a BigQuery...")
+            
+            rows_loaded = load_parquet_from_gcs_to_bq(
+                gcs_uri=gcs_uri,
+                dataset_id=dataset_id,
+                table_name=table_name,
+                write_disposition=write_disposition if chunk_number == 1 else "WRITE_APPEND"
+            )
+            
+            # Limpiar Parquet de GCS después de cargar
+            try:
+                blob.delete()
+                if DEBUG:
+                    print(f"[DEBUG] Parquet temporal eliminado de GCS: {gcs_uri}")
+            except Exception as e:
+                print(f"[WARN] No se pudo eliminar Parquet temporal {gcs_uri}: {e}")
+            
+            total_rows += len(df_chunk)
+            
+            if DEBUG:
+                print(f"[OK] Chunk {chunk_number} procesado: {len(df_chunk)} filas cargadas (total acumulado: {total_rows})")
+            
+            # Actualizar skip para el siguiente chunk
+            current_skip += len(df_chunk)
+            
+            # Si el chunk tiene menos filas que el tamaño esperado, es el último
+            if len(df_chunk) < EXCEL_CHUNK_SIZE:
+                if DEBUG:
+                    print(f"[INFO] Último chunk procesado (menos de {EXCEL_CHUNK_SIZE} filas).")
+                break
+            
+        except Exception as e:
+            print(f"[ERROR] Error procesando chunk {chunk_number}: {e}")
+            raise
     
-    # Convertir todas las columnas a string de manera optimizada (usando apply en lugar de loop)
     if DEBUG:
-        print(f"[INFO] Convirtiendo columnas a string...")
+        print(f"\n[OK] Hoja '{sheet_name}' procesada completamente: {total_rows} filas totales en {chunk_number} chunk(s)")
     
-    # Optimización: convertir todas las columnas a string de una vez
-    df = df.astype(str)
-    
-    # Agregar timestamp y nombre de hoja
-    df["fecha_lectura"] = datetime.now(timezone.utc)
-    df["nombre_hoja"] = sheet_name
-    
-    # Crear archivo Parquet temporal
-    fd, tmp_parquet = tempfile.mkstemp(suffix=".parquet")
-    os.close(fd)
-    
-    if DEBUG:
-        print(f"[INFO] Escribiendo Parquet temporal: {tmp_parquet}")
-    
-    # Escribir a Parquet con configuración optimizada
-    table = pa.Table.from_pandas(df)
-    # Usar compresión snappy (rápida) y row group size optimizado para BigQuery
-    pq.write_table(
-        table, 
-        tmp_parquet, 
-        compression='snappy',
-        row_group_size=100000  # 100k filas por grupo (óptimo para BigQuery)
-    )
-    
-    parquet_size = os.path.getsize(tmp_parquet)
-    if DEBUG:
-        print(f"[INFO] Parquet creado: {parquet_size / (1024*1024):.2f} MB")
-    
-    # Subir a GCS
-    bucket = gcs_client.bucket(bucket_name)
-    # Nombre del archivo: usar nombre de hoja normalizado
-    sheet_name_normalized = _normalize_column_name(sheet_name)
-    blob_name = f"{gcs_folder}/temp/{sheet_name_normalized}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet"
-    blob = bucket.blob(blob_name)
-    
-    if DEBUG:
-        print(f"[INFO] Subiendo Parquet a GCS: gs://{bucket_name}/{blob_name}")
-    
-    blob.upload_from_filename(tmp_parquet)
-    
-    # Limpiar archivo temporal local inmediatamente para liberar espacio
-    os.unlink(tmp_parquet)
-    
-    gcs_uri = f"gs://{bucket_name}/{blob_name}"
-    
-    if DEBUG:
-        print(f"[OK] Parquet subido a: {gcs_uri}")
-    
-    return gcs_uri
+    return total_rows
 
 def load_parquet_from_gcs_to_bq(
     gcs_uri: str,
@@ -312,12 +414,11 @@ def load_excel_sheet_to_bq_fast(
     write_disposition: str = "WRITE_APPEND"
 ):
     """
-    Carga una hoja del Excel a BigQuery usando el método rápido (OPTIMIZADO):
-    1. Convierte Excel a Parquet (usando ExcelFile ya abierto)
-    2. Sube Parquet a GCS
-    3. Carga desde GCS a BigQuery
+    Carga una hoja del Excel a BigQuery usando procesamiento en CHUNKS.
+    Este método es necesario para archivos muy grandes que no caben en memoria.
     
-    Esto es MUCHO más rápido que cargar desde DataFrame en memoria.
+    Procesa la hoja en bloques pequeños (50k filas), convierte cada bloque a Parquet,
+    lo sube a GCS y lo carga a BigQuery incrementalmente.
     
     Args:
         excel_file: Objeto pd.ExcelFile ya abierto (reutilizable)
@@ -332,41 +433,22 @@ def load_excel_sheet_to_bq_fast(
         Número de filas cargadas
     """
     if DEBUG:
-        print(f"\n[INFO] Procesando hoja (método rápido optimizado): {sheet_name}")
+        print(f"\n[INFO] Procesando hoja (método CHUNKS para archivos grandes): {sheet_name}")
         print(f"[INFO] Tabla destino: {PROJECT_ID}.{dataset_id}.{table_name}")
         print(f"[INFO] Modo: {write_disposition}")
     
-    # Paso 1: Convertir Excel a Parquet y subir a GCS (usando ExcelFile abierto)
-    parquet_uri = convert_excel_sheet_to_parquet(
+    # Procesar la hoja en chunks
+    rows_loaded = process_excel_sheet_in_chunks(
         excel_file=excel_file,
         sheet_name=sheet_name,
+        dataset_id=dataset_id,
+        table_name=table_name,
         bucket_name=bucket_name,
-        gcs_folder=gcs_temp_folder
+        gcs_temp_folder=gcs_temp_folder,
+        write_disposition=write_disposition
     )
     
-    try:
-        # Paso 2: Cargar Parquet desde GCS a BigQuery
-        rows_loaded = load_parquet_from_gcs_to_bq(
-            gcs_uri=parquet_uri,
-            dataset_id=dataset_id,
-            table_name=table_name,
-            write_disposition=write_disposition
-        )
-        
-        return rows_loaded
-        
-    finally:
-        # Limpiar archivo Parquet temporal de GCS
-        try:
-            gcs_client = get_gcs_client()
-            bucket = gcs_client.bucket(bucket_name)
-            blob_name = parquet_uri.replace(f"gs://{bucket_name}/", "")
-            blob = bucket.blob(blob_name)
-            blob.delete()
-            if DEBUG:
-                print(f"[DEBUG] Archivo Parquet temporal eliminado de GCS: {parquet_uri}")
-        except Exception as e:
-            print(f"[WARN] No se pudo eliminar archivo Parquet temporal {parquet_uri}: {e}")
+    return rows_loaded
 
 def load_excel_sheet_to_bq(
     local_path: str,
@@ -494,10 +576,22 @@ def load_excel_to_bq(
         bucket_name: Nombre del bucket para archivos temporales (requerido si use_fast_method=True)
         gcs_temp_folder: Carpeta temporal en GCS (requerido si use_fast_method=True)
     """
+    # Verificar que el archivo existe
+    if not os.path.exists(local_path):
+        raise FileNotFoundError(
+            f"El archivo Excel no existe: {local_path}. "
+            f"Esto puede ocurrir si el archivo se eliminó entre tareas o en un retry. "
+            f"Verifica que la tarea de descarga se completó correctamente."
+        )
+    
     if DEBUG:
         print(f"[INFO] Cargando Excel a BigQuery (MODO OPTIMIZADO)")
         print(f"[INFO] Archivo: {local_path}")
-        print(f"[INFO] Tamaño del archivo: {os.path.getsize(local_path) / (1024*1024):.2f} MB")
+        try:
+            file_size = os.path.getsize(local_path)
+            print(f"[INFO] Tamaño del archivo: {file_size / (1024*1024):.2f} MB")
+        except Exception as e:
+            print(f"[WARN] No se pudo obtener el tamaño del archivo: {e}")
         print(f"[INFO] Método: {'RÁPIDO (Parquet desde GCS)' if use_fast_method else 'DIRECTO (DataFrame en memoria)'}")
     
     # OPTIMIZACIÓN: Abrir el Excel UNA SOLA VEZ y reutilizarlo para todas las hojas

@@ -54,15 +54,41 @@ def _download_excel_task():
     gcs_uri = get_latest_excel_from_gcs_folder(bucket_name=GCS_BUCKET_NAME, folder_path=GCS_FOLDER_PATH)
     
     print(f"[INFO] Descargando archivo desde GCS: {gcs_uri}")
-    return download_excel_from_gcs(gcs_uri=gcs_uri)
+    local_path = download_excel_from_gcs(gcs_uri=gcs_uri)
+    
+    # Retornar tanto la ruta local como el GCS URI para poder re-descargar si es necesario
+    return {"local_path": local_path, "gcs_uri": gcs_uri}
 
 def _load_excel_to_bq_task(ti):
     """
     Carga el archivo Excel a BigQuery usando el método rápido (Parquet desde GCS).
+    Si el archivo temporal no existe (por ejemplo, en un retry), lo re-descarga desde GCS.
     """
-    local_excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
-    if not local_excel_path:
-        raise ValueError("No se recibió la ruta del Excel en XCom (task download_excel).")
+    download_result = ti.xcom_pull(task_ids="bronze.download_excel")
+    if not download_result:
+        raise ValueError("No se recibió la información del Excel en XCom (task download_excel).")
+    
+    # Manejar tanto el formato antiguo (solo string) como el nuevo (dict)
+    if isinstance(download_result, dict):
+        local_excel_path = download_result.get("local_path")
+        gcs_uri = download_result.get("gcs_uri")
+    else:
+        # Formato antiguo (solo string con la ruta local)
+        local_excel_path = download_result
+        gcs_uri = None
+    
+    # Si el archivo no existe, intentar descargarlo nuevamente
+    import os
+    if not os.path.exists(local_excel_path):
+        if gcs_uri:
+            print(f"[WARN] El archivo temporal no existe: {local_excel_path}")
+            print(f"[INFO] Re-descargando desde GCS: {gcs_uri}")
+            local_excel_path = download_excel_from_gcs(gcs_uri=gcs_uri)
+        else:
+            raise FileNotFoundError(
+                f"El archivo temporal no existe: {local_excel_path} y no hay GCS URI disponible para re-descargar. "
+                f"Esto puede ocurrir en un retry. Verifica que la tarea de descarga se completó correctamente."
+            )
     
     print(f"[INFO] Cargando Excel a BigQuery (método rápido: Parquet desde GCS)")
     print(f"[INFO] Dataset: {DATASET_ID_BRONZE}")
@@ -84,8 +110,14 @@ def _load_excel_to_bq_task(ti):
 
 def _cleanup_temp_files_task(ti):
     """Limpia los archivos temporales."""
-    excel_path = ti.xcom_pull(task_ids="bronze.download_excel")
-    cleanup_temp_paths([excel_path])
+    download_result = ti.xcom_pull(task_ids="bronze.download_excel")
+    if download_result:
+        # Manejar tanto el formato antiguo (solo string) como el nuevo (dict)
+        if isinstance(download_result, dict):
+            excel_path = download_result.get("local_path")
+        else:
+            excel_path = download_result
+        cleanup_temp_paths([excel_path])
 
 with DAG(
     dag_id="src_planeacion_load_ipm_sisben",
