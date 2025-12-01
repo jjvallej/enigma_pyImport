@@ -26,7 +26,7 @@ evaplan:
     avance_mr: "/datos/AvanceMR"
     avance_mp: "/datos/AvanceMP"
     avance_x_subprograma: "/datos/AvanceXSubprograma"
-    avance_general: "/datos/AvanceEvaGeneral"
+    avance_general: "/datos/AvanceGeneral"
   gcs_folder: "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
   fuentes:
     - "periodos"
