@@ -30,6 +30,10 @@ sources:
       - name: evaplan_api_avance_mp_transformed_data
       - name: evaplan_api_avance_x_subprograma_transformed_data
       - name: evaplan_api_avance_general_transformed_data
+  - name: silver_ipm_sisben
+    schema: silver_dpt_planeacion_municipal_dev
+    tables:
+      - name: ipm_sisben_transformed_data
   - name: gold_idc
     schema: gold_dpt_planeacion_municipal_dev
     tables:

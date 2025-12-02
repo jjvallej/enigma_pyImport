@@ -16,13 +16,24 @@ def find_config_file():
     base_dir = os.path.dirname(current_file_dir)
     possible_paths.append(os.path.join(base_dir, "config", "config.yaml"))
     
-    # 2. Rutas comunes en Composer
+    # 2. Rutas comunes en Composer (prioridad alta)
     possible_paths.extend([
         "/home/airflow/gcs/dags/gdv_general_dbt_dag/config/config.yaml",
         os.path.join("/home/airflow/gcs/dags", "gdv_general_dbt_dag", "config", "config.yaml"),
+        "/home/airflow/gcs/dags/config/config.yaml",  # Fallback si está en la raíz de dags
     ])
     
-    # 3. Buscar en sys.path (útil cuando se importa desde diferentes ubicaciones)
+    # 3. Buscar desde el directorio de trabajo actual (útil en Composer)
+    try:
+        cwd = os.getcwd()
+        possible_paths.extend([
+            os.path.join(cwd, "config", "config.yaml"),
+            os.path.join(cwd, "gdv_general_dbt_dag", "config", "config.yaml"),
+        ])
+    except:
+        pass
+    
+    # 4. Buscar en sys.path (útil cuando se importa desde diferentes ubicaciones)
     for path in sys.path:
         if path and os.path.isdir(path):
             # Buscar en el path directamente
@@ -33,17 +44,35 @@ def find_config_file():
                 possible_paths.append(os.path.join(parent, "config", "config.yaml"))
                 # Buscar en gdv_general_dbt_dag dentro del path
                 gdv_path = os.path.join(parent, "gdv_general_dbt_dag", "config", "config.yaml")
-                possible_paths.append(gdv_path)
+                if gdv_path not in possible_paths:
+                    possible_paths.append(gdv_path)
+                # También buscar en el path directamente si contiene gdv_general_dbt_dag
+                gdv_direct = os.path.join(path, "gdv_general_dbt_dag", "config", "config.yaml")
+                if gdv_direct not in possible_paths:
+                    possible_paths.append(gdv_direct)
     
-    # 4. Buscar recursivamente desde el directorio actual hacia arriba
+    # 5. Buscar recursivamente desde el directorio actual hacia arriba
     search_dir = current_file_dir
     for _ in range(5):  # Buscar hasta 5 niveles arriba
         config_path = os.path.join(search_dir, "config", "config.yaml")
         if config_path not in possible_paths:
             possible_paths.append(config_path)
+        # También buscar en gdv_general_dbt_dag dentro de cada nivel
+        gdv_config = os.path.join(search_dir, "gdv_general_dbt_dag", "config", "config.yaml")
+        if gdv_config not in possible_paths:
+            possible_paths.append(gdv_config)
         search_dir = os.path.dirname(search_dir)
         if search_dir == "/" or search_dir == search_dir:
             break
+    
+    # Eliminar duplicados manteniendo el orden
+    seen = set()
+    unique_paths = []
+    for path in possible_paths:
+        if path not in seen:
+            seen.add(path)
+            unique_paths.append(path)
+    possible_paths = unique_paths
     
     # Intentar encontrar el archivo
     for config_path in possible_paths:
@@ -53,8 +82,9 @@ def find_config_file():
     
     # Si no se encuentra, mostrar información de debugging
     print(f"ERROR: Configuration file NOT found in any of the following paths:")
-    for path in possible_paths[:10]:  # Mostrar primeros 10
-        print(f"  - {path}")
+    for i, path in enumerate(possible_paths[:15], 1):  # Mostrar primeros 15
+        exists = "✓" if os.path.exists(path) else "✗"
+        print(f"  {i}. [{exists}] {path}")
     
     raise FileNotFoundError(
         f"Configuration file (config.yaml) not found.\n"

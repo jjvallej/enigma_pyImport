@@ -90,9 +90,11 @@ ipm_sisben:
   tables:
     bronze: "ipm_sisben_raw"
     silver: "ipm_sisben_transformed_data"
+    gold: "ipm_sisben_processed_data"
   datasets:
     bronze: "bronze_dpt_planeacion_municipal_dev"
     silver: "silver_dpt_planeacion_municipal_dev"
+    gold: "gold_dpt_planeacion_municipal_dev"
 
 idi:
   url_idi_2023: 
