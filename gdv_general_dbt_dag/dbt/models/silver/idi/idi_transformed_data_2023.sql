@@ -1,7 +1,7 @@
 {{
   config(
     materialized='table',
-    schema='silver_dpt_planeacion_municipal_dev',
+    schema=var('silver_dataset'),
     alias='idi_transformed_data_2023'
   )
 }}

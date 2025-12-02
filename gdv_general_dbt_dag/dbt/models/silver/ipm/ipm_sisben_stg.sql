@@ -1,6 +1,6 @@
 {{ config(
     materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev',
+    schema=var('silver_dataset'),
     alias='ipm_sisben_transformed_data',
     description='Modelo de staging que agrega columnas de descripción (DESCRIPCION) para códigos numéricos, utilizando la nomenclatura prefijada de la tabla BigQuery.'
 ) }}

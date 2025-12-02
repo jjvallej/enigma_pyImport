@@ -1,7 +1,7 @@
 {{
   config(
     materialized='view',
-    schema='gold_dpt_planeacion_municipal_dev',
+    schema=var('gold_dataset'),
     alias='FACT_SISBEN',
     description='Modelo gold que selecciona columnas de descripción (texto) y valores numéricos de la capa silver para análisis final.'
   )

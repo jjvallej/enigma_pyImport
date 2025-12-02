@@ -21,12 +21,23 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+# Variables para configuración portátil
+# NOTA: Estas variables se configuran automáticamente desde config.yaml mediante variables de entorno
+# que se exportan en los DAGs antes de ejecutar dbt. Los valores por defecto aquí son solo para desarrollo local.
+vars:
+  project_id: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+  bronze_dataset: "{{ env_var('DBT_DATASET_BRONZE', 'bronze_dpt_planeacion_municipal_dev') }}"
+  silver_dataset: "{{ env_var('DBT_DATASET_SILVER', 'silver_dpt_planeacion_municipal_dev') }}"
+  gold_dataset: "{{ env_var('DBT_DATASET_GOLD', 'gold_dpt_planeacion_municipal_dev') }}"
+
 # Configuring models
 models:
   gdv_general_dbt_dag:
     silver:
       +materialized: view
-      +database: datagov-473122
+      +database: "{{ var('project_id') }}"
+      +schema: "{{ var('silver_dataset') }}"
     gold:
       +materialized: table
-      +database: datagov-473122
+      +database: "{{ var('project_id') }}"
+      +schema: "{{ var('gold_dataset') }}"

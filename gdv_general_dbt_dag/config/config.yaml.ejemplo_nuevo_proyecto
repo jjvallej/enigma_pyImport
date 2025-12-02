@@ -1,0 +1,137 @@
+# ============================================
+# EJEMPLO: Configuración para un Nuevo Proyecto GCP
+# ============================================
+# Este es un ejemplo de cómo debería verse config.yaml para un nuevo proyecto.
+# Copia este archivo y reemplaza los valores con los de tu proyecto.
+
+global_config:
+  debug: true
+
+environments:
+  dev:
+    project_id: "mi-nuevo-proyecto-gcp"           # ← ID de tu proyecto GCP
+    location: "us-central1"                       # ← Región de BigQuery (us-central1, us-east1, etc.)
+    bucket_name: "mi-datalake-dev"                 # ← Nombre de tu bucket de GCS para desarrollo
+    dataset_bronze: "bronze_mi_proyecto_dev"       # ← Nombre del dataset bronze en desarrollo
+    dataset_silver: "silver_mi_proyecto_dev"      # ← Nombre del dataset silver en desarrollo
+    dataset_gold: "gold_mi_proyecto_dev"           # ← Nombre del dataset gold en desarrollo
+  prod:
+    project_id: "mi-nuevo-proyecto-gcp"           # ← Mismo ID de proyecto (o diferente si tienes proyectos separados)
+    location: "us-central1"                        # ← Misma región
+    bucket_name: "mi-datalake-prod"                # ← Nombre de tu bucket de GCS para producción
+    dataset_bronze: "bronze_mi_proyecto_prod"      # ← Nombre del dataset bronze en producción
+    dataset_silver: "silver_mi_proyecto_prod"     # ← Nombre del dataset silver en producción
+    dataset_gold: "gold_mi_proyecto_prod"          # ← Nombre del dataset gold en producción
+  local:
+    project_id: "mi-nuevo-proyecto-gcp"            # ← Para desarrollo local
+    location: "us-central1"
+    bucket_name: "mi-datalake-dev"                 # ← Usualmente el mismo que dev
+    dataset_bronze: "bronze_mi_proyecto_dev"
+    dataset_silver: "silver_mi_proyecto_dev"
+    dataset_gold: "gold_mi_proyecto_dev"
+
+# ============================================
+# CONFIGURACIÓN DE FUENTES DE DATOS
+# ============================================
+# A continuación, configura las URLs, endpoints y rutas específicas de cada fuente.
+# Estos valores son específicos de cada proyecto y deben ajustarse según tus necesidades.
+
+evaplan:
+  auth_endpoint: "http://207.246.89.62/ApiEvaplan/auth/login"  # ← URL de autenticación de tu API
+  api_base_url: "http://207.246.89.62/ApiEvaplan"              # ← URL base de tu API
+  endpoints:
+    periodos: "/datos/periodos"
+    avance_mr: "/datos/AvanceMR"
+    avance_mp: "/datos/AvanceMP"
+    avance_x_subprograma: "/datos/AvanceXSubprograma"
+    avance_general: "/datos/AvanceGeneral"
+  gcs_base_folder: "data_staging/mi_proyecto/api_evaplan"      # ← Carpeta base en GCS para esta fuente
+  gcs_folders:
+    periodos: "periodos"
+    avance_mr: "avance_mr"
+    avance_mp: "avance_mp"
+    avance_x_subprograma: "avance_x_subprograma"
+    avance_general: "avance_general"
+  fuentes:
+    - "periodos"
+    - "avance_mr"
+    - "avance_mp"
+    - "avance_x_subprograma"
+    - "avance_general"
+  tables:
+    bronze:
+      periodos: "evaplan_api_periodos_raw_data"
+      avance_mr: "evaplan_api_avance_mr_raw_data"
+      avance_mp: "evaplan_api_avance_mp_raw_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_raw_data"
+      avance_general: "evaplan_api_avance_general_raw_data"
+    silver:
+      periodos: "evaplan_api_periodos_transformed_data"
+      avance_mr: "evaplan_api_avance_mr_transformed_data"
+      avance_mp: "evaplan_api_avance_mp_transformed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_transformed_data"
+      avance_general: "evaplan_api_avance_general_transformed_data"
+    gold:
+      avance_mr: "evaplan_api_avance_mr_processed_data"
+      avance_mp: "evaplan_api_avance_mp_processed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_processed_data"
+      avance_general: "evaplan_api_avance_general_processed_data"
+  credentials:
+    usuario: "tu_usuario_api"                    # ← Usuario de tu API
+    password: "tu_password_api"                  # ← Password de tu API
+
+idc:
+  drive_url: "https://docs.google.com/spreadsheets/d/TU_ID_DE_DRIVE/edit"  # ← URL de Google Drive
+  gcs_folder: "data_staging/mi_proyecto/idc"     # ← Carpeta en GCS para archivos IDC
+  tables:
+    dictionary: "dim_idc"
+    raw_data_mapping:
+      Dato_original: "idc_raw_data_dato_original"
+      Valor_normalizado: "idc_raw_data_valor_normalizado"
+      Valor_ranking: "idc_raw_data_valor_ranking"
+    silver:
+      dato_original: "idc_transformed_data_dato_original"
+      valor_normalizado: "idc_transformed_data_valor_normalizado"
+      valor_ranking: "idc_transformed_data_valor_ranking"
+    gold: "fact_idc"
+
+ipm:
+  drive_url: "https://docs.google.com/spreadsheets/d/TU_ID_DE_DRIVE/edit"  # ← URL de Google Drive
+  gcs_folder: "data_staging/mi_proyecto/ipm"     # ← Carpeta en GCS para archivos IPM
+  tables:
+    bronze: "ipm_raw_data"
+    silver: "ipm_transformed_data"
+    gold: "FACT_DANE"
+
+ipm_sisben:
+  drive_url: "https://docs.google.com/spreadsheets/d/TU_ID_DE_DRIVE/edit"  # ← URL de Google Drive
+  gcs_folder: "data_staging/mi_proyecto/ipm/sisben"  # ← Carpeta en GCS
+  gcs_temp_folder: "data_staging/mi_proyecto/tmp_sisben"  # ← Carpeta temporal
+  table_name: "ipm_sisben_raw"
+  excel_file_path: "data_staging/mi_proyecto/ipm/sisben"
+  csv_files:
+    - "hoja1_ipm_sisben.csv"
+    - "hoja2_ipm_sisben.csv"
+    - "hoja3_ipm_sisben.csv"
+  tables:
+    bronze: "ipm_sisben_raw"
+    silver: "ipm_sisben_transformed_data"
+    gold: "FACT_SISBEN"
+
+idi:
+  config_drive_url: "https://docs.google.com/spreadsheets/d/TU_ID_DE_DRIVE/edit"  # ← URL de Google Drive
+  gcs_base_folder: "data_staging/mi_proyecto/idi"  # ← Carpeta base en GCS
+  link_name_keywords:
+    - "Resultados Territorio"
+    - "Resultados consolidados"
+  tables:
+    bronze_prefix: "idi_raw_data_territorio"  # Genera: idi_raw_data_territorio_2024, idi_raw_data_territorio_2023, etc.
+    silver:
+      - "idi_transformed_data_2023"
+      - "idi_transformed_data_2024"
+      - "idi_transformed_data_consolidated"
+    gold: "idi_processed_data"
+  transform_config:
+    skip_rows: 2
+    sheet_name: null  # null = primera hoja
+    columns_to_drop: null  # null o lista de columnas

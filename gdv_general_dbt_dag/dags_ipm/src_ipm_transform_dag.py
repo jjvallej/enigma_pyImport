@@ -32,7 +32,7 @@ from modules.ipm.ipm_transform import (
 )
 
 # === CONFIGURACIÓN ===
-from modules.config import CONF, DATASET_ID_SILVER, DATASET_ID_GOLD
+from modules.config import CONF, DATASET_ID_SILVER, DATASET_ID_GOLD, get_dbt_command
 TABLE_NAME_SILVER = CONF.ipm.tables.silver
 TABLE_NAME_GOLD = CONF.ipm.tables.gold
 # Usar project_root (calculado arriba) para encontrar la carpeta dbt dinámicamente
@@ -70,50 +70,50 @@ with DAG(
         # Usamos la ruta completa del ejecutable dbt o lo buscamos en el PATH del usuario
         s2_dbt_run_stg = BashOperator(
             task_id="dbt_run_stg",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_stg",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_stg", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s3_dbt_run_normalize_text = BashOperator(
             task_id="dbt_run_normalize_text",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_normalize_text",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_normalize_text", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s4_dbt_run_transform_types = BashOperator(
             task_id="dbt_run_transform_types",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_transform_types",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_transform_types", DBT_PROJECT_DIR),
             append_env=True,
             execution_timeout=timedelta(minutes=15),  # Timeout de 15 minutos
         )
 
         s5_dbt_run_clean_numbers = BashOperator(
             task_id="dbt_run_clean_numbers",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_clean_numbers",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_clean_numbers", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s6_dbt_run_detect_negatives = BashOperator(
             task_id="dbt_run_detect_negatives",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_detect_negatives",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_detect_negatives", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s7_dbt_run_apply_validations = BashOperator(
             task_id="dbt_run_apply_validations",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_apply_validations",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_apply_validations", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s8_dbt_run_clean = BashOperator(
             task_id="dbt_run_clean",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_clean",
+            bash_command=get_dbt_command("dbt run --select ipm_transform_clean", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         s9_dbt_test = BashOperator(
             task_id="dbt_test",
-            bash_command=f"dbt test --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_transform_clean",
+            bash_command=get_dbt_command("dbt test --select ipm_transform_clean", DBT_PROJECT_DIR),
             append_env=True,
         )
 
@@ -134,13 +134,13 @@ with DAG(
         # Tarea dbt para ejecutar el modelo gold
         g2_dbt_run_gold = BashOperator(
             task_id="dbt_run_gold",
-            bash_command=f"dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_processed_data",
+            bash_command=get_dbt_command("dbt run --select ipm_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         g3_dbt_test = BashOperator(
             task_id="dbt_test",
-            bash_command=f"dbt test --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select ipm_processed_data",
+            bash_command=get_dbt_command("dbt test --select ipm_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 

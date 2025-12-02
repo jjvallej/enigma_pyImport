@@ -23,10 +23,6 @@ CONF = sources_config
 # Default to 'dev' for safety
 ENV = os.getenv("ENVIRONMENT", "dev")
 
-# GCP Configuration
-PROJECT_ID = os.getenv("GCP_PROJECT", "datagov-473122")
-LOCATION = os.getenv("GCP_LOCATION", "us-central1")
-
 # Environment Specific Configurations
 # Load configurations for each environment from YAML
 # CONF.environments is a SimpleNamespace, convert to dict for easier lookup if needed,
@@ -38,6 +34,10 @@ except AttributeError:
     # Fallback to dev if ENV not found
     print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'dev'.")
     current_config = CONF.environments.dev
+
+# GCP Configuration - Leer desde config.yaml
+PROJECT_ID = os.getenv("GCP_PROJECT", getattr(current_config, "project_id", "datagov-473122"))
+LOCATION = os.getenv("GCP_LOCATION", getattr(current_config, "location", "us-central1"))
 
 # Storage Configuration
 DEFAULT_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", current_config.bucket_name)
@@ -53,4 +53,34 @@ DAGS_FOLDER = os.environ.get("AIRFLOW__CORE__DAGS_FOLDER", "/home/airflow/gcs/da
 
 
 # Service Account Path (Only for local dev if needed, though env var is preferred)
-# SA_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS") 
+# SA_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+# Helper function para generar comandos dbt con variables de entorno desde config.yaml
+def get_dbt_command(dbt_command: str, dbt_project_dir: str) -> str:
+    """
+    Genera un comando bash que configura las variables de entorno de dbt desde config.yaml
+    y luego ejecuta el comando dbt especificado.
+    
+    Args:
+        dbt_command: Comando dbt a ejecutar (ej: "dbt run --select model_name")
+        dbt_project_dir: Directorio del proyecto dbt
+        
+    Returns:
+        Comando bash completo con export de variables de entorno
+    """
+    # Obtener valores desde config.yaml
+    env_vars = {
+        "DBT_PROJECT_ID": PROJECT_ID,
+        "DBT_DATASET_BRONZE": DATASET_ID_BRONZE,
+        "DBT_DATASET_SILVER": DATASET_ID_SILVER,
+        "DBT_DATASET_GOLD": DATASET_ID_GOLD,
+        "DBT_LOCATION": LOCATION,
+    }
+    
+    # Construir comando con export de variables
+    export_vars = " && ".join([f'export {key}="{value}"' for key, value in env_vars.items()])
+    
+    # Comando completo: exportar variables + ejecutar dbt
+    full_command = f'set -e && {export_vars} && cd {dbt_project_dir} && {dbt_command} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1 || (echo "DBT command failed with exit code:" $? && exit 1)'
+    
+    return full_command 

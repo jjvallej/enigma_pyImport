@@ -51,7 +51,7 @@ from modules.idc.idc_transform import (
 )
 
 # === CONFIGURACIÓN ===
-from modules.config import DATASET_ID_SILVER, DATASET_ID_GOLD
+from modules.config import DATASET_ID_SILVER, DATASET_ID_GOLD, get_dbt_command
 # Usar project_root (calculado arriba) para encontrar la carpeta dbt dinámicamente
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DBT_PROJECT_DIR = os.path.join(project_root, "dbt")
@@ -183,7 +183,7 @@ with DAG(
         # Unir las 3 tablas en una estructura final con el diccionario
         g2_dbt_fact_idc = BashOperator(
             task_id="dbt_fact_idc",
-            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select idc_processed_data 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
+            bash_command=get_dbt_command("dbt run --select idc_processed_data", DBT_PROJECT_DIR),
             append_env=True,
             execution_timeout=timedelta(minutes=30),
         )

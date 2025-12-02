@@ -28,7 +28,7 @@ def add_project_root_to_path():
 add_project_root_to_path()
 
 from modules.ipm.ipm_sisben_load import ensure_dataset
-from modules.config import CONF, DATASET_ID_SILVER, DATASET_ID_GOLD
+from modules.config import CONF, DATASET_ID_SILVER, DATASET_ID_GOLD, get_dbt_command
 
 # === CONFIGURACIÓN ===
 # Usar project_root para encontrar la carpeta dbt dinámicamente
@@ -72,7 +72,7 @@ with DAG(
         # Tarea dbt para ejecutar el modelo de transformación silver
         dbt_silver = BashOperator(
             task_id="dbt_ipm_sisben_stg",
-            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select {DBT_MODEL_SILVER} 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
+            bash_command=get_dbt_command(f"dbt run --select {DBT_MODEL_SILVER}", DBT_PROJECT_DIR),
             append_env=True,
         )
 
@@ -90,7 +90,7 @@ with DAG(
         # Tarea dbt para ejecutar el modelo de transformación gold
         dbt_gold = BashOperator(
             task_id="dbt_ipm_sisben_processed_data",
-            bash_command=f"set -e && cd {DBT_PROJECT_DIR} && dbt run --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR} --select {DBT_MODEL_GOLD} 2>&1 || (echo 'DBT command failed with exit code:' $? && exit 1)",
+            bash_command=get_dbt_command(f"dbt run --select {DBT_MODEL_GOLD}", DBT_PROJECT_DIR),
             append_env=True,
         )
 

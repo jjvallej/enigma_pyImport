@@ -13,8 +13,9 @@ from modules.gcp_utils import get_bq_client, get_gcs_client
 
 DEBUG = CONF.global_config.debug
 
-# Valores por defecto
-GCS_BUCKET_NAME = "datalake_gdv_dev"
+# Valores por defecto - Leer desde config.yaml
+from modules.config import DEFAULT_BUCKET_NAME
+GCS_BUCKET_NAME = DEFAULT_BUCKET_NAME
 GCS_FOLDER_PATH = "data_staging/dpt_planeacion_municipal/idc"
 
 # ---------------------------

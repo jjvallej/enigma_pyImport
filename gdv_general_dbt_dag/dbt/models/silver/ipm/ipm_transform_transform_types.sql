@@ -1,7 +1,7 @@
 {{
   config(
     materialized='view',
-    schema='silver_dpt_planeacion_municipal_dev'
+    schema=var('silver_dataset')
   )
 }}
 

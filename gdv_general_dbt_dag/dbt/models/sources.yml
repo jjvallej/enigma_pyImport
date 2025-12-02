@@ -1,17 +1,17 @@
 version: 2
 sources:
   - name: bronze_ipmv2
-    schema: bronze_dpt_planeacion_municipal_dev
+    schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: ipm_raw_data
   - name: bronze_idc
-    schema: bronze_dpt_planeacion_municipal_dev
+    schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: idc_raw_data_dato_original
       - name: idc_raw_data_valor_normalizado
       - name: idc_raw_data_valor_ranking
   - name: bronze_evaplan
-    schema: bronze_dpt_planeacion_municipal_dev
+    schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: evaplan_api_periodos_raw_data
       - name: evaplan_api_avance_mr_raw_data
@@ -19,16 +19,16 @@ sources:
       - name: evaplan_api_avance_x_subprograma_raw_data
       - name: evaplan_api_avance_general_raw_data
   - name: bronze_ipm_sisben
-    schema: bronze_dpt_planeacion_municipal_dev
+    schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: ipm_sisben_raw
   - name: bronze_idi
-    schema: bronze_dpt_planeacion_municipal_dev
+    schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: idi_raw_data_territorio_2023
       - name: idi_raw_data_territorio_2024
   - name: silver_evaplan
-    schema: silver_dpt_planeacion_municipal_dev
+    schema: "{{ var('silver_dataset') }}"
     tables:
       - name: evaplan_api_periodos_transformed_data
       - name: evaplan_api_avance_mr_transformed_data
@@ -36,10 +36,10 @@ sources:
       - name: evaplan_api_avance_x_subprograma_transformed_data
       - name: evaplan_api_avance_general_transformed_data
   - name: silver_ipm_sisben
-    schema: silver_dpt_planeacion_municipal_dev
+    schema: "{{ var('silver_dataset') }}"
     tables:
       - name: ipm_sisben_transformed_data
   - name: gold_idc
-    schema: gold_dpt_planeacion_municipal_dev
+    schema: "{{ var('gold_dataset') }}"
     tables:
       - name: dim_idc

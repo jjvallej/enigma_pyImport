@@ -1,7 +1,7 @@
 {{
   config(
     materialized='view',
-    schema='gold_dpt_planeacion_municipal_dev',
+    schema=var('gold_dataset'),
     alias='evaplan_api_avance_mr_processed_data'
   )
 }}

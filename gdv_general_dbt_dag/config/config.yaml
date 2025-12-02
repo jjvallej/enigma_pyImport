@@ -3,16 +3,22 @@ global_config:
 
 environments:
   dev:
+    project_id: "datagov-473122"
+    location: "us-central1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
     dataset_gold: "gold_dpt_planeacion_municipal_dev"
   prod:
+    project_id: "datagov-473122"
+    location: "us-central1"
     bucket_name: "datalake_gdv_prod"
     dataset_bronze: "bronze_dpt_planeacion_municipal_prod"
     dataset_silver: "silver_dpt_planeacion_municipal_prod"
     dataset_gold: "gold_dpt_planeacion_municipal_prod"
   local:
+    project_id: "datagov-473122"
+    location: "us-central1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
@@ -53,6 +59,11 @@ evaplan:
       avance_mp: "evaplan_api_avance_mp_transformed_data"
       avance_x_subprograma: "evaplan_api_avance_x_subprograma_transformed_data"
       avance_general: "evaplan_api_avance_general_transformed_data"
+    gold:
+      avance_mr: "evaplan_api_avance_mr_processed_data"
+      avance_mp: "evaplan_api_avance_mp_processed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_processed_data"
+      avance_general: "evaplan_api_avance_general_processed_data"
   # Credenciales de autenticación
   # NOTA: Configurar las credenciales aquí para que el código funcione
   credentials:
@@ -68,6 +79,11 @@ idc:
       Dato_original: "idc_raw_data_dato_original"
       Valor_normalizado: "idc_raw_data_valor_normalizado"
       Valor_ranking: "idc_raw_data_valor_ranking"
+    silver:
+      dato_original: "idc_transformed_data_dato_original"
+      valor_normalizado: "idc_transformed_data_valor_normalizado"
+      valor_ranking: "idc_transformed_data_valor_ranking"
+    gold: "fact_idc"
 
 ipm:
   drive_url: "https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
@@ -91,10 +107,6 @@ ipm_sisben:
     bronze: "ipm_sisben_raw"
     silver: "ipm_sisben_transformed_data"
     gold: "FACT_SISBEN"
-  datasets:
-    bronze: "bronze_dpt_planeacion_municipal_dev"
-    silver: "silver_dpt_planeacion_municipal_dev"
-    gold: "gold_dpt_planeacion_municipal_dev"
 
 idi:
   config_drive_url: "https://docs.google.com/spreadsheets/d/1vS_x_4z-VWOGsHTCvn0nMgG4Ptvz49-M/edit?usp=sharing&ouid=112306291314852355934&rtpof=true&sd=true"
@@ -109,10 +121,6 @@ idi:
       - "idi_transformed_data_2024"
       - "idi_transformed_data_consolidated"
     gold: "idi_processed_data"
-  datasets:
-    bronze: "bronze_dpt_planeacion_municipal_dev"
-    silver: "silver_dpt_planeacion_municipal_dev"
-    gold: "gold_dpt_planeacion_municipal_dev"
   transform_config:
     skip_rows: 2
     sheet_name: null  # null = primera hoja
