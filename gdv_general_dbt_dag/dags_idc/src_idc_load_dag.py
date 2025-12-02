@@ -122,7 +122,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc", "ejecución:manual"],
+    tags=["secretaria:planeacion", "actividad:carga", "fuente:idc", "ejecución:manual"],
     description="Lee Excel IDC desde GCS (con 3 hojas), transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev como 3 tablas separadas. Luego ejecuta el DAG de transformación src_planeacion_transf_idc.",
 ) as dag:
 

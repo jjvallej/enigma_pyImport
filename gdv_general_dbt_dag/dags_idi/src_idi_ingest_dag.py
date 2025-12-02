@@ -73,7 +73,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule=None,  # Ejecución manual
     catchup=False,
-    tags=["secretaria:planeacion", "fuente:idi", "ejecución:manual"],
+    tags=["secretaria:planeacion", "actividad:carga", "fuente:idi", "ejecución:manual"],
     description="Ingesta archivos Excel de IDI desde config en Google Drive (TODOS los años)"
 ) as dag:
     

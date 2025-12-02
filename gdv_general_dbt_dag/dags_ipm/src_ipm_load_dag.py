@@ -100,7 +100,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:ingesta", "fuente:ipm", "ejecución:manual"],
+    tags=["secretaria:planeacion", "actividad:carga", "fuente:ipm", "ejecución:manual"],
     description="Lee Excel IPM desde GCS, transforma mínimamente y carga a BigQuery en bronze_dpt_planeacion_municipal_dev.ipm_raw_data, luego dispara el DAG de transformación src_planeacion_transf_ipm (sin esperar a que termine).",
 ) as dag:
 

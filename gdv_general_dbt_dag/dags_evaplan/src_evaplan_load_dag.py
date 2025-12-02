@@ -94,7 +94,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule=None,  # Ejecución manual
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:ingesta", "fuente:evaplan", "ejecución:manual"],
+    tags=["secretaria:planeacion", "actividad:carga", "fuente:evaplan", "ejecución:manual"],
     description="Lee archivos JSON de Evaplan desde GCS (solo de la fecha actual) y carga a BigQuery en bronze_dpt_planeacion_municipal_dev con nomenclatura evaplan_api_{fuente}_raw_data. Une todos los JSON de la fecha actual, agrega fecha_lectura y peri_idp a cada registro, y elimina registros duplicados (mismo día y mismo peri_idp) antes de cargar.",
 ) as dag:
 

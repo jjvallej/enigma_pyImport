@@ -101,7 +101,6 @@ with DAG(
         "actividad:carga",
         "fuente:idi",
         "ejecución:manual",
-        "capa:bronze"
     ],
     description="Carga todos los años de IDI desde GCS (CSVs) a BigQuery como tablas separadas en bronze_dpt_planeacion_municipal_dev",
 ) as dag:

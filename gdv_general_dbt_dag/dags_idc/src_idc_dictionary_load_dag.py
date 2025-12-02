@@ -106,7 +106,7 @@ with DAG(
     start_date=datetime(2024, 1, 1),
     schedule=None,
     catchup=False,
-    tags=["secretaria:planeacion", "actividad:ingesta", "fuente:idc_dictionary", "ejecución:manual"],
+    tags=["secretaria:planeacion", "actividad:carga", "fuente:idc_dictionary", "ejecución:manual"],
     description="Lee CSV del diccionario IDC desde GCS, transforma mínimamente y carga a BigQuery en gold_dpt_planeacion_municipal_dev como tabla dim_idc.",
 ) as dag:
 
