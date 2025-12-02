@@ -2,7 +2,7 @@
   config(
     materialized='view',
     schema='gold_dpt_planeacion_municipal_dev',
-    alias='ipm_sisben_processed_data',
+    alias='FACT_SISBEN',
     description='Modelo gold que selecciona columnas de descripción (texto) y valores numéricos de la capa silver para análisis final.'
   )
 }}

@@ -75,7 +75,7 @@ ipm:
   tables:
     bronze: "ipm_raw_data"
     silver: "ipm_transformed_data"
-    gold: "ipm_processed_data"
+    gold: "FACT_DANE"
 
 ipm_sisben:
   drive_url: "https://docs.google.com/spreadsheets/d/1G_eIZElQXL2qtG6q-sc3uK8_HhaDgX7J/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
@@ -90,7 +90,7 @@ ipm_sisben:
   tables:
     bronze: "ipm_sisben_raw"
     silver: "ipm_sisben_transformed_data"
-    gold: "ipm_sisben_processed_data"
+    gold: "FACT_SISBEN"
   datasets:
     bronze: "bronze_dpt_planeacion_municipal_dev"
     silver: "silver_dpt_planeacion_municipal_dev"
