@@ -22,6 +22,11 @@ sources:
     schema: bronze_dpt_planeacion_municipal_dev
     tables:
       - name: ipm_sisben_raw
+  - name: bronze_idi
+    schema: bronze_dpt_planeacion_municipal_dev
+    tables:
+      - name: idi_raw_data_territorio_2023
+      - name: idi_raw_data_territorio_2024
   - name: silver_evaplan
     schema: silver_dpt_planeacion_municipal_dev
     tables:

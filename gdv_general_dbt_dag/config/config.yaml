@@ -97,4 +97,24 @@ ipm_sisben:
     gold: "gold_dpt_planeacion_municipal_dev"
 
 idi:
-  url_idi_2023: 
+  config_drive_url: "https://docs.google.com/spreadsheets/d/1vS_x_4z-VWOGsHTCvn0nMgG4Ptvz49-M/edit?usp=sharing&ouid=112306291314852355934&rtpof=true&sd=true"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/idi"
+  link_name_keywords:
+    - "Resultados Territorio"
+    - "Resultados consolidados"
+  tables:
+    bronze_prefix: "idi_raw_data_territorio"  # Genera: idi_raw_data_territorio_2024, idi_raw_data_territorio_2023, etc.
+    silver:
+      - "idi_transformed_data_2023"
+      - "idi_transformed_data_2024"
+      - "idi_transformed_data_consolidated"
+    gold: "idi_processed_data"
+  datasets:
+    bronze: "bronze_dpt_planeacion_municipal_dev"
+    silver: "silver_dpt_planeacion_municipal_dev"
+    gold: "gold_dpt_planeacion_municipal_dev"
+  transform_config:
+    skip_rows: 2
+    sheet_name: null  # null = primera hoja
+    columns_to_drop: null  # null o lista de columnas
+

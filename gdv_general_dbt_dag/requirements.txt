@@ -7,3 +7,5 @@ openpyxl
 pytest
 flake8
 PyYAML
+beautifulsoup4
+requests
