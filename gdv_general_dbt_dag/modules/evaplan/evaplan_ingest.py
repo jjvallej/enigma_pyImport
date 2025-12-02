@@ -87,9 +87,12 @@ def authenticate():
     
     # Intentar hacer un test de conectividad básico
     import socket
+    from urllib.parse import urlparse
     try:
-        host = "207.246.89.62"
-        port = 80
+        # Extraer host de la URL de la API
+        parsed_url = urlparse(API_BASE_URL)
+        host = parsed_url.hostname or "207.246.89.62"  # Fallback si no se puede parsear
+        port = parsed_url.port or 80
         print(f"[DEBUG] Intentando conectar a {host}:{port}...")
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         test_socket.settimeout(5)

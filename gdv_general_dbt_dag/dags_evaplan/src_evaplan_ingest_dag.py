@@ -62,10 +62,6 @@ from modules.evaplan.evaplan_ingest import (
 # === CONFIGURACIÓN ===
 from modules.config import CONF, DEFAULT_BUCKET_NAME
 
-# === CONFIGURACIÓN ===
-# DEFAULT_BUCKET_NAME viene de modules.config
-DEFAULT_FOLDER_NAME = CONF.evaplan.gcs_folder
-
 def _authenticate_task():
     """
     Task que autentica con la API de Evaplan y obtiene un token.
@@ -116,7 +112,7 @@ def _save_periodos_to_gcs_task(ti):
         raise ValueError("No se encontraron datos de periodos. La tarea de obtener periodos debe ejecutarse primero.")
     
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = DEFAULT_FOLDER_NAME
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.periodos}"
     
     print(f"[INFO] Guardando periodos en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
@@ -139,7 +135,7 @@ def _read_periodos_from_gcs_task(ti):
     Retorna todos los periodos encontrados en el JSON.
     """
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = DEFAULT_FOLDER_NAME
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.periodos}"
     
     print(f"[INFO] Leyendo periodos desde GCS...")
     print(f"[INFO] Bucket: {bucket_name}")
@@ -211,7 +207,7 @@ def _save_avance_mr_to_gcs_task(ti):
         raise ValueError("No se encontraron datos de AvanceMR. La tarea de obtener AvanceMR debe ejecutarse primero.")
     
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_mr"
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.avance_mr}"
     
     print(f"[INFO] Guardando {len(avances_mr)} archivo(s) de AvanceMR en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
@@ -296,7 +292,7 @@ def _save_avance_mp_to_gcs_task(ti):
         raise ValueError("No se encontraron datos de AvanceMP. La tarea de obtener AvanceMP debe ejecutarse primero.")
     
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_mp"
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.avance_mp}"
     
     print(f"[INFO] Guardando {len(avances_mp)} archivo(s) de AvanceMP en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
@@ -381,7 +377,7 @@ def _save_avance_x_subprograma_to_gcs_task(ti):
         raise ValueError("No se encontraron datos de AvanceXSubprograma. La tarea de obtener AvanceXSubprograma debe ejecutarse primero.")
     
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_x_subprograma"
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.avance_x_subprograma}"
     
     print(f"[INFO] Guardando {len(avances_x_subprograma)} archivo(s) de AvanceXSubprograma en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")
@@ -466,7 +462,7 @@ def _save_avance_general_to_gcs_task(ti):
         raise ValueError("No se encontraron datos de AvanceGeneral. La tarea de obtener AvanceGeneral debe ejecutarse primero.")
     
     bucket_name = DEFAULT_BUCKET_NAME
-    folder_name = "data_staging/dpt_planeacion_municipal/api_evaplan/avance_general"
+    folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.avance_general}"
     
     print(f"[INFO] Guardando {len(avances_general)} archivo(s) de AvanceGeneral en GCS...")
     print(f"[INFO] Bucket destino: {bucket_name}")

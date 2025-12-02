@@ -18,6 +18,10 @@ sources:
       - name: evaplan_api_avance_mp_raw_data
       - name: evaplan_api_avance_x_subprograma_raw_data
       - name: evaplan_api_avance_general_raw_data
+  - name: bronze_ipm_sisben
+    schema: bronze_dpt_planeacion_municipal_dev
+    tables:
+      - name: ipm_sisben_raw
   - name: silver_evaplan
     schema: silver_dpt_planeacion_municipal_dev
     tables:

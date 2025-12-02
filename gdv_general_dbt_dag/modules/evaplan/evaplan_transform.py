@@ -18,22 +18,43 @@ from modules.gcp_utils import get_bq_client
 # === CONFIGURACIÓN ===
 DEBUG = CONF.global_config.debug
 
-# Mapeo de nombre de fuente a nombre de tabla en Bronze
-FUENTE_TO_BRONZE_TABLE = {
-    "periodos": "evaplan_api_periodos_raw_data",
-    "avance_mr": "evaplan_api_avance_mr_raw_data",
-    "avance_mp": "evaplan_api_avance_mp_raw_data",
-    "avance_x_subprograma": "evaplan_api_avance_x_subprograma_raw_data",
-    "avance_general": "evaplan_api_avance_general_raw_data"
-}
+def get_bronze_table_name(fuente: str) -> str:
+    """
+    Obtiene el nombre de la tabla bronze para una fuente desde config.yaml.
+    
+    Args:
+        fuente: Nombre de la fuente (periodos, avance_mr, etc.)
+    
+    Returns:
+        Nombre de la tabla bronze
+    """
+    try:
+        table_name = getattr(CONF.evaplan.tables.bronze, fuente, None)
+        if table_name:
+            return table_name
+    except AttributeError:
+        pass
+    
+    raise ValueError(f"No se encontró el nombre de tabla bronze para la fuente '{fuente}' en config.yaml. Verifica evaplan.tables.bronze.{fuente}")
 
-FUENTE_TO_SILVER_TABLE = {
-    "periodos": "evaplan_api_periodos_transformed_data",
-    "avance_mr": "evaplan_api_avance_mr_transformed_data",
-    "avance_mp": "evaplan_api_avance_mp_transformed_data",
-    "avance_x_subprograma": "evaplan_api_avance_x_subprograma_transformed_data",
-    "avance_general": "evaplan_api_avance_general_transformed_data"
-}
+def get_silver_table_name(fuente: str) -> str:
+    """
+    Obtiene el nombre de la tabla silver para una fuente desde config.yaml.
+    
+    Args:
+        fuente: Nombre de la fuente (periodos, avance_mr, etc.)
+    
+    Returns:
+        Nombre de la tabla silver
+    """
+    try:
+        table_name = getattr(CONF.evaplan.tables.silver, fuente, None)
+        if table_name:
+            return table_name
+    except AttributeError:
+        pass
+    
+    raise ValueError(f"No se encontró el nombre de tabla silver para la fuente '{fuente}' en config.yaml. Verifica evaplan.tables.silver.{fuente}")
 
 # ---------------------------
 # Clientes
@@ -123,9 +144,9 @@ def get_peri_idps_from_bronze_table(fuente: str) -> Set[int]:
         Set de peri_idp únicos (puede estar vacío si no hay peri_idp o si es periodos)
     """
     client = _bq_client()
-    bronze_table = FUENTE_TO_BRONZE_TABLE.get(fuente)
-    
-    if not bronze_table:
+    try:
+        bronze_table = get_bronze_table_name(fuente)
+    except ValueError:
         if DEBUG:
             print(f"[WARN] Fuente no reconocida: {fuente}")
         return set()
@@ -247,11 +268,8 @@ def copy_bronze_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None):
         peri_idps: Set opcional de peri_idp a copiar (si None, copia todos de la fecha actual)
     """
     client = _bq_client()
-    bronze_table = FUENTE_TO_BRONZE_TABLE.get(fuente)
-    silver_table = FUENTE_TO_SILVER_TABLE.get(fuente)
-    
-    if not bronze_table or not silver_table:
-        raise ValueError(f"Fuente no reconocida: {fuente}")
+    bronze_table = get_bronze_table_name(fuente)
+    silver_table = get_silver_table_name(fuente)
     
     bronze_fqn = f"{PROJECT_ID}.{DATASET_ID_BRONZE}.{bronze_table}"
     silver_fqn = f"{PROJECT_ID}.{DATASET_ID_SILVER}.{silver_table}"
@@ -390,10 +408,7 @@ def transform_fuente_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None
         fuente: Nombre de la fuente (periodos, avance_mr, etc.)
         peri_idps: Set opcional de peri_idp a procesar (si None, obtiene de bronze)
     """
-    silver_table = FUENTE_TO_SILVER_TABLE.get(fuente)
-    
-    if not silver_table:
-        raise ValueError(f"Fuente no reconocida: {fuente}")
+    silver_table = get_silver_table_name(fuente)
     
     # Si no se proporcionan peri_idps, obtenerlos de bronze
     if peri_idps is None and fuente != "periodos":

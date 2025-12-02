@@ -27,13 +27,32 @@ evaplan:
     avance_mp: "/datos/AvanceMP"
     avance_x_subprograma: "/datos/AvanceXSubprograma"
     avance_general: "/datos/AvanceGeneral"
-  gcs_folder: "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/api_evaplan"
+  gcs_folders:
+    periodos: "periodos"
+    avance_mr: "avance_mr"
+    avance_mp: "avance_mp"
+    avance_x_subprograma: "avance_x_subprograma"
+    avance_general: "avance_general"
   fuentes:
     - "periodos"
     - "avance_mr"
     - "avance_mp"
     - "avance_x_subprograma"
     - "avance_general"
+  tables:
+    bronze:
+      periodos: "evaplan_api_periodos_raw_data"
+      avance_mr: "evaplan_api_avance_mr_raw_data"
+      avance_mp: "evaplan_api_avance_mp_raw_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_raw_data"
+      avance_general: "evaplan_api_avance_general_raw_data"
+    silver:
+      periodos: "evaplan_api_periodos_transformed_data"
+      avance_mr: "evaplan_api_avance_mr_transformed_data"
+      avance_mp: "evaplan_api_avance_mp_transformed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_transformed_data"
+      avance_general: "evaplan_api_avance_general_transformed_data"
   # Credenciales de autenticación
   # NOTA: Configurar las credenciales aquí para que el código funcione
   credentials:
@@ -62,8 +81,18 @@ ipm_sisben:
   drive_url: "https://docs.google.com/spreadsheets/d/1G_eIZElQXL2qtG6q-sc3uK8_HhaDgX7J/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
   gcs_folder: "data_staging/dpt_planeacion_municipal/ipm/sisben"
   gcs_temp_folder: "data_staging/dpt_planeacion_municipal/tmp_sisben"
-  table_name: "ipm_sisben_raw_data"
+  table_name: "ipm_sisben_raw"
   excel_file_path: "data_staging/dpt_planeacion_municipal/ipm/sisben"  # Ruta del archivo Excel en el bucket (sin el nombre del archivo, se buscará el más reciente)
+  csv_files:
+    - "hoja1_ipm_sisben.csv"
+    - "hoja2_ipm_sisben.csv"
+    - "hoja3_ipm_sisben.csv"
+  tables:
+    bronze: "ipm_sisben_raw"
+    silver: "ipm_sisben_transformed_data"
+  datasets:
+    bronze: "bronze_dpt_planeacion_municipal_dev"
+    silver: "silver_dpt_planeacion_municipal_dev"
 
 idi:
   url_idi_2023: 

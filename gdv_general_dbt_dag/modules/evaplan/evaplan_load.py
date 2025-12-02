@@ -15,25 +15,10 @@ from modules.gcp_utils import get_bq_client, get_gcs_client
 
 # === CONFIGURACIÓN ===
 DEBUG = CONF.global_config.debug
-GCS_BASE_FOLDER = "data_staging/dpt_planeacion_municipal/api_evaplan"
+GCS_BASE_FOLDER = CONF.evaplan.gcs_base_folder
 
-# Mapeo de fuentes a carpetas en GCS
-FUENTE_FOLDERS = {
-    "periodos": "periodos",
-    "avance_mr": "avance_mr",
-    "avance_mp": "avance_mp",
-    "avance_x_subprograma": "avance_x_subprograma",
-    "avance_general": "avance_general"
-}
-
-# Mapeo de fuentes a carpetas en GCS (y prefijos de tablas)
-SOURCES = {
-    "periodos": "periodos",
-    "avance_mr": "avance_mr",
-    "avance_mp": "avance_mp",
-    "avance_x_subprograma": "avance_x_subprograma",
-    "avance_general": "avance_general"
-}
+# Mapeo de fuentes a carpetas en GCS (desde config.yaml)
+FUENTE_FOLDERS = CONF.evaplan.gcs_folders
 
 # ---------------------------
 # Clientes
@@ -738,9 +723,12 @@ def get_fuente_folder_path(fuente: str) -> str:
     Returns:
         Ruta completa de la carpeta en GCS
     """
-    folder_name = FUENTE_FOLDERS.get(fuente)
+    # FUENTE_FOLDERS es un SimpleNamespace, usar getattr en lugar de .get()
+    folder_name = getattr(FUENTE_FOLDERS, fuente, None)
     if not folder_name:
-        raise ValueError(f"Fuente no reconocida: {fuente}. Fuentes válidas: {list(FUENTE_FOLDERS.keys())}")
+        # Obtener lista de fuentes válidas desde el SimpleNamespace
+        valid_fuentes = [attr for attr in dir(FUENTE_FOLDERS) if not attr.startswith('_')]
+        raise ValueError(f"Fuente no reconocida: {fuente}. Fuentes válidas: {valid_fuentes}")
     
     return f"{GCS_BASE_FOLDER}/{folder_name}"
 
@@ -752,9 +740,17 @@ def get_table_name_for_fuente(fuente: str) -> str:
         fuente: Nombre de la fuente (periodos, avance_mr, etc.)
     
     Returns:
-        Nombre de la tabla (evaplan_api_{fuente}_raw_data)
+        Nombre de la tabla desde config.yaml
     """
-    return f"evaplan_api_{fuente}_raw_data"
+    try:
+        table_name = getattr(CONF.evaplan.tables.bronze, fuente, None)
+        if table_name:
+            return table_name
+    except AttributeError:
+        pass
+    
+    # Fallback si no está en config.yaml (no debería pasar)
+    raise ValueError(f"No se encontró el nombre de tabla para la fuente '{fuente}' en config.yaml. Verifica evaplan.tables.bronze.{fuente}")
 
 def cleanup_temp_paths(paths: Iterable[Optional[str]]):
     """Elimina los archivos temporales indicados (ignora None o paths vacíos)."""
