@@ -7,21 +7,23 @@ from google.cloud import storage, bigquery
 import os
 import tempfile
 from typing import List, Dict
-from modules.config import PROJECT_ID, CONF, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE
+from modules.config import PROJECT_ID, CONF, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE, LOCATION
 from modules.gcp_utils import get_bq_client, get_gcs_client
 
 # === CONFIGURACIÓN ===
 DEBUG = CONF.global_config.debug
 
 
-def ensure_dataset(dataset_id: str, location: str = "us-central1"):
+def ensure_dataset(dataset_id: str, location: str = None):
     """
     Asegura que el dataset de BigQuery exista, si no lo crea.
     
     Args:
         dataset_id: ID del dataset (ej: 'bronze_dpt_planeacion_municipal_dev')
-        location: Ubicación del dataset (default: us-central1)
+        location: Ubicación del dataset (si es None, usa LOCATION de config.yaml)
     """
+    if location is None:
+        location = LOCATION
     client = get_bq_client()
     
     dataset_ref = f"{PROJECT_ID}.{dataset_id}"

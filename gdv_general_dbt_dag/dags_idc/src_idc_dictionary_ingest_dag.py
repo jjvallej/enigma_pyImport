@@ -31,11 +31,12 @@ def add_project_root_to_path():
 
 add_project_root_to_path()
 from modules.idc.idc_dictionary_ingest import move_file_from_drive_to_gcs
+from modules.config import CONF, DEFAULT_BUCKET_NAME
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv_dev"  # Cambiar según el bucket deseado
-DEFAULT_FOLDER_NAME = "data_staging/dpt_planeacion_municipal/idc"  # Carpeta idc dentro de dpt_planeacion_municipal
-DRIVE_URL = "https://drive.google.com/file/d/1GgHo_KojqPPP4gTm5fymtbCmX1Ujz1tk/view?usp=sharing"  # URL fija del archivo CSV del diccionario en Google Drive
+# Todos los valores se leen desde config.yaml
+DEFAULT_FOLDER_NAME = CONF.idc.gcs_folder
+DRIVE_URL = CONF.idc.dictionary_drive_url  # URL del archivo CSV del diccionario en Google Drive
 
 def _upload_file_task():
     """

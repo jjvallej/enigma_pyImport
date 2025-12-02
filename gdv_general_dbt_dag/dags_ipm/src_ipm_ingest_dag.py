@@ -32,10 +32,10 @@ def add_project_root_to_path():
 
 add_project_root_to_path()
 from modules.ipm.ipm_ingest import move_file_from_drive_to_gcs
-from modules.config import CONF
+from modules.config import CONF, DEFAULT_BUCKET_NAME
 
 # === CONFIGURACIÓN ===
-DEFAULT_BUCKET_NAME = "datalake_gdv_dev"  # Cambiar según el bucket deseado
+# Todos los valores se leen desde config.yaml
 DEFAULT_FOLDER_NAME = CONF.ipm.gcs_folder
 DRIVE_URL = CONF.ipm.drive_url
 

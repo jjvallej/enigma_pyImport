@@ -72,6 +72,7 @@ evaplan:
 
 idc:
   drive_url: "https://docs.google.com/spreadsheets/d/1J42xKC3VnkjhwHQENKxo2DDQzuBINYxY/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
+  dictionary_drive_url: "https://drive.google.com/file/d/1GgHo_KojqPPP4gTm5fymtbCmX1Ujz1tk/view?usp=sharing"  # URL del archivo CSV del diccionario
   gcs_folder: "data_staging/dpt_planeacion_municipal/idc"
   tables:
     dictionary: "dim_idc"

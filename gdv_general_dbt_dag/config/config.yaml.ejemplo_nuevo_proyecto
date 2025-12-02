@@ -82,6 +82,7 @@ evaplan:
 
 idc:
   drive_url: "https://docs.google.com/spreadsheets/d/TU_ID_DE_DRIVE/edit"  # ← URL de Google Drive
+  dictionary_drive_url: "https://drive.google.com/file/d/TU_ID_DICCIONARIO/view?usp=sharing"  # ← URL del archivo CSV del diccionario
   gcs_folder: "data_staging/mi_proyecto/idc"     # ← Carpeta en GCS para archivos IDC
   tables:
     dictionary: "dim_idc"

@@ -12,7 +12,7 @@ import os
 import re
 from datetime import datetime, timezone
 from typing import List, Set, Optional
-from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD, CONF
+from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD, CONF, LOCATION
 from modules.gcp_utils import get_bq_client
 
 # === CONFIGURACIÓN ===
@@ -65,8 +65,10 @@ def _bq_client() -> bigquery.Client:
 # ---------------------------
 # Helpers
 # ---------------------------
-def ensure_dataset(dataset_id: str, location: str = "us-central1"):
+def ensure_dataset(dataset_id: str, location: str = None):
     """Crea el dataset si no existe."""
+    if location is None:
+        location = LOCATION
     client = _bq_client()
     ds_fqn = f"{PROJECT_ID}.{dataset_id}"
     try:

@@ -9,7 +9,7 @@ import pandas as pd
 import os, tempfile, re
 from datetime import datetime, timezone
 from typing import Iterable, Optional, Dict, List
-from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE, CONF
+from modules.config import PROJECT_ID, DEFAULT_BUCKET_NAME, DATASET_ID_BRONZE, CONF, LOCATION
 from modules.gcp_utils import get_bq_client, get_gcs_client
 
 DEBUG = CONF.global_config.debug
@@ -17,8 +17,10 @@ DEBUG = CONF.global_config.debug
 # ---------------------------
 # Helpers
 # ---------------------------
-def ensure_dataset(dataset_id: str, location: str = "us-central1"):
+def ensure_dataset(dataset_id: str, location: str = None):
     """Crea el dataset si no existe."""
+    if location is None:
+        location = LOCATION
     client = get_bq_client()
     ds_fqn = f"{PROJECT_ID}.{dataset_id}"
     try:

@@ -91,7 +91,9 @@ def authenticate():
     try:
         # Extraer host de la URL de la API
         parsed_url = urlparse(API_BASE_URL)
-        host = parsed_url.hostname or "207.246.89.62"  # Fallback si no se puede parsear
+        host = parsed_url.hostname
+        if not host:
+            raise ValueError(f"No se pudo extraer el hostname de la URL de la API: {API_BASE_URL}")
         port = parsed_url.port or 80
         print(f"[DEBUG] Intentando conectar a {host}:{port}...")
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
