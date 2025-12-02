@@ -142,14 +142,15 @@ def extract_peri_idp_from_filename(filename: str) -> Optional[int]:
 
 def get_json_files_from_current_date(bucket_name: str, folder_path: str) -> List[Tuple[str, str, Optional[int]]]:
     """
-    Obtiene todos los archivos JSON de la fecha actual en una carpeta de GCS.
+    Obtiene todos los archivos JSON más recientes en una carpeta de GCS.
+    Busca archivos de las últimas 2 fechas posibles para evitar problemas de zona horaria.
     
     Args:
         bucket_name: Nombre del bucket en GCS
         folder_path: Ruta de la carpeta (ej: 'data_staging/dpt_planeacion_municipal/api_evaplan/avance_mr')
     
     Returns:
-        Lista de tuplas (gcs_uri, fecha_extraida, peri_idp) para archivos de la fecha actual
+        Lista de tuplas (gcs_uri, fecha_extraida, peri_idp) para archivos más recientes
     """
     gcs = _gcs_client()
     
@@ -163,14 +164,18 @@ def get_json_files_from_current_date(bucket_name: str, folder_path: str) -> List
     except Exception as e:
         raise ValueError(f"No se pudo acceder al bucket '{bucket_name}': {e}")
     
-    # Obtener fecha actual en formato YYYYMMDD
-    fecha_actual = datetime.now().strftime("%Y%m%d")
+    # Obtener fechas posibles (hoy y ayer) para evitar problemas de zona horaria
+    from datetime import timedelta
+    now = datetime.now()
+    fecha_hoy = now.strftime("%Y%m%d")
+    fecha_ayer = (now - timedelta(days=1)).strftime("%Y%m%d")
+    fechas_posibles = {fecha_hoy, fecha_ayer}
     
     # Listar todos los blobs en la carpeta que terminen en .json
     blobs = list(bucket.list_blobs(prefix=folder_path))
     
-    # Filtrar solo archivos .json de la fecha actual
-    json_files = []
+    # Filtrar archivos .json y extraer fechas
+    json_files_with_dates = []
     for blob in blobs:
         if not blob.name.lower().endswith('.json') or blob.name.endswith('/'):
             continue
@@ -178,14 +183,29 @@ def get_json_files_from_current_date(bucket_name: str, folder_path: str) -> List
         filename = os.path.basename(blob.name)
         fecha = extract_date_from_filename(filename, "")
         
-        # Solo incluir archivos de la fecha actual
-        if fecha == fecha_actual:
+        if fecha:
             peri_idp = extract_peri_idp_from_filename(filename)
             gcs_uri = f"gs://{bucket_name}/{blob.name}"
-            json_files.append((gcs_uri, fecha, peri_idp))
+            json_files_with_dates.append((gcs_uri, fecha, peri_idp, blob.time_created))
+    
+    # Filtrar solo archivos de las fechas posibles y ordenar por fecha de creación (más reciente primero)
+    json_files_filtered = [
+        (uri, fecha, peri_idp) 
+        for uri, fecha, peri_idp, time_created in json_files_with_dates
+        if fecha in fechas_posibles
+    ]
+    
+    # Ordenar por fecha de creación (más reciente primero) para priorizar archivos más nuevos
+    json_files_with_dates_filtered = [
+        (uri, fecha, peri_idp, time_created)
+        for uri, fecha, peri_idp, time_created in json_files_with_dates
+        if fecha in fechas_posibles
+    ]
+    json_files_with_dates_filtered.sort(key=lambda x: x[3], reverse=True)
+    json_files = [(uri, fecha, peri_idp) for uri, fecha, peri_idp, _ in json_files_with_dates_filtered]
     
     if DEBUG:
-        print(f"[INFO] Archivos JSON de la fecha actual ({fecha_actual}) encontrados: {len(json_files)}")
+        print(f"[INFO] Archivos JSON encontrados (fechas {fecha_hoy} o {fecha_ayer}): {len(json_files)}")
         for uri, fecha, peri_idp in json_files[:5]:  # Mostrar los primeros 5
             filename = os.path.basename(uri)
             print(f"[DEBUG]   - {filename} (fecha: {fecha}, peri_idp: {peri_idp})")

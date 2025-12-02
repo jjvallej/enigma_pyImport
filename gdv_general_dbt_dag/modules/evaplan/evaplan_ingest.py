@@ -668,7 +668,9 @@ def read_latest_periodos_json_from_gcs(
     folder_name: str = "data_staging/dpt_planeacion_municipal/api_evaplan/periodos"
 ) -> Dict[str, Any]:
     """
-    Lee el JSON más reciente de periodos desde GCS (el de la fecha actual).
+    Lee el JSON más reciente de periodos desde GCS.
+    Busca todos los archivos que empiezan con 'periodo_' y terminan en '.json',
+    y selecciona el más reciente por fecha de creación.
     
     Args:
         bucket_name: Nombre del bucket en GCS
@@ -692,28 +694,32 @@ def read_latest_periodos_json_from_gcs(
     except Exception as e:
         raise ValueError(f"No se pudo acceder al bucket '{bucket_name}': {e}")
     
-    # Obtener fecha actual en formato YYYYMMDD
-    fecha_actual = datetime.now().strftime("%Y%m%d")
+    # Listar todos los archivos que empiezan con 'periodo_' y terminan en '.json'
+    prefix = f"{folder_name}periodo_"
+    blobs = list(bucket.list_blobs(prefix=prefix))
     
-    # Buscar archivo con la fecha actual
-    file_name = f"periodo_{fecha_actual}.json"
-    blob_name = f"{folder_name}{file_name}"
+    # Filtrar solo archivos .json
+    json_blobs = [blob for blob in blobs if blob.name.endswith('.json') and not blob.name.endswith('/')]
+    
+    if not json_blobs:
+        raise Exception(f"No se encontraron archivos de periodos en: gs://{bucket_name}/{folder_name}")
+    
+    # Ordenar por fecha de creación (más reciente primero)
+    json_blobs.sort(key=lambda x: x.time_created, reverse=True)
+    latest_blob = json_blobs[0]
     
     if DEBUG:
-        print(f"[INFO] Buscando archivo de periodos más reciente: {blob_name}")
+        print(f"[INFO] Se encontraron {len(json_blobs)} archivo(s) de periodos")
+        print(f"[INFO] Archivo más reciente: {latest_blob.name}")
+        print(f"[INFO] Fecha de creación: {latest_blob.time_created}")
     
     try:
-        blob = bucket.blob(blob_name)
-        
-        if not blob.exists():
-            raise Exception(f"No se encontró el archivo de periodos para la fecha actual: {blob_name}")
-        
         # Descargar y leer el JSON
-        json_string = blob.download_as_text()
+        json_string = latest_blob.download_as_text()
         periodos_data = json.loads(json_string)
         
         if DEBUG:
-            print(f"[OK] Archivo de periodos leído exitosamente: {blob_name}")
+            print(f"[OK] Archivo de periodos leído exitosamente: {latest_blob.name}")
             data = periodos_data.get("data", {})
             periodos = data.get("periodos", [])
             print(f"[INFO] Se encontraron {len(periodos)} periodo(s) en el JSON")
@@ -721,7 +727,7 @@ def read_latest_periodos_json_from_gcs(
         return periodos_data
         
     except Exception as e:
-        raise Exception(f"Error al leer el archivo de periodos desde GCS: {e}")
+        raise Exception(f"Error al leer el archivo de periodos desde GCS ({latest_blob.name}): {e}")
 
 def get_all_periodos_from_json(periodos_data: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
