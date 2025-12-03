@@ -1,5 +1,5 @@
 gdv_general_dbt_dag:
-  target: prod
+  target: dev
   outputs:
     dev:
       type: bigquery

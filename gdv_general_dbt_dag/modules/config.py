@@ -19,9 +19,12 @@ except ImportError:
 # Exponer la configuración de fuentes para uso global
 CONF = sources_config
 
-# Environment: 'prod', 'prod', or 'local'
-# Default to 'prod' for safety
-ENV = os.getenv("ENVIRONMENT", "prod")
+# Environment: 'dev', 'prod', or 'local'
+# Default to 'dev' for safety (evita ejecutar en prod por error)
+# NOTA: Si no configuras ENVIRONMENT en Composer, cambia este valor por defecto:
+# - Para DEV: "dev"
+# - Para PROD: "prod"
+ENV = os.getenv("ENVIRONMENT", "prod")  # Cambia "dev" a "prod" si quieres usar producción por defecto
 
 # Environment Specific Configurations
 # Load configurations for each environment from YAML
@@ -31,13 +34,22 @@ ENV = os.getenv("ENVIRONMENT", "prod")
 try:
     current_config = getattr(CONF.environments, ENV)
 except AttributeError:
-    # Fallback to prod if ENV not found
-    print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'prod'.")
-    current_config = CONF.environments.prod
+    # Fallback to dev if ENV not found
+    print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'dev'.")
+    current_config = CONF.environments.dev
 
 # GCP Configuration - Leer desde config.yaml
-PROJECT_ID = os.getenv("GCP_PROJECT", getattr(current_config, "project_id", "datagov-473122"))
-LOCATION = os.getenv("GCP_LOCATION", getattr(current_config, "location", "us-central1"))
+# Si no está en env var ni en config.yaml, lanza error (no usar fallbacks hardcodeados)
+project_id_from_config = getattr(current_config, "project_id", None)
+location_from_config = getattr(current_config, "location", None)
+
+if not project_id_from_config:
+    raise ValueError("project_id no está definido en config.yaml para el ambiente '{}'. Verifica la sección environments.{}".format(ENV, ENV))
+if not location_from_config:
+    raise ValueError("location no está definido en config.yaml para el ambiente '{}'. Verifica la sección environments.{}".format(ENV, ENV))
+
+PROJECT_ID = os.getenv("GCP_PROJECT", project_id_from_config)
+LOCATION = os.getenv("GCP_LOCATION", location_from_config)
 
 # Storage Configuration
 DEFAULT_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", current_config.bucket_name)

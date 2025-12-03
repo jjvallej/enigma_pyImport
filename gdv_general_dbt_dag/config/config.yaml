@@ -3,8 +3,8 @@ global_config:
 
 environments:
   dev:
-    project_id: "datagov-477214"
-    location: "us-east1"
+    project_id: "datagov-473122"
+    location: "us-central1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
@@ -17,8 +17,8 @@ environments:
     dataset_silver: "silver_dpt_planeacion_municipal_pdn"
     dataset_gold: "gold_dpt_planeacion_municipal_pdn"
   local:
-    project_id: "datagov-477214"
-    location: "us-east1"
+    project_id: "datagov-473122"  # Por defecto usa dev para desarrollo local
+    location: "us-central1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
