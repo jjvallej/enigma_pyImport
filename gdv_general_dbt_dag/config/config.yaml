@@ -104,6 +104,11 @@ ipm_sisben:
     - "hoja1_ipm_sisben.csv"
     - "hoja2_ipm_sisben.csv"
     - "hoja3_ipm_sisben.csv"
+  external_table:
+    gcs_path: "data_staging/dpt_planeacion_municipal/ipm/sisben/*.csv"  # Ruta en GCS con wildcard para todos los CSVs
+    skip_leading_rows: 1
+    field_delimiter: ","
+    allow_quoted_newlines: true
   tables:
     bronze: "ipm_sisben_raw"
     silver: "ipm_sisben_transformed_data"
