@@ -71,8 +71,8 @@ evaplan:
     password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
 
 idc:
-  drive_url: "https://docs.google.com/spreadsheets/d/1J42xKC3VnkjhwHQENKxo2DDQzuBINYxY/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
-  dictionary_drive_url: "https://drive.google.com/file/d/1GgHo_KojqPPP4gTm5fymtbCmX1Ujz1tk/view?usp=sharing"  # URL del archivo CSV del diccionario
+  drive_url: "https://docs.google.com/spreadsheets/d/1ABWswq3dHMP74u-cKW9OaCTI3X3bfegF/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
+  dictionary_drive_url: "https://drive.google.com/file/d/1Np3t7wFletxcMxqoeDrNhlvxqzaOQpLr/view?usp=sharing"  # URL del archivo CSV del diccionario
   gcs_folder: "data_staging/dpt_planeacion_municipal/idc"
   tables:
     dictionary: "dim_idc"
@@ -87,7 +87,7 @@ idc:
     gold: "fact_idc"
 
 ipm:
-  drive_url: "https://docs.google.com/spreadsheets/d/1uXHTK64SVXmsV-nKGXT8Vz7u_b4gXvYs/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
+  drive_url: "https://docs.google.com/spreadsheets/d/1qrwNEM4NWgVwLPiVKTA_rGNcp9y5PMou/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
   gcs_folder: "data_staging/dpt_planeacion_municipal/ipm"
   tables:
     bronze: "ipm_raw_data"
@@ -95,7 +95,7 @@ ipm:
     gold: "FACT_DANE"
 
 ipm_sisben:
-  drive_url: "https://docs.google.com/spreadsheets/d/1G_eIZElQXL2qtG6q-sc3uK8_HhaDgX7J/edit?usp=drive_link&ouid=109263228047844968910&rtpof=true&sd=true"
+  drive_url: "https://docs.google.com/spreadsheets/d/1tUZvT4fC2PmeQrvTUHdUvjN8j3fdD53k/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
   gcs_folder: "data_staging/dpt_planeacion_municipal/ipm/sisben"
   gcs_temp_folder: "data_staging/dpt_planeacion_municipal/tmp_sisben"
   table_name: "ipm_sisben_raw"
@@ -115,7 +115,7 @@ ipm_sisben:
     gold: "FACT_SISBEN"
 
 idi:
-  config_drive_url: "https://docs.google.com/spreadsheets/d/1vS_x_4z-VWOGsHTCvn0nMgG4Ptvz49-M/edit?usp=sharing&ouid=112306291314852355934&rtpof=true&sd=true"
+  config_drive_url: "https://docs.google.com/spreadsheets/d/1_mMOzghd048cmvasxStauXFXpImlaPod/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
   gcs_base_folder: "data_staging/dpt_planeacion_municipal/idi"
   link_name_keywords:
     - "Resultados Territorio"
