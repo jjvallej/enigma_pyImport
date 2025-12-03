@@ -19,9 +19,9 @@ except ImportError:
 # Exponer la configuración de fuentes para uso global
 CONF = sources_config
 
-# Environment: 'dev', 'prod', or 'local'
-# Default to 'dev' for safety
-ENV = os.getenv("ENVIRONMENT", "dev")
+# Environment: 'prod', 'prod', or 'local'
+# Default to 'prod' for safety
+ENV = os.getenv("ENVIRONMENT", "prod")
 
 # Environment Specific Configurations
 # Load configurations for each environment from YAML
@@ -31,9 +31,9 @@ ENV = os.getenv("ENVIRONMENT", "dev")
 try:
     current_config = getattr(CONF.environments, ENV)
 except AttributeError:
-    # Fallback to dev if ENV not found
-    print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'dev'.")
-    current_config = CONF.environments.dev
+    # Fallback to prod if ENV not found
+    print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'prod'.")
+    current_config = CONF.environments.prod
 
 # GCP Configuration - Leer desde config.yaml
 PROJECT_ID = os.getenv("GCP_PROJECT", getattr(current_config, "project_id", "datagov-473122"))
@@ -48,11 +48,11 @@ DATASET_ID_SILVER = os.getenv("BQ_DATASET_SILVER", current_config.dataset_silver
 DATASET_ID_GOLD = os.getenv("BQ_DATASET_GOLD", current_config.dataset_gold)
 
 # Paths
-# For local dev, you might want to set this env var. In Composer, it's usually /home/airflow/gcs/dags
+# For local prod, you might want to set this env var. In Composer, it's usually /home/airflow/gcs/dags
 DAGS_FOLDER = os.environ.get("AIRFLOW__CORE__DAGS_FOLDER", "/home/airflow/gcs/dags")
 
 
-# Service Account Path (Only for local dev if needed, though env var is preferred)
+# Service Account Path (Only for local prod if needed, though env var is preferred)
 # SA_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 # Helper function para generar comandos dbt con variables de entorno desde config.yaml

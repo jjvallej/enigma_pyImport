@@ -3,22 +3,22 @@ global_config:
 
 environments:
   dev:
-    project_id: "datagov-473122"
-    location: "us-central1"
+    project_id: "datagov-477214"
+    location: "us-east1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
     dataset_gold: "gold_dpt_planeacion_municipal_dev"
   prod:
-    project_id: "datagov-473122"
-    location: "us-central1"
-    bucket_name: "datalake_gdv_prod"
-    dataset_bronze: "bronze_dpt_planeacion_municipal_prod"
-    dataset_silver: "silver_dpt_planeacion_municipal_prod"
-    dataset_gold: "gold_dpt_planeacion_municipal_prod"
+    project_id: "datagov-477214"
+    location: "us-east1"
+    bucket_name: "datalake_gdv_pdn"
+    dataset_bronze: "bronze_dpt_planeacion_municipal_pdn"
+    dataset_silver: "silver_dpt_planeacion_municipal_pdn"
+    dataset_gold: "gold_dpt_planeacion_municipal_pdn"
   local:
-    project_id: "datagov-473122"
-    location: "us-central1"
+    project_id: "datagov-477214"
+    location: "us-east1"
     bucket_name: "datalake_gdv_dev"
     dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
     dataset_silver: "silver_dpt_planeacion_municipal_dev"
