@@ -80,7 +80,19 @@ def get_dbt_command(dbt_command: str, dbt_project_dir: str) -> str:
     # Construir comando con export de variables
     export_vars = " && ".join([f'export {key}="{value}"' for key, value in env_vars.items()])
     
-    # Comando completo: exportar variables + ejecutar dbt
-    full_command = f'set -e && {export_vars} && cd {dbt_project_dir} && {dbt_command} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1 || (echo "DBT command failed with exit code:" $? && exit 1)'
+    # Construir argumentos --vars para pasar variables a dbt
+    # Esto asegura que las variables estén disponibles incluso si env_var() no funciona dentro de vars:
+    import json
+    dbt_vars = {
+        "project_id": env_vars["DBT_PROJECT_ID"],
+        "bronze_dataset": env_vars["DBT_DATASET_BRONZE"],
+        "silver_dataset": env_vars["DBT_DATASET_SILVER"],
+        "gold_dataset": env_vars["DBT_DATASET_GOLD"],
+    }
+    vars_json = json.dumps(dbt_vars)
+    vars_arg = f"--vars '{vars_json}'"
+    
+    # Comando completo: exportar variables + ejecutar dbt con --vars
+    full_command = f'set -e && {export_vars} && cd {dbt_project_dir} && {dbt_command} {vars_arg} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1 || (echo "DBT command failed with exit code:" $? && exit 1)'
     
     return full_command 

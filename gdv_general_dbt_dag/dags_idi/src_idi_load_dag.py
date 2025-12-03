@@ -26,6 +26,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 import os
 import sys
 
@@ -127,10 +128,18 @@ with DAG(
         # Dependencias dentro del grupo bronze
         ensure_dataset_task >> load_all_years
 
+    # Trigger del DAG de transform (sin esperar su finalización)
+    trigger_transform = TriggerDagRunOperator(
+        task_id="trigger_transform_dag",
+        trigger_dag_id="src_planeacion_transf_idi",
+        wait_for_completion=False,  # No espera a que el DAG llamado termine
+        reset_dag_run=True,  # Permite re-ejecutar el DAG si ya está en ejecución
+    )
+
     # Tarea final
     end = EmptyOperator(
         task_id="end",
     )
 
-    # Dependencias: start -> bronze -> end
-    start >> bronze_group >> end
+    # Dependencias: start -> bronze -> trigger_transform -> end
+    start >> bronze_group >> trigger_transform >> end

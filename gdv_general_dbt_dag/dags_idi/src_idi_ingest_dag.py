@@ -7,6 +7,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 import os
 import sys
 
@@ -84,6 +85,14 @@ with DAG(
         python_callable=_ingest_idi
     )
     
+    # Trigger del DAG de load (sin esperar su finalización)
+    trigger_load = TriggerDagRunOperator(
+        task_id="trigger_load_dag",
+        trigger_dag_id="src_planeacion_load_idi",
+        wait_for_completion=False,  # No espera a que el DAG llamado termine
+        reset_dag_run=True,  # Permite re-ejecutar el DAG si ya está en ejecución
+    )
+    
     end = EmptyOperator(task_id="end")
     
-    start >> ingest >> end
+    start >> ingest >> trigger_load >> end
