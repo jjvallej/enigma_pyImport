@@ -42,4 +42,4 @@ sources:
   - name: gold_idc
     schema: "{{ var('gold_dataset') }}"
     tables:
-      - name: dim_idc
+      - name: DIM_IDC

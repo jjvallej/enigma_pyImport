@@ -2,7 +2,7 @@
   config(
     materialized='table',
     schema=var('gold_dataset'),
-    alias='fact_idc'
+    alias='FACT_IDC'
   )
 }}
 
@@ -125,7 +125,7 @@ SELECT
   CAST(uv.valor_normalizado AS FLOAT64) AS VALOR_NORMALIZADO,
   CAST(uv.ranking AS INT64) AS VALOR_RANKING
 FROM unified_values uv
-INNER JOIN {{ source('gold_idc', 'dim_idc') }} d
+INNER JOIN {{ source('gold_idc', 'DIM_IDC') }} d
   ON UPPER(REPLACE(uv.id_subindicador, '_', '-')) = UPPER(d.ID_SUBINDICADOR)
 ORDER BY
   uv.departamento,

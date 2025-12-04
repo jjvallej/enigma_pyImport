@@ -13,9 +13,9 @@ environments:
     project_id: "datagov-477214"
     location: "us-east1"
     bucket_name: "datalake_gdv_pdn"
-    dataset_bronze: "bronze_dpt_planeacion_municipal_pdn"
-    dataset_silver: "silver_dpt_planeacion_municipal_pdn"
-    dataset_gold: "gold_dpt_planeacion_municipal_pdn"
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal_dev"
   local:
     project_id: "datagov-473122"  # Por defecto usa dev para desarrollo local
     location: "us-central1"
@@ -75,7 +75,7 @@ idc:
   dictionary_drive_url: "https://drive.google.com/file/d/1Np3t7wFletxcMxqoeDrNhlvxqzaOQpLr/view?usp=sharing"  # URL del archivo CSV del diccionario
   gcs_folder: "data_staging/dpt_planeacion_municipal/idc"
   tables:
-    dictionary: "dim_idc"
+    dictionary: "DIM_IDC"
     raw_data_mapping:
       Dato_original: "idc_raw_data_dato_original"
       Valor_normalizado: "idc_raw_data_valor_normalizado"
@@ -84,7 +84,7 @@ idc:
       dato_original: "idc_transformed_data_dato_original"
       valor_normalizado: "idc_transformed_data_valor_normalizado"
       valor_ranking: "idc_transformed_data_valor_ranking"
-    gold: "fact_idc"
+    gold: "FACT_IDC"
 
 ipm:
   drive_url: "https://docs.google.com/spreadsheets/d/1qrwNEM4NWgVwLPiVKTA_rGNcp9y5PMou/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
