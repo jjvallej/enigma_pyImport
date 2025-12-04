@@ -130,23 +130,23 @@ SELECT
   _160_col_mayor                 AS COLOMBIA_MAYOR,
   _161_otro_subsidio             AS OTRO_SUBCIDIO,
 
-  -- IPM como texto (SI/NO)
-  _175_IPM_H5_DESCRIPCION        AS IPM,
-  _176_IMP_I1_DESCRIPCION        AS IPM_I1,
-  _177_IMP_I2_DESCRIPCION        AS IPM_I2,
-  _178_IMP_I3_DESCRIPCION        AS IPM_I3,
-  _179_IMP_I4_DESCRIPCION        AS IPM_I4,
-  _180_IMP_I5_DESCRIPCION        AS IPM_I5,
-  _181_IMP_I6_DESCRIPCION        AS IPM_I6,
-  _182_IMP_I7_DESCRIPCION        AS IPM_I7,
-  _183_IMP_I8_DESCRIPCION        AS IPM_I8,
-  _184_IMP_I9_DESCRIPCION        AS IPM_I9,
-  _185_IMP_I10_DESCRIPCION       AS IPM_I10,
-  _186_IMP_I11_DESCRIPCION       AS IPM_I11,
-  _187_IMP_I12_DESCRIPCION       AS IPM_I12,
-  _188_IMP_I13_DESCRIPCION       AS IPM_I13,
-  _189_IMP_I14_DESCRIPCION       AS IPM_I14,
-  _190_IMP_I15_DESCRIPCION       AS IPM_I15
+  -- IPM como valores numéricos (1 o 0)
+  IPM_H5                          AS IPM,
+  IMP_I1                          AS IPM_I1,
+  IMP_I2                          AS IPM_I2,
+  IMP_I3                          AS IPM_I3,
+  IMP_I4                          AS IPM_I4,
+  IMP_I5                          AS IPM_I5,
+  IMP_I6                          AS IPM_I6,
+  IMP_I7                          AS IPM_I7,
+  IMP_I8                          AS IPM_I8,
+  IMP_I9                          AS IPM_I9,
+  IMP_I10                         AS IPM_I10,
+  IMP_I11                         AS IPM_I11,
+  IMP_I12                         AS IPM_I12,
+  IMP_I13                         AS IPM_I13,
+  IMP_I14                         AS IPM_I14,
+  IMP_I15                         AS IPM_I15
 
 FROM {{ source('silver_ipm_sisben', 'ipm_sisben_transformed_data') }}
 
