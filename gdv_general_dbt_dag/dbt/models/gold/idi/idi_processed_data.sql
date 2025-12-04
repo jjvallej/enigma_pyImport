@@ -2,7 +2,7 @@
   config(
     materialized='view',
     schema=var('gold_dataset'),
-    alias='idi_processed_data'
+    alias='IDI_PROCESSED_DATA'
   )
 }}
 

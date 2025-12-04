@@ -6,23 +6,23 @@ environments:
     project_id: "datagov-473122"
     location: "us-central1"
     bucket_name: "datalake_gdv_dev"
-    dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
-    dataset_silver: "silver_dpt_planeacion_municipal_dev"
-    dataset_gold: "gold_dpt_planeacion_municipal_dev"
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal"
   prod:
     project_id: "datagov-477214"
     location: "us-east1"
     bucket_name: "datalake_gdv_pdn"
     dataset_bronze: "bronze_dpt_planeacion_municipal"
     dataset_silver: "silver_dpt_planeacion_municipal"
-    dataset_gold: "gold_dpt_planeacion_municipal_dev"
+    dataset_gold: "gold_dpt_planeacion_municipal"
   local:
     project_id: "datagov-473122"  # Por defecto usa dev para desarrollo local
     location: "us-central1"
     bucket_name: "datalake_gdv_dev"
-    dataset_bronze: "bronze_dpt_planeacion_municipal_dev"
-    dataset_silver: "silver_dpt_planeacion_municipal_dev"
-    dataset_gold: "gold_dpt_planeacion_municipal_dev"
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal"
 
 evaplan:
   auth_endpoint: "http://207.246.89.62/ApiEvaplan/auth/login"
@@ -126,7 +126,7 @@ idi:
       - "idi_transformed_data_2023"
       - "idi_transformed_data_2024"
       - "idi_transformed_data_consolidated"
-    gold: "idi_processed_data"
+    gold: "IDI_PROCESSED_DATA"
   transform_config:
     skip_rows: 2
     sheet_name: null  # null = primera hoja
