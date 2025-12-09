@@ -145,33 +145,97 @@ with DAG(
         # Tareas dbt para crear las vistas en gold
         # Nota: En Composer, dbt debe estar instalado en el entorno.
         # Usamos 'dbt' directamente.
+        # Los comandos incluyen visualización de logs de dbt después de la ejecución.
+        
+        def _get_dbt_command_with_logs(dbt_command: str, dbt_project_dir: str) -> str:
+            """
+            Genera un comando bash que ejecuta dbt y muestra los logs de dbt después de la ejecución.
+            Los logs se muestran siempre, incluso si dbt falla.
+            """
+            # Obtener valores desde config.yaml
+            from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD, LOCATION
+            import json
+            
+            env_vars = {
+                "DBT_PROJECT_ID": PROJECT_ID,
+                "DBT_DATASET_BRONZE": DATASET_ID_BRONZE,
+                "DBT_DATASET_SILVER": DATASET_ID_SILVER,
+                "DBT_DATASET_GOLD": DATASET_ID_GOLD,
+                "DBT_LOCATION": LOCATION,
+            }
+            
+            # Construir comando con export de variables
+            export_vars = " && ".join([f'export {key}="{value}"' for key, value in env_vars.items()])
+            
+            # Construir argumentos --vars para pasar variables a dbt
+            dbt_vars = {
+                "project_id": env_vars["DBT_PROJECT_ID"],
+                "bronze_dataset": env_vars["DBT_DATASET_BRONZE"],
+                "silver_dataset": env_vars["DBT_DATASET_SILVER"],
+                "gold_dataset": env_vars["DBT_DATASET_GOLD"],
+            }
+            vars_json = json.dumps(dbt_vars)
+            vars_arg = f"--vars '{vars_json}'"
+            
+            # Ruta del archivo de log de dbt
+            log_file = os.path.join(dbt_project_dir, "logs", "dbt.log")
+            
+            # Comando completo que:
+            # 1. Exporta variables de entorno
+            # 2. Cambia al directorio del proyecto dbt
+            # 3. Ejecuta dbt y captura el código de salida
+            # 4. Muestra los logs siempre (incluso si falló)
+            # 5. Sale con el código de salida original
+            full_command = (
+                f'set +e && '  # Desactivar exit on error temporalmente
+                f'{export_vars} && '
+                f'cd {dbt_project_dir} && '
+                f'{dbt_command} {vars_arg} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1; '
+                f'DBT_EXIT_CODE=$? && '
+                f'echo "" && '
+                f'echo "==========================================" && '
+                f'echo "DBT LOGS (últimas 100 líneas):" && '
+                f'echo "==========================================" && '
+                f'if [ -f "{log_file}" ]; then '
+                f'tail -n 100 "{log_file}" || echo "No se pudieron leer los logs de dbt"; '
+                f'else '
+                f'echo "Archivo de log de dbt no encontrado en: {log_file}"; '
+                f'fi && '
+                f'echo "==========================================" && '
+                f'if [ $DBT_EXIT_CODE -ne 0 ]; then '
+                f'echo "DBT command failed with exit code: $DBT_EXIT_CODE"; '
+                f'fi && '
+                f'exit $DBT_EXIT_CODE'
+            )
+            
+            return full_command
         
         dbt_avance_mr = BashOperator(
             task_id="dbt_avance_mr_processed_data",
-            bash_command=get_dbt_command("dbt run --select evaplan_api_avance_mr_processed_data", DBT_PROJECT_DIR),
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_mr_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         dbt_avance_mp = BashOperator(
             task_id="dbt_avance_mp_processed_data",
-            bash_command=get_dbt_command("dbt run --select evaplan_api_avance_mp_processed_data", DBT_PROJECT_DIR),
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_mp_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         dbt_avance_x_subprograma = BashOperator(
             task_id="dbt_avance_x_subprograma_processed_data",
-            bash_command=get_dbt_command("dbt run --select evaplan_api_avance_x_subprograma_processed_data", DBT_PROJECT_DIR),
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_x_subprograma_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 
         dbt_avance_general = BashOperator(
             task_id="dbt_avance_general_processed_data",
-            bash_command=get_dbt_command("dbt run --select evaplan_api_avance_general_processed_data", DBT_PROJECT_DIR),
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_general_processed_data", DBT_PROJECT_DIR),
             append_env=True,
         )
 
-        # Dependencias dentro del grupo gold: ensure_dataset -> todas las vistas en paralelo
-        ensure_dataset_gold_task >> [dbt_avance_mr, dbt_avance_mp, dbt_avance_x_subprograma, dbt_avance_general]
+        # Dependencias dentro del grupo gold: ensure_dataset -> ejecución secuencial de todas las vistas
+        ensure_dataset_gold_task >> dbt_avance_mr >> dbt_avance_mp >> dbt_avance_x_subprograma >> dbt_avance_general
 
     # Tarea final
     end = EmptyOperator(
