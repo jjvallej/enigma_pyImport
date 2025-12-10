@@ -18,6 +18,8 @@ sources:
       - name: evaplan_api_avance_mp_raw_data
       - name: evaplan_api_avance_x_subprograma_raw_data
       - name: evaplan_api_avance_general_raw_data
+      - name: evaplan_api_avance_subprogramas_raw_data
+      - name: evaplan_api_avance_programas_raw_data
   - name: bronze_ipm_sisben
     schema: "{{ var('bronze_dataset') }}"
     tables:
@@ -35,6 +37,8 @@ sources:
       - name: evaplan_api_avance_mp_transformed_data
       - name: evaplan_api_avance_x_subprograma_transformed_data
       - name: evaplan_api_avance_general_transformed_data
+      - name: evaplan_api_avance_subprogramas_transformed_data
+      - name: evaplan_api_avance_programas_transformed_data
   - name: silver_ipm_sisben
     schema: "{{ var('silver_dataset') }}"
     tables:

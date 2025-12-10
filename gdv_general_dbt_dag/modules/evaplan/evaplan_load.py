@@ -329,6 +329,16 @@ def extract_data_from_json(json_data: Dict[str, Any], fuente: str, peri_idp: Opt
         if DEBUG:
             print(f"[DEBUG] Extrayendo {len(avance_general)} registros de AvanceGeneral del JSON (peri_idp: {peri_idp})")
         return avance_general, peri_idp
+    elif fuente == "avance_subprogramas":
+        avance_subprogramas = data.get("avanceSubProgramas", [])
+        if DEBUG:
+            print(f"[DEBUG] Extrayendo {len(avance_subprogramas)} registros de AvanceSubprogramas del JSON (peri_idp: {peri_idp})")
+        return avance_subprogramas, peri_idp
+    elif fuente == "avance_programas":
+        avance_programas = data.get("avanceProgramas", [])
+        if DEBUG:
+            print(f"[DEBUG] Extrayendo {len(avance_programas)} registros de AvanceProgramas del JSON (peri_idp: {peri_idp})")
+        return avance_programas, peri_idp
     else:
         raise ValueError(f"Fuente no reconocida: {fuente}")
 

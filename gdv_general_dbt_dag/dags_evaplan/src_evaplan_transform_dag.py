@@ -168,11 +168,18 @@ with DAG(
             export_vars = " && ".join([f'export {key}="{value}"' for key, value in env_vars.items()])
             
             # Construir argumentos --vars para pasar variables a dbt
+            from modules.config import CONF
             dbt_vars = {
                 "project_id": env_vars["DBT_PROJECT_ID"],
                 "bronze_dataset": env_vars["DBT_DATASET_BRONZE"],
                 "silver_dataset": env_vars["DBT_DATASET_SILVER"],
                 "gold_dataset": env_vars["DBT_DATASET_GOLD"],
+                "evaplan_gold_avance_mr_table_name": getattr(CONF.evaplan.tables.gold, "avance_mr", "evaplan_api_avance_mr_processed_data"),
+                "evaplan_gold_avance_mp_table_name": getattr(CONF.evaplan.tables.gold, "avance_mp", "evaplan_api_avance_mp_processed_data"),
+                "evaplan_gold_avance_x_subprograma_table_name": getattr(CONF.evaplan.tables.gold, "avance_x_subprograma", "evaplan_api_avance_x_subprograma_processed_data"),
+                "evaplan_gold_avance_general_table_name": getattr(CONF.evaplan.tables.gold, "avance_general", "evaplan_api_avance_general_processed_data"),
+                "evaplan_gold_avance_subprogramas_table_name": getattr(CONF.evaplan.tables.gold, "avance_subprogramas", "evaplan_api_avance_subprogramas_processed_data"),
+                "evaplan_gold_avance_programas_table_name": getattr(CONF.evaplan.tables.gold, "avance_programas", "evaplan_api_avance_programas_processed_data"),
             }
             vars_json = json.dumps(dbt_vars)
             vars_arg = f"--vars '{vars_json}'"
@@ -234,8 +241,20 @@ with DAG(
             append_env=True,
         )
 
+        dbt_avance_subprogramas = BashOperator(
+            task_id="dbt_avance_subprogramas_processed_data",
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_subprogramas_processed_data", DBT_PROJECT_DIR),
+            append_env=True,
+        )
+
+        dbt_avance_programas = BashOperator(
+            task_id="dbt_avance_programas_processed_data",
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_avance_programas_processed_data", DBT_PROJECT_DIR),
+            append_env=True,
+        )
+
         # Dependencias dentro del grupo gold: ensure_dataset -> ejecución secuencial de todas las vistas
-        ensure_dataset_gold_task >> dbt_avance_mr >> dbt_avance_mp >> dbt_avance_x_subprograma >> dbt_avance_general
+        ensure_dataset_gold_task >> dbt_avance_mr >> dbt_avance_mp >> dbt_avance_x_subprograma >> dbt_avance_general >> dbt_avance_subprogramas >> dbt_avance_programas
 
     # Tarea final
     end = EmptyOperator(

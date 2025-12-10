@@ -23,6 +23,8 @@ AVANCE_MR_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_mr}"
 AVANCE_MP_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_mp}"
 AVANCE_X_SUBPROGRAMA_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_x_subprograma}"
 AVANCE_GENERAL_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_general}"
+AVANCE_SUBPROGRAMAS_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_subprogramas}"
+AVANCE_PROGRAMAS_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_programas}"
 
 def get_auth_credentials() -> Dict[str, str]:
     """
@@ -528,6 +530,146 @@ def get_avance_general(token: str, peri_idp: int) -> Dict[str, Any]:
     except Exception as e:
         raise Exception(f"Error inesperado al obtener AvanceGeneral: {e}")
 
+def get_avance_subprogramas(token: str, peri_idp: int) -> Dict[str, Any]:
+    """
+    Obtiene los datos de AvanceSubprogramas desde la API de Evaplan.
+    
+    Args:
+        token: Token de autenticación Bearer
+        peri_idp: ID del periodo
+    
+    Returns:
+        Diccionario con la respuesta completa de la API
+    
+    Raises:
+        Exception: Si la petición falla
+    """
+    if DEBUG:
+        print(f"[INFO] Obteniendo AvanceSubprogramas desde la API de Evaplan...")
+        print(f"[DEBUG] Endpoint base: {AVANCE_SUBPROGRAMAS_ENDPOINT}")
+        print(f"[DEBUG] Periodo ID: {peri_idp}")
+    
+    try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        params = {"id": peri_idp}
+        
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_SUBPROGRAMAS_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
+            AVANCE_SUBPROGRAMAS_ENDPOINT,
+            headers=headers,
+            params=params,
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
+        )
+        
+        response.raise_for_status()
+        
+        result = response.json()
+        
+        if DEBUG:
+            print(f"[DEBUG] Respuesta de AvanceSubprogramas recibida")
+        
+        # Validar estructura de respuesta
+        if not result.get("success"):
+            error_msg = result.get("message", "Error desconocido al obtener AvanceSubprogramas")
+            raise Exception(f"Error al obtener AvanceSubprogramas: {error_msg}")
+        
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
+        
+        if DEBUG:
+            data = result.get("data", {})
+            avance_subprogramas = data.get("avanceSubProgramas", [])
+            print(f"[OK] Se obtuvieron {len(avance_subprogramas)} registro(s) de AvanceSubprogramas")
+        
+        return result
+        
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error al obtener AvanceSubprogramas desde la API de Evaplan: {e}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Error al parsear respuesta JSON de AvanceSubprogramas: {e}")
+    except Exception as e:
+        raise Exception(f"Error inesperado al obtener AvanceSubprogramas: {e}")
+
+def get_avance_programas(token: str, peri_idp: int) -> Dict[str, Any]:
+    """
+    Obtiene los datos de AvanceProgramas desde la API de Evaplan.
+    
+    Args:
+        token: Token de autenticación Bearer
+        peri_idp: ID del periodo
+    
+    Returns:
+        Diccionario con la respuesta completa de la API
+    
+    Raises:
+        Exception: Si la petición falla
+    """
+    if DEBUG:
+        print(f"[INFO] Obteniendo AvanceProgramas desde la API de Evaplan...")
+        print(f"[DEBUG] Endpoint base: {AVANCE_PROGRAMAS_ENDPOINT}")
+        print(f"[DEBUG] Periodo ID: {peri_idp}")
+    
+    try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        params = {"id": peri_idp}
+        
+        # Construir URL completa para logging
+        full_url = f"{AVANCE_PROGRAMAS_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
+            AVANCE_PROGRAMAS_ENDPOINT,
+            headers=headers,
+            params=params,
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
+        )
+        
+        response.raise_for_status()
+        
+        result = response.json()
+        
+        if DEBUG:
+            print(f"[DEBUG] Respuesta de AvanceProgramas recibida")
+        
+        # Validar estructura de respuesta
+        if not result.get("success"):
+            error_msg = result.get("message", "Error desconocido al obtener AvanceProgramas")
+            raise Exception(f"Error al obtener AvanceProgramas: {error_msg}")
+        
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
+        
+        if DEBUG:
+            data = result.get("data", {})
+            avance_programas = data.get("avanceProgramas", [])
+            print(f"[OK] Se obtuvieron {len(avance_programas)} registro(s) de AvanceProgramas")
+        
+        return result
+        
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error al obtener AvanceProgramas desde la API de Evaplan: {e}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Error al parsear respuesta JSON de AvanceProgramas: {e}")
+    except Exception as e:
+        raise Exception(f"Error inesperado al obtener AvanceProgramas: {e}")
+
 # ---------------------------
 # Funciones de GCS
 # ---------------------------
@@ -782,7 +924,9 @@ def save_avance_to_gcs(
         "AvanceMR": "avance_mr",
         "AvanceMP": "avance_mp",
         "AvanceXSubprograma": "avance_x_subprograma",
-        "AvanceGeneral": "avance_general"
+        "AvanceGeneral": "avance_general",
+        "AvanceSubprogramas": "avance_subprogramas",
+        "AvanceProgramas": "avance_programas"
     }
     
     # Convertir tipo_avance a formato minúsculas con guiones bajos
