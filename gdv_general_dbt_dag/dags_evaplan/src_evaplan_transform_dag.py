@@ -118,7 +118,7 @@ with DAG(
             python_callable=_ensure_dataset_silver_task,
         )
 
-        # Crear TaskGroups para cada fuente (pueden ejecutarse en paralelo)
+        # Crear TaskGroups para cada fuente (se ejecutan secuencialmente, una a la vez)
         transform_tasks = []
         
         for fuente in FUENTES:
@@ -131,8 +131,14 @@ with DAG(
                 
                 transform_tasks.append(fuente_group)
         
-        # Dependencias dentro del grupo silver: ensure_dataset -> todas las transformaciones
-        ensure_dataset_task >> transform_tasks
+        # Dependencias dentro del grupo silver: ensure_dataset -> transformaciones secuenciales
+        # Las transformaciones se ejecutan una después de otra, no en paralelo
+        if transform_tasks:
+            # Crear cadena secuencial: ensure_dataset -> primera -> segunda -> tercera -> ...
+            current_task = ensure_dataset_task
+            for next_task in transform_tasks:
+                current_task >> next_task
+                current_task = next_task
 
     # Grupo de tareas para la capa gold
     with TaskGroup(group_id="gold") as gold_group:
@@ -262,6 +268,8 @@ with DAG(
     )
 
     # Dependencias: 
-    # - start -> get_peri_idps -> silver (ensure_dataset -> todas las transformaciones en paralelo) -> gold -> end
+    # - start -> get_peri_idps -> silver (ensure_dataset -> transformaciones secuenciales) -> gold -> end
+    # - Las transformaciones en silver se ejecutan una después de otra, no en paralelo
+    # - El TaskGroup silver se completa cuando todas las transformaciones internas terminan
     start >> get_peri_idps_task >> silver_group >> gold_group >> end
 

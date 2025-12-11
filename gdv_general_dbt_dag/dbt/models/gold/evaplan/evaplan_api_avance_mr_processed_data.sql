@@ -1,6 +1,6 @@
 {{
   config(
-    materialized='view',
+    materialized='table',
     schema=var('gold_dataset'),
     alias=var('evaplan_gold_avance_mr_table_name', 'evaplan_api_avance_mr_processed_data')
   )

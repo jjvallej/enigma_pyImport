@@ -219,12 +219,13 @@ def get_all_peri_idps_from_bronze() -> Set[int]:
 
 def delete_records_by_peri_idp(dataset_id: str, table_name: str, peri_idps: Set[int]):
     """
-    Elimina registros de una tabla silver que tengan los peri_idp especificados.
+    Elimina TODOS los registros de una tabla silver que tengan los peri_idp especificados,
+    sin importar la fecha de lectura. Esto asegura que solo se mantengan los datos más recientes.
     
     Args:
         dataset_id: ID del dataset
         table_name: Nombre de la tabla
-        peri_idps: Set de peri_idp a eliminar
+        peri_idps: Set de peri_idp a eliminar (se eliminan TODOS los registros con estos peri_idp)
     """
     if not peri_idps:
         if DEBUG:
@@ -403,8 +404,12 @@ def copy_bronze_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None):
 def transform_fuente_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None):
     """
     Transforma una fuente completa de bronze a silver:
-    1. Elimina registros existentes con los peri_idp especificados
+    1. Elimina TODOS los registros existentes con los peri_idp especificados (sin importar la fecha)
     2. Copia nuevos datos de bronze a silver
+    
+    IMPORTANTE: Esta función elimina TODOS los registros con los peri_idp especificados,
+    sin importar la fecha de lectura. Esto asegura que Silver solo mantenga los datos
+    más recientes (última ejecución), mientras que el histórico completo se mantiene en Bronze.
     
     Args:
         fuente: Nombre de la fuente (periodos, avance_mr, etc.)
@@ -416,29 +421,33 @@ def transform_fuente_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None
     if peri_idps is None and fuente != "periodos":
         peri_idps = get_peri_idps_from_bronze_table(fuente)
     
-    # Eliminar registros existentes con esos peri_idp (solo si no es periodos)
-    if fuente != "periodos" and peri_idps:
-        delete_records_by_peri_idp(DATASET_ID_SILVER, silver_table, peri_idps)
-    elif fuente == "periodos":
-        # Para periodos, eliminar todos los registros de la fecha actual
-        fecha_actual = datetime.now(timezone.utc).date().isoformat()
+    # Eliminar TODOS los registros existentes (sin importar la fecha)
+    # Esto asegura que Silver solo tenga los datos más recientes
+    if fuente == "periodos":
+        # Para periodos, eliminar TODOS los registros (sin importar la fecha)
+        # para mantener solo los datos más recientes
+        # BigQuery requiere una condición WHERE, usamos WHERE TRUE para eliminar todo
         client = _bq_client()
         table_fqn = f"{PROJECT_ID}.{DATASET_ID_SILVER}.{silver_table}"
         
         if table_exists(DATASET_ID_SILVER, silver_table):
             delete_query = f"""
             DELETE FROM `{table_fqn}`
-            WHERE DATE(fecha_lectura) = DATE('{fecha_actual}')
+            WHERE TRUE
             """
             
             if DEBUG:
-                print(f"[INFO] Eliminando registros del día {fecha_actual} de la tabla {silver_table}")
+                print(f"[INFO] Eliminando TODOS los registros de la tabla {silver_table} (sin importar la fecha)")
             
             job = client.query(delete_query)
             job.result()
             
             if DEBUG:
-                print(f"[OK] Registros del día {fecha_actual} eliminados de {silver_table}")
+                print(f"[OK] Todos los registros eliminados de {silver_table}")
+    elif fuente != "periodos" and peri_idps:
+        if DEBUG:
+            print(f"[INFO] Eliminando TODOS los registros con peri_idp {sorted(peri_idps)} de {silver_table} (sin importar la fecha)")
+        delete_records_by_peri_idp(DATASET_ID_SILVER, silver_table, peri_idps)
     
     # Copiar datos de bronze a silver
     copy_bronze_to_silver(fuente, peri_idps)
