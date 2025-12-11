@@ -10,6 +10,8 @@ Lógica:
 from google.cloud import bigquery
 import os
 import re
+import pandas as pd
+import numpy as np
 from datetime import datetime, timezone
 from typing import List, Set, Optional
 from modules.config import PROJECT_ID, DATASET_ID_BRONZE, DATASET_ID_SILVER, DATASET_ID_GOLD, CONF, LOCATION
@@ -337,6 +339,48 @@ def copy_bronze_to_silver(fuente: str, peri_idps: Optional[Set[int]] = None):
         print(f"[INFO] Nombres de columnas transformados a snake_case")
         print(f"[DEBUG] Columnas transformadas: {list(df.columns)}")
         print(f"[DEBUG] Mapeo: {column_mapping}")
+    
+    # Reemplazar NULL, NaN y valores vacíos
+    # Para columnas numéricas: reemplazar con 0
+    # Para columnas string: reemplazar con "0"
+    # Excluir columnas de fecha/hora y booleanas
+    excluded_columns = ['fecha_lectura', 'fecha_cierre', 'fecha_apertura']  # Columnas que no deben modificarse
+    
+    for col in df.columns:
+        # Saltar columnas de fecha/hora y booleanas
+        if col.lower() in excluded_columns or 'fecha' in col.lower() or 'date' in col.lower() or 'time' in col.lower():
+            continue
+        
+        dtype = df[col].dtype
+        
+        # Identificar si es numérico (int, float) o string
+        is_numeric = pd.api.types.is_numeric_dtype(dtype)
+        is_datetime = pd.api.types.is_datetime64_any_dtype(dtype)
+        is_bool = pd.api.types.is_bool_dtype(dtype)
+        
+        # Saltar columnas de fecha/hora y booleanas
+        if is_datetime or is_bool:
+            continue
+        
+        if is_numeric:
+            # Para columnas numéricas: reemplazar NaN, None, y valores vacíos con 0
+            df[col] = df[col].fillna(0)
+            # También manejar casos donde puede haber strings que representan números
+            if df[col].dtype == 'object':
+                # Convertir a numérico, los que no se puedan convertir se convierten en NaN y luego en 0
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        else:
+            # Para columnas string: reemplazar NaN, None, y valores vacíos con "0"
+            # Primero convertir a string para manejar todos los casos
+            df[col] = df[col].astype(str)
+            # Reemplazar valores que representan NULL/NaN/vacío
+            df[col] = df[col].replace(['nan', 'None', 'NaN', 'null', 'NULL', '<NA>', 'NaT', ''], "0")
+            # También reemplazar strings que son solo espacios
+            df[col] = df[col].str.strip()
+            df[col] = df[col].replace('', "0")
+    
+    if DEBUG:
+        print(f"[INFO] Valores NULL, NaN y vacíos reemplazados: 0 para numéricos, '0' para strings (excluyendo fechas y booleanos)")
     
     # Verificar si la tabla silver existe
     silver_exists = table_exists(DATASET_ID_SILVER, silver_table)
