@@ -76,6 +76,10 @@ evaplan:
       avance_general: "evaplan_api_avance_general_processed_data"
       avance_subprogramas: "evaplan_api_avance_subprogramas_processed_data"
       avance_programas: "evaplan_api_avance_programas_processed_data"
+    gold_facts:
+      fact_entidad: "FACT_ENTIDAD"
+      fact_programa: "FACT_PROGRAMA"
+      fact_resumen: "FACT_RESUMEN"
   # Credenciales de autenticación
   # NOTA: Configurar las credenciales aquí para que el código funcione
   credentials:

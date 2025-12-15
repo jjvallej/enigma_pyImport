@@ -35,6 +35,9 @@ vars:
   evaplan_gold_avance_general_table_name: "evaplan_api_avance_general_processed_data"
   evaplan_gold_avance_subprogramas_table_name: "evaplan_api_avance_subprogramas_processed_data"
   evaplan_gold_avance_programas_table_name: "evaplan_api_avance_programas_processed_data"
+  evaplan_gold_fact_entidad_table_name: "FACT_ENTIDAD"
+  evaplan_gold_fact_programa_table_name: "FACT_PROGRAMA"
+  evaplan_gold_fact_resumen_table_name: "FACT_RESUMEN"
 
 # Configuring models
 models:

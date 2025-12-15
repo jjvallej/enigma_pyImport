@@ -47,3 +47,12 @@ sources:
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: DIM_IDC
+  - name: gold_evaplan
+    schema: "{{ var('gold_dataset') }}"
+    tables:
+      - name: evaplan_api_avance_mr_processed_data
+      - name: evaplan_api_avance_mp_processed_data
+      - name: evaplan_api_avance_x_subprograma_processed_data
+      - name: evaplan_api_avance_general_processed_data
+      - name: evaplan_api_avance_subprogramas_processed_data
+      - name: evaplan_api_avance_programas_processed_data
