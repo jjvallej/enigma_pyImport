@@ -34,7 +34,7 @@ Este módulo carga el diccionario directamente en gold, no en bronze. El dataset
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/idc/idc_dictionary_load.py"  
 Versión del archivo: 3.0
 

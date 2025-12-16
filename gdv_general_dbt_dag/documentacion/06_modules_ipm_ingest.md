@@ -26,11 +26,11 @@ La función "get_public_download_url" convierte un File ID de Google Drive a un 
 
 ## 7. Función download_file_from_public_link
 
-La función "download_file_from_public_link" descarga un archivo desde Google Drive usando un enlace público, soportando tanto archivos Excel como Google Sheets. La función primero extrae el File ID de la URL usando "extract_file_id_from_url". Luego detecta si es un Google Sheet verificando si la URL contiene "/spreadsheets/d/" o "/spreadsheets/". Crea una sesión de requests con headers que incluyen un User-Agent para evitar bloqueos. Intenta descargar el archivo usando el método detectado. Si obtiene un error 403 o 500 y no había detectado como Google Sheet, intenta nuevamente usando el método de Google Sheets. Si Google Drive muestra una página HTML en lugar del archivo, parsea el HTML buscando diferentes patrones de enlaces de descarga. Si encuentra un enlace, lo usa para descargar el archivo. Si no encuentra el enlace y no es Google Sheet, intenta el método de Google Sheets como último recurso. Determina el nombre del archivo desde el header "Content-Disposition" o usa un nombre por defecto. Crea un archivo temporal y descarga el contenido en chunks, mostrando progreso si está en modo debug. Retorna una tupla con la ruta del archivo temporal y el nombre original del archivo.
+La función "download_file_from_public_link" descarga un archivo desde Google Drive usando un enlace público, soportando tanto archivos Excel como Google Sheets. La función toma dos parámetros: "drive_url" que es la URL pública de Google Drive o File ID, y "file_name" que es un nombre opcional para el archivo local. La función primero extrae el File ID de la URL usando "extract_file_id_from_url". Luego detecta si es un Google Sheet verificando si la URL contiene "/spreadsheets/d/" o "/spreadsheets/". Crea una sesión de requests con headers que incluyen un User-Agent para evitar bloqueos. Intenta descargar el archivo usando el método detectado. Si obtiene un error 403 o 500 y no había detectado como Google Sheet, intenta nuevamente usando el método de Google Sheets. Si Google Drive muestra una página HTML en lugar del archivo, parsea el HTML buscando diferentes patrones de enlaces de descarga. Si encuentra un enlace, lo usa para descargar el archivo. Si no encuentra el enlace y no es Google Sheet, intenta el método de Google Sheets como último recurso. Determina el nombre del archivo desde el header "Content-Disposition" o usa un nombre por defecto basado en el File ID. Crea un archivo temporal con la extensión apropiada y descarga el contenido en chunks, mostrando progreso si está en modo debug. Retorna una tupla con la ruta del archivo temporal y el nombre original del archivo: `(ruta_local, nombre_original)`.
 
 ## 8. Función download_file_from_drive
 
-La función "download_file_from_drive" es un wrapper que llama a "download_file_from_public_link". Esta función proporciona una interfaz más simple y permite que el código que la llama no necesite conocer los detalles internos de cómo se descarga el archivo. Toma los mismos parámetros que "download_file_from_public_link" y retorna la misma tupla.
+La función "download_file_from_drive" es un wrapper que llama a "download_file_from_public_link". Esta función proporciona una interfaz más simple y permite que el código que la llama no necesite conocer los detalles internos de cómo se descarga el archivo. Toma dos parámetros: "drive_url_or_id" que es la URL pública de Google Drive o File ID, y "file_name" que es un nombre opcional para el archivo local. Retorna una tupla con la ruta del archivo temporal y el nombre original del archivo: `(ruta_local, nombre_original)`.
 
 ## 9. Función upload_file_to_gcs
 
@@ -38,7 +38,7 @@ La función "upload_file_to_gcs" sube un archivo local a Google Cloud Storage. L
 
 ## 10. Función move_file_from_drive_to_gcs
 
-La función "move_file_from_drive_to_gcs" es la función principal que orquesta todo el proceso de ingestión. Esta función toma cuatro parámetros: "drive_url_or_id" que puede ser una URL de Google Drive o un File ID, "bucket_name" que es el nombre del bucket, "folder_name" que es el nombre de la carpeta dentro del bucket con valor por defecto "IPM", y "destination_file_name" que es un nombre opcional para el archivo en GCS. La función primero descarga el archivo desde Google Drive usando "download_file_from_drive", que retorna una tupla con la ruta temporal y el nombre original. Luego determina el nombre del archivo de destino, usando el nombre original si no se proporciona uno. Construye la ruta completa en GCS combinando el nombre de la carpeta y el nombre del archivo. Sube el archivo a GCS usando "upload_file_to_gcs". Finalmente, en un bloque "finally", elimina el archivo temporal local para limpiar recursos. Retorna la URI completa del archivo en GCS.
+La función "move_file_from_drive_to_gcs" es la función principal que orquesta todo el proceso de ingestión. Esta función toma cuatro parámetros: "drive_url_or_id" que puede ser una URL de Google Drive o un File ID, "bucket_name" que es el nombre del bucket, "folder_name" que es el nombre de la carpeta dentro del bucket con valor por defecto "IPM", y "destination_file_name" que es un nombre opcional para el archivo en GCS. La función primero descarga el archivo desde Google Drive usando "download_file_from_drive", que retorna una tupla con la ruta temporal y el nombre original: `(local_file_path, original_file_name)`. Luego determina el nombre del archivo de destino, usando el nombre original extraído de Drive si no se proporciona uno explícitamente. Construye la ruta completa en GCS combinando el nombre de la carpeta y el nombre del archivo, normalizando las rutas para eliminar barras duplicadas y espacios. Sube el archivo a GCS usando "upload_file_to_gcs". Finalmente, en un bloque "finally", elimina el archivo temporal local para limpiar recursos, manejando errores de eliminación sin detener la ejecución. Retorna la URI completa del archivo en GCS en formato "gs://bucket/path".
 
 ## 11. Manejo de Errores
 
@@ -58,7 +58,7 @@ Es importante que los archivos en Google Drive estén configurados como público
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/ipm/ipm_ingest.py"  
 Versión del archivo: 3.0
 

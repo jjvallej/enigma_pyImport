@@ -30,7 +30,7 @@ La variable "CONF" se crea asignándole el valor de "sources_config". Esta varia
 
 ## 6. Determinación del Ambiente Activo
 
-La variable "ENV" contiene el ambiente activo que determina qué configuración se usará. Esta variable se obtiene de la variable de entorno "ENVIRONMENT" usando "os.getenv". Si la variable de entorno no está definida, se usa un valor por defecto. El valor por defecto actual es "prod", lo que significa que si no se configura la variable de entorno "ENVIRONMENT", el sistema usará la configuración de producción por defecto. Este valor puede cambiarse según las necesidades, usando "dev" para desarrollo o "prod" para producción.
+La variable "ENV" contiene el ambiente activo que determina qué configuración se usará. Esta variable se obtiene de la variable de entorno "ENVIRONMENT" usando "os.getenv". Si la variable de entorno no está definida, se usa un valor por defecto. El valor por defecto actual es "dev", lo que significa que si no se configura la variable de entorno "ENVIRONMENT", el sistema usará la configuración de desarrollo por defecto. Este valor puede cambiarse según las necesidades, usando "dev" para desarrollo o "prod" para producción.
 
 El código incluye comentarios que explican cómo cambiar este valor por defecto. Para desarrollo se debe usar "dev", y para producción se debe usar "prod". Es importante notar que en Cloud Composer se recomienda configurar la variable de entorno "ENVIRONMENT" en lugar de cambiar el valor por defecto en el código, ya que esto permite cambiar el ambiente sin modificar código.
 
@@ -130,7 +130,7 @@ El código está diseñado para no usar valores hardcodeados como fallback. Si u
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/config.py"  
 Versión del archivo: 3.0
 

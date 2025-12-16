@@ -58,7 +58,7 @@ Es importante que el archivo Excel tenga exactamente la estructura esperada con 
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/ipm/ipm_load.py"  
 Versión del archivo: 3.0
 

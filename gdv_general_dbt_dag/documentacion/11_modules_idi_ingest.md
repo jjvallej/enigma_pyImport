@@ -46,7 +46,7 @@ Este módulo es más frágil que otros porque depende de la estructura de págin
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/idi/idi_ingest.py"  
 Versión del archivo: 3.0
 

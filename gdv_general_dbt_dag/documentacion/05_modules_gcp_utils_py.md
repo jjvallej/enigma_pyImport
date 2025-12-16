@@ -110,7 +110,7 @@ El "PROJECT_ID" usado por estas funciones viene de "config.py", que a su vez lo 
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/gcp_utils.py"  
 Versión del archivo: 3.0
 

@@ -103,7 +103,7 @@ La plantilla implementa la arquitectura de **Medallion (Bronze-Silver-Gold)** co
 
 ---
 
-**Última actualización**: 2025-01-XX  
+**Última actualización**: 2025-12-15  
 **Versión de la plantilla**: 3.0  
 **Mantenedor**: Secretaría de Planeación Municipal
 

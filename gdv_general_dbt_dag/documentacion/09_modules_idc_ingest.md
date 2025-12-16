@@ -14,7 +14,7 @@ El archivo sigue la misma estructura que "ipm_ingest.py". Contiene imports y con
 
 ## 4. Funciones Principales
 
-Las funciones principales son idénticas a las de "ipm_ingest.py": "extract_file_id_from_url" extrae File IDs de URLs, "get_public_download_url" genera URLs de descarga, "download_file_from_public_link" descarga archivos desde Google Drive, "download_file_from_drive" es un wrapper, "upload_file_to_gcs" sube archivos a GCS, y "move_file_from_drive_to_gcs" orquesta todo el proceso. Todas estas funciones funcionan de la misma manera que en "ipm_ingest.py" y comparten la misma lógica de manejo de errores y casos especiales.
+Las funciones principales son idénticas a las de "ipm_ingest.py": "extract_file_id_from_url" extrae File IDs de URLs, "get_public_download_url" genera URLs de descarga, "download_file_from_public_link" descarga archivos desde Google Drive y retorna una tupla con la ruta temporal y el nombre original del archivo `(ruta_local, nombre_original)`, "download_file_from_drive" es un wrapper que también retorna la misma tupla, "upload_file_to_gcs" sube archivos a GCS, y "move_file_from_drive_to_gcs" orquesta todo el proceso. Todas estas funciones funcionan de la misma manera que en "ipm_ingest.py" y comparten la misma lógica de manejo de errores y casos especiales. La función "move_file_from_drive_to_gcs" usa el nombre original del archivo extraído de Drive si no se proporciona un nombre de destino explícito.
 
 ## 5. Configuración Específica de IDC
 
@@ -30,7 +30,7 @@ Este módulo es funcionalmente idéntico a "ipm_ingest.py" y comparte el mismo c
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/idc/idc_ingest.py"  
 Versión del archivo: 3.0
 

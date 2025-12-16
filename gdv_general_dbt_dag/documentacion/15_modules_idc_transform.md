@@ -46,7 +46,7 @@ Este módulo ejecuta transformaciones directamente en BigQuery en lugar de usar 
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/idc/idc_transform.py"  
 Versión del archivo: 3.0
 

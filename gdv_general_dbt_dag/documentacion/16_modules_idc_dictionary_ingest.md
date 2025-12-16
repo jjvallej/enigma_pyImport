@@ -14,7 +14,7 @@ El archivo está organizado de manera similar a otros módulos de ingestión. Co
 
 ## 4. Funciones Principales
 
-Las funciones principales son similares a las de otros módulos de ingestión. "extract_file_id_from_url" extrae File IDs de URLs usando patrones de expresiones regulares, pero con menos patrones porque los CSV generalmente usan formatos más simples. "get_public_download_url" genera URLs de descarga directa sin necesidad de detectar tipos de archivo. "download_file_from_public_link" descarga archivos CSV manejando páginas de advertencia de Google Drive. "upload_file_to_gcs" sube archivos a GCS creando carpetas automáticamente. "move_file_from_drive_to_gcs" orquesta todo el proceso descargando y subiendo el archivo.
+Las funciones principales son similares a las de otros módulos de ingestión. "extract_file_id_from_url" extrae File IDs de URLs usando patrones de expresiones regulares, pero con menos patrones porque los CSV generalmente usan formatos más simples. "get_public_download_url" genera URLs de descarga directa sin necesidad de detectar tipos de archivo. "download_file_from_public_link" descarga archivos CSV manejando páginas de advertencia de Google Drive y retorna una tupla con la ruta temporal y el nombre original del archivo: `(ruta_local, nombre_original)`. "upload_file_to_gcs" sube archivos a GCS creando carpetas automáticamente. "move_file_from_drive_to_gcs" orquesta todo el proceso descargando y subiendo el archivo, usando el nombre original extraído de Drive si no se proporciona un nombre de destino explícito.
 
 ## 5. Diferencias con Módulos de Excel
 
@@ -30,7 +30,7 @@ Este módulo es más simple que los módulos de Excel porque los CSV no requiere
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/idc/idc_dictionary_ingest.py"  
 Versión del archivo: 3.0
 

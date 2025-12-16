@@ -34,7 +34,7 @@ Este módulo es más simple que otros módulos de carga porque no carga datos di
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/ipm/ipm_sisben_load.py"  
 Versión del archivo: 3.0
 

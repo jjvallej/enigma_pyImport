@@ -30,7 +30,7 @@ Este módulo es intencionalmente simple porque las transformaciones reales se re
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/ipm/ipm_transform.py"  
 Versión del archivo: 3.0
 

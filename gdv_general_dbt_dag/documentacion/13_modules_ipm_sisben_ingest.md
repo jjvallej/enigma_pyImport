@@ -18,11 +18,11 @@ La función "download_file_from_drive_api" descarga un archivo desde Google Driv
 
 ## 5. Función download_file_from_public_link
 
-La función "download_file_from_public_link" es similar a la de "ipm_ingest.py" pero con mejoras para archivos grandes. Usa timeouts más largos de 600 segundos en lugar de 30 segundos para dar tiempo a archivos grandes. Usa chunks más grandes de 1MB en lugar de 8KB para mejor rendimiento. Incluye más patrones de búsqueda de enlaces de descarga en el HTML para ser más robusto. Maneja mejor los casos donde Google Drive muestra páginas de advertencia para archivos grandes, intentando múltiples métodos alternativos antes de fallar. Esta función se usa como fallback cuando la API de Google Drive no está disponible o falla.
+La función "download_file_from_public_link" es similar a la de "ipm_ingest.py" pero con mejoras para archivos grandes. Usa timeouts más largos de 600 segundos en lugar de 30 segundos para dar tiempo a archivos grandes. Usa chunks más grandes de 1MB en lugar de 8KB para mejor rendimiento. Incluye más patrones de búsqueda de enlaces de descarga en el HTML para ser más robusto. Maneja mejor los casos donde Google Drive muestra páginas de advertencia para archivos grandes, intentando múltiples métodos alternativos antes de fallar, incluyendo un método alternativo específico para Google Sheets grandes que usa el formato de exportación con confirmación. Esta función se usa como fallback cuando la API de Google Drive no está disponible o falla. Retorna una tupla con la ruta temporal y el nombre original del archivo: `(ruta_local, nombre_original)`.
 
 ## 6. Función download_file_from_drive
 
-La función "download_file_from_drive" es la función principal que intenta ambos métodos de descarga. Primero intenta usar la API de Google Drive con "download_file_from_drive_api" porque es mejor para archivos grandes. Si falla, intenta con el método de enlace público usando "download_file_from_public_link" como fallback. Si ambos métodos fallan, lanza una excepción con mensajes de error de ambos intentos. Esta estrategia de fallback asegura que el código funcione incluso si la autenticación no está disponible, pero prefiere la API para mejor rendimiento.
+La función "download_file_from_drive" es la función principal que intenta ambos métodos de descarga. Primero intenta usar la API de Google Drive con "download_file_from_drive_api" porque es mejor para archivos grandes. Si falla, intenta con el método de enlace público usando "download_file_from_public_link" como fallback. Si ambos métodos fallan, lanza una excepción con mensajes de error de ambos intentos. Esta estrategia de fallback asegura que el código funcione incluso si la autenticación no está disponible, pero prefiere la API para mejor rendimiento. Retorna una tupla con la ruta temporal y el nombre original del archivo: `(ruta_local, nombre_original)`.
 
 ## 7. Función move_file_within_gcs
 
@@ -46,7 +46,7 @@ Para archivos muy grandes, es recomendable que el archivo en Google Drive esté 
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/ipm/ipm_sisben_ingest.py"  
 Versión del archivo: 3.0
 

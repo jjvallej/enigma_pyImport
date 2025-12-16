@@ -144,7 +144,7 @@ La búsqueda recursiva hacia arriba está limitada a cinco niveles para evitar b
 
 ---
 
-Última actualización: 2025-01-XX  
+Última actualización: 2025-12-15  
 Archivo documentado: "modules/config_loader.py"  
 Versión del archivo: 3.0
 
