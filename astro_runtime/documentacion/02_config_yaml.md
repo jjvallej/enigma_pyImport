@@ -180,7 +180,19 @@ Para agregar una nueva fuente de datos, se agrega una nueva sección al archivo.
 
 Para cambiar nombres de tablas, solo se modifica el valor en "config.yaml". Por ejemplo, para cambiar el nombre de la tabla Gold de IPM, se modificaría el valor de "ipm.tables.gold" a "FACT_DANE_NUEVO". El código leerá automáticamente el nuevo nombre sin necesidad de modificaciones adicionales.
 
-## 13. Validación y Errores Comunes
+## 13. Sección database_sc_stackdb
+
+Esta sección parametriza la ingesta y carga de la base Postgres externa (`DataStackDB`):
+- `connection_id`: id de conexión en Airflow (Postgres) con host/puerto/usuario/clave reales.
+- `database`: nombre de la base (ej. `DataStackDB`).
+- `schema`: esquema origen (ej. `sc_stackdb`), usado en el SELECT.
+- `table`: tabla origen (ej. `encuesta_hogares`).
+- `host`, `port`, `user`, `password`: referencia informativa; la conexión efectiva la da Airflow con `connection_id`.
+- `gcs_base_folder`, `export_filename`, `export_format`, `field_delimiter`, `gzip`, `use_server_side_cursor`: parámetros de exportación a GCS.
+- `target_dataset`, `target_table`, `write_disposition`, `source_format`, `skip_leading_rows`, `autodetect`: parámetros de carga a BigQuery (bronze).
+- `schedule_interval`, `start_days_ago`: sugerencia de scheduling (por defecto ejecución manual).
+
+## 14. Validación y Errores Comunes
 
 Uno de los errores más comunes es que el archivo no se encuentre. Para resolverlo, se debe asegurar que "config.yaml" esté en "config/config.yaml" relativo a la raíz del proyecto. Otro error común es YAML inválido, que generalmente se debe a indentación incorrecta o valores sin comillas cuando contienen caracteres especiales. Se debe verificar que la indentación use espacios y no tabs, y que los valores estén entre comillas si contienen caracteres especiales.
 
@@ -188,7 +200,7 @@ Si el ambiente no está definido, el código fallará. Esto ocurre cuando "ENVIR
 
 Antes de desplegar, se recomienda validar que todos los ambientes tengan todos los campos requeridos, que los valores de "project_id", "bucket_name" y datasets existan realmente en Google Cloud Platform, que las URLs de fuentes sean accesibles, y que los nombres de tablas sigan las convenciones de nomenclatura de BigQuery, que no permiten guiones ni espacios.
 
-## 14. Notas Importantes
+## 15. Notas Importantes
 
 Es fundamental no hardcodear valores en el código. Si se necesita un valor configurable, se debe agregar a "config.yaml" en lugar de hardcodearlo en el código. El archivo "config.yaml" debe estar versionado en el control de versiones, pero se debe considerar usar variables de entorno o secretos para credenciales sensibles en lugar de almacenarlas directamente en el archivo.
 
@@ -196,6 +208,6 @@ Se pueden usar comentarios en YAML, indicados con el símbolo numeral, para docu
 
 ---
 
-Última actualización: 2025-12-15  
+Última actualización: 2025-12-17  
 Archivo documentado: "config/config.yaml"  
 Versión del archivo: 3.0
