@@ -116,11 +116,11 @@ Los modelos de Evaplan unen la tabla de periodos con cada tabla de avance, enriq
 
 Los modelos FACT de Evaplan crean tablas de hechos agregadas optimizadas para análisis:
 
-- evaplan_api_processed_data_fact_entidad: Tabla FACT_ENTIDAD que agrega datos de Metas de Producto (MP) y Metas de Resultado (MR) por entidad y año. Incluye métricas de avance, eficacia, eficiencia y efectividad. Agrupa por anio, clasificacion (Plan de Acción o Período de Gobierno), y entidad_dependencia (concatenación de código y nombre de entidad). Calcula métricas agregadas como promedios de avance, eficacia, eficiencia y efectividad, y cuenta de metas programadas y ejecutadas.
+- evaplan_api_processed_data_fact_entidad: Tabla FACT_ENTIDAD que agrega MP y MR por entidad y año. Usa datos de MP/MR procesados y cruza indicadores externos (eficacia, eficiencia, efectividad) provenientes de tablas de bronze parametrizadas. Calcula: cantidad de metas, programadas, distribución de avance (>=80, 25-80, <25), calificación por corte y asigna indicadores solo para 2024 según los archivos externos.
 
-- evaplan_api_processed_data_fact_programa: Tabla FACT_PROGRAMA que agrega datos de programas y subprogramas, incluyendo métricas de avance y ponderación. Selecciona datos de la tabla evaplan_api_avance_x_subprograma_processed_data y crea columnas concatenadas para PROGRAMA (código - nombre) y SUBPROGRAMA (código con formato 00 - nombre). Incluye métricas como cantidad de MP por subprograma, promedio de avance, avance ponderado, ponderación del subprograma, aporte al cumplimiento, y avance ponderado del programa.
+- evaplan_api_processed_data_fact_programa: Tabla FACT_PROGRAMA que resume programas y subprogramas con sus métricas de avance y ponderación. Usa la tabla de avance general procesada en gold; crea PROGRAMA en mayúsculas y SUBPROGRAMA con código 00 + nombre. Incluye MP_x_subprog, promedio de avance, metas programadas por subprograma, ponderación y avance ponderado del subprograma.
 
-- evaplan_api_processed_data_fact_resumen: Tabla FACT_RESUMEN que consolida y resume métricas clave de Evaplan (MP, MR, Subprogramas, Programas, Líneas Estratégicas) por año, clasificación e ítem. Usa UNION ALL para combinar datos de diferentes fuentes (MP, MR, Subprogramas, Programas, Líneas Estratégicas) y luego agrupa por anio, clasificacion, e item para calcular métricas agregadas. Incluye métricas como cantidad de registros, promedios de avance, eficacia, eficiencia y efectividad, y cuenta de registros programados y ejecutados.
+- evaplan_api_processed_data_fact_resumen: Tabla FACT_RESUMEN que consolida MP, MR, Subprogramas, Programas y Líneas Estratégicas por año y clasificación (Plan de Acción / Período de Gobierno). Deduplica por código (mp/mr/sub/prog/línea), calcula totales, programadas/no programadas, distribución de avance (>=80, 25-80, <25) y promedios PA/PG. Cruza indicadores externos (eficacia, eficiencia, efectividad) para 2024 desde una tabla de bronze parametrizada y replica métricas para PG sin indicadores.
 
 ## 8. Definición de Fuentes
 
@@ -164,7 +164,7 @@ Es importante entender que el proyecto dbt está completamente parametrizado y n
 
 ---
 
-Última actualización: 2025-12-15  
+Última actualización: 2025-12-17  
 Archivo documentado: "dbt/" (proyecto completo)  
 Versión del archivo: 3.0
 

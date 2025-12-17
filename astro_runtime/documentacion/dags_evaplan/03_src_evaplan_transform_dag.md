@@ -2,13 +2,13 @@
 
 ## 1. Información General
 
-Este archivo define el DAG de Airflow "src_planeacion_transform_evaplan" que se encarga de transformar los datos de Evaplan desde la capa bronze hacia las capas silver y gold. El DAG está diseñado para obtener los periodos únicos de las tablas bronze de la fecha actual, eliminar registros existentes con esos periodos de las tablas silver, copiar los nuevos datos transformados de bronze a silver, y crear vistas en gold que unen las tablas de periodos con las tablas de avances.
+Este archivo define el DAG de Airflow "src_planeacion_transform_evaplan" que se encarga de transformar los datos de Evaplan desde la capa bronze hacia las capas silver y gold. El DAG está diseñado para obtener los periodos únicos de las tablas bronze de la fecha actual, eliminar registros existentes con esos periodos de las tablas silver, copiar los nuevos datos transformados de bronze a silver, crear vistas/tablas processed en gold y, finalmente, ejecutar los modelos FACT de gold (FACT_ENTIDAD, FACT_PROGRAMA y FACT_RESUMEN).
 
-El propósito principal de este DAG es automatizar el proceso de transformación de datos de Evaplan, aplicando normalizaciones de nombres de columnas, manteniendo solo los datos más recientes de cada periodo en silver, y creando vistas estructuradas en gold que facilitan el análisis y la consulta de los datos.
+El propósito principal de este DAG es automatizar el proceso de transformación de datos de Evaplan, aplicando normalizaciones de nombres de columnas, manteniendo solo los datos más recientes de cada periodo en silver, creando vistas estructuradas en gold y materializando tablas de hechos listas para consumo analítico.
 
 ## 2. Estructura del DAG
 
-El DAG está compuesto por tres grupos principales de tareas. El primer grupo obtiene los periodos únicos de las tablas bronze. El segundo grupo "silver" contiene tareas que transforman los datos de bronze a silver para cada fuente. El tercer grupo "gold" contiene tareas que crean vistas en gold usando dbt. Además, hay tareas "start" y "end" que marcan el inicio y el final del flujo.
+El DAG está compuesto por cuatro bloques principales. El primer bloque obtiene los periodos únicos de las tablas bronze. El segundo bloque "silver" contiene tareas que transforman los datos de bronze a silver para cada fuente. El tercer bloque "gold" crea los modelos processed_data en gold usando dbt. El cuarto bloque "gold_facts" ejecuta los tres modelos FACT en gold (FACT_ENTIDAD, FACT_PROGRAMA, FACT_RESUMEN) también mediante dbt. Además, hay tareas "start" y "end" que marcan el inicio y el final del flujo.
 
 ## 3. Obtención de Periodos
 
@@ -24,7 +24,11 @@ Para cada fuente, la transformación ejecutada por "transform_fuente_to_silver" 
 
 ## 6. Grupo gold
 
-El grupo "gold" comienza con una tarea "ensure_dataset" que asegura que el dataset de gold exista en BigQuery. Luego, se ejecutan cuatro tareas dbt en paralelo que crean vistas en gold. Cada vista une la tabla de periodos de silver con una tabla de avance específica mediante un JOIN por "peri_idp". Las vistas creadas son "evaplan_api_avance_mr_processed_data", "evaplan_api_avance_mp_processed_data", "evaplan_api_avance_x_subprograma_processed_data" y "evaplan_api_avance_general_processed_data".
+El grupo "gold" comienza con una tarea "ensure_dataset" que asegura que el dataset de gold exista en BigQuery. Luego, se ejecutan seis tareas dbt en paralelo que crean las tablas/vistas processed_data en gold: "evaplan_api_avance_mr_processed_data", "evaplan_api_avance_mp_processed_data", "evaplan_api_avance_x_subprograma_processed_data", "evaplan_api_avance_general_processed_data", "evaplan_api_avance_subprogramas_processed_data" y "evaplan_api_avance_programas_processed_data". Estas tareas enriquecen los avances con información de periodos y preparan los datos para los hechos.
+
+## 7. Grupo gold_facts
+
+El bloque "gold_facts" corre después del grupo gold y ejecuta tres tareas dbt secuenciales/paralelas dentro de un TaskGroup dedicado: "dbt_fact_entidad", "dbt_fact_programa" y "dbt_fact_resumen". Estas tareas materializan las tablas de hechos FACT_ENTIDAD, FACT_PROGRAMA y FACT_RESUMEN en la capa gold. El flujo de dependencias es: start → get_peri_idps → silver → gold → gold_facts → end.
 
 ## 7. Configuración y Parámetros
 
@@ -52,7 +56,7 @@ Las transformaciones en gold se ejecutan utilizando modelos dbt. Cada modelo cre
 
 ## 13. Dependencias entre Tareas
 
-La tarea "start" precede a "get_peri_idps_task", que precede al grupo "silver". Dentro del grupo "silver", la tarea "ensure_dataset" precede a todas las transformaciones de fuentes, que se ejecutan en paralelo. El grupo "silver" precede al grupo "gold". Dentro del grupo "gold", la tarea "ensure_dataset" precede a todas las tareas dbt, que se ejecutan en paralelo. Finalmente, el grupo "gold" precede a "end".
+La tarea "start" precede a "get_peri_idps_task", que precede al grupo "silver". Dentro del grupo "silver", la tarea "ensure_dataset" precede a todas las transformaciones de fuentes, que se ejecutan en paralelo. El grupo "silver" precede al grupo "gold". Dentro del grupo "gold", la tarea "ensure_dataset" precede a las seis tareas dbt processed_data, que se ejecutan en paralelo. El grupo "gold" precede al grupo "gold_facts". Dentro de "gold_facts" se ejecutan las tres tareas dbt para FACT_ENTIDAD, FACT_PROGRAMA y FACT_RESUMEN. Finalmente, "gold_facts" precede a "end".
 
 ## 14. Características del DAG
 
@@ -65,4 +69,10 @@ Este DAG se utiliza como parte del flujo de procesamiento de datos de Evaplan, s
 ## 16. Notas Importantes
 
 Es importante asegurarse de que los datos ya estén cargados en la capa bronze antes de ejecutar este DAG, ya que las transformaciones dependen de la existencia de las tablas bronze de Evaplan. El DAG está diseñado para procesar solo los periodos que tienen datos de la fecha actual en bronze, lo que asegura que solo se transformen los datos más recientes. El proceso de eliminación de registros existentes en silver antes de cargar nuevos datos asegura que las tablas silver siempre contengan los últimos datos de cada periodo, evitando duplicados y manteniendo la consistencia. Es importante verificar que las credenciales de GCP tengan los permisos necesarios para leer desde el dataset de bronze y escribir en los datasets de silver y gold. Los modelos dbt deben estar correctamente configurados en el proyecto dbt y deben referenciar correctamente las tablas y variables definidas en "config.yaml". Las vistas en gold no duplican datos, lo que es eficiente en términos de almacenamiento, pero significa que cualquier cambio en las tablas de silver se reflejará automáticamente en las vistas de gold. El proceso de transformación normaliza los nombres de columnas a minúsculas y formato snake_case, lo que mejora la consistencia y facilita el trabajo con los datos.
+
+---
+
+Última actualización: 2025-12-17  
+Archivo documentado: "dags_evaplan/src_evaplan_transform_dag.py"  
+Versión del archivo: 3.1
 
