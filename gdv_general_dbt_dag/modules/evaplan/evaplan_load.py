@@ -302,6 +302,27 @@ def extract_data_from_json(json_data: Dict[str, Any], fuente: str, peri_idp: Opt
             except (ValueError, TypeError):
                 peri_idp = None
     
+    # Para sector_mp, data es un objeto que contiene AvanceMP (aunque el nombre diga AvanceMP, son datos de SectorMP)
+    if fuente == "sector_mp":
+        data_raw = json_data.get("data", {})
+        if DEBUG:
+            print(f"[DEBUG] Tipo de data_raw para sector_mp: {type(data_raw)}")
+            if isinstance(data_raw, dict):
+                print(f"[DEBUG] data_raw es dict, claves: {list(data_raw.keys())}")
+        # El endpoint SectorMP devuelve data.AvanceMP (aunque el nombre sea AvanceMP, son datos de SectorMP)
+        if isinstance(data_raw, dict):
+            sector_mp = data_raw.get("AvanceMP", [])
+        elif isinstance(data_raw, list):
+            # Si por alguna razón data es un array directo, usarlo
+            sector_mp = data_raw
+        else:
+            sector_mp = []
+        if DEBUG:
+            print(f"[DEBUG] Extrayendo {len(sector_mp)} registros de SectorMP del JSON (peri_idp: {peri_idp})")
+            if len(sector_mp) == 0:
+                print(f"[WARN] El array data.AvanceMP está vacío o no se pudo extraer. Estructura del JSON: success={json_data.get('success')}, tiene_data={'data' in json_data}")
+        return sector_mp, peri_idp
+    
     data = json_data.get("data", {})
     
     if fuente == "periodos":

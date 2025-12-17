@@ -210,7 +210,9 @@ def get_all_peri_idps_from_bronze() -> Set[int]:
     all_peri_idps = set()
     
     # Obtener peri_idp de cada fuente (excepto periodos que puede no tenerlo)
-    for fuente in ["avance_mr", "avance_mp", "avance_x_subprograma", "avance_general"]:
+    # Usar todas las fuentes del config, excluyendo periodos
+    fuentes = [f for f in CONF.evaplan.fuentes if f != "periodos"]
+    for fuente in fuentes:
         peri_idps = get_peri_idps_from_bronze_table(fuente)
         all_peri_idps.update(peri_idps)
     

@@ -35,6 +35,7 @@ evaplan:
     avance_general: "/datos/AvanceGeneral"
     avance_subprogramas: "/datos/AvanceSubprogramas"
     avance_programas: "/datos/AvanceProgramas"
+    sector_mp: "/datos/SectorMP"
   gcs_base_folder: "data_staging/dpt_planeacion_municipal/api_evaplan"
   gcs_folders:
     periodos: "periodos"
@@ -44,6 +45,7 @@ evaplan:
     avance_general: "avance_general"
     avance_subprogramas: "avance_subprogramas"
     avance_programas: "avance_programas"
+    sector_mp: "sector_mp"
   fuentes:
     - "periodos"
     - "avance_mr"
@@ -52,6 +54,7 @@ evaplan:
     - "avance_general"
     - "avance_subprogramas"
     - "avance_programas"
+    - "sector_mp"
   tables:
     bronze:
       periodos: "evaplan_api_periodos_raw_data"
@@ -61,6 +64,7 @@ evaplan:
       avance_general: "evaplan_api_avance_general_raw_data"
       avance_subprogramas: "evaplan_api_avance_subprogramas_raw_data"
       avance_programas: "evaplan_api_avance_programas_raw_data"
+      sector_mp: "evaplan_api_sector_mp_raw_data"
     silver:
       periodos: "evaplan_api_periodos_transformed_data"
       avance_mr: "evaplan_api_avance_mr_transformed_data"
@@ -69,6 +73,7 @@ evaplan:
       avance_general: "evaplan_api_avance_general_transformed_data"
       avance_subprogramas: "evaplan_api_avance_subprogramas_transformed_data"
       avance_programas: "evaplan_api_avance_programas_transformed_data"
+      sector_mp: "evaplan_api_sector_mp_transformed_data"
     gold:
       avance_mr: "evaplan_api_avance_mr_processed_data"
       avance_mp: "evaplan_api_avance_mp_processed_data"
@@ -76,6 +81,7 @@ evaplan:
       avance_general: "evaplan_api_avance_general_processed_data"
       avance_subprogramas: "evaplan_api_avance_subprogramas_processed_data"
       avance_programas: "evaplan_api_avance_programas_processed_data"
+      sector_mp: "evaplan_api_sector_mp_processed_data"
     gold_facts:
       fact_entidad: "FACT_ENTIDAD"
       fact_programa: "FACT_PROGRAMA"

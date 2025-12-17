@@ -58,6 +58,7 @@ from modules.evaplan.evaplan_ingest import (
     get_avance_general,
     get_avance_subprogramas,
     get_avance_programas,
+    get_sector_mp,
     save_avance_to_gcs,
 )
 
@@ -777,6 +778,103 @@ with DAG(
         python_callable=_save_avance_programas_to_gcs_task,
     )
 
+    # Tarea 17: Obtener SectorMP
+    def _get_sector_mp_task(ti):
+        """
+        Task que obtiene los datos de SectorMP desde la API de Evaplan para TODOS los periodos.
+        Lee los periodos desde GCS y procesa cada uno.
+        """
+        # Obtener token desde XCom
+        token = ti.xcom_pull(task_ids="authenticate")
+        
+        if not token:
+            raise ValueError("No se encontró token de autenticación. La tarea de autenticación debe ejecutarse primero.")
+        
+        # Obtener todos los periodos desde GCS
+        periodos = ti.xcom_pull(task_ids="read_periodos_from_gcs")
+        
+        if not periodos or not isinstance(periodos, list):
+            raise ValueError("No se encontraron periodos. La tarea de leer periodos desde GCS debe ejecutarse primero.")
+        
+        print(f"[INFO] Obteniendo SectorMP desde la API de Evaplan para {len(periodos)} periodo(s)...")
+        
+        # Procesar todos los periodos
+        sectores_mp = []
+        for periodo in periodos:
+            peri_idp = periodo.get('peri_idp')
+            if not peri_idp:
+                print(f"[WARN] Periodo sin peri_idp, se omite: {periodo}")
+                continue
+            
+            print(f"[DEBUG] Procesando periodo: {periodo.get('peri_nombre', 'N/A')} (ID: {peri_idp})")
+            
+            # Obtener SectorMP para este periodo
+            sector_mp_data = get_sector_mp(token=token, peri_idp=peri_idp)
+            sectores_mp.append({
+                'periodo': periodo,
+                'avance_data': sector_mp_data
+            })
+        
+        print(f"[OK] SectorMP obtenido exitosamente para {len(sectores_mp)} periodo(s).")
+        
+        # Retornar lista de sectores con sus periodos
+        return sectores_mp
+
+    get_sector_mp_task = PythonOperator(
+        task_id="get_sector_mp",
+        python_callable=_get_sector_mp_task,
+    )
+
+    # Tarea 18: Guardar SectorMP en GCS
+    def _save_sector_mp_to_gcs_task(ti):
+        """
+        Task que guarda las respuestas de SectorMP en archivos JSON en GCS para TODOS los periodos.
+        """
+        # Obtener datos desde XCom
+        sectores_mp = ti.xcom_pull(task_ids="get_sector_mp")
+        
+        if not sectores_mp or not isinstance(sectores_mp, list):
+            raise ValueError("No se encontraron datos de SectorMP. La tarea de obtener SectorMP debe ejecutarse primero.")
+        
+        bucket_name = DEFAULT_BUCKET_NAME
+        folder_name = f"{CONF.evaplan.gcs_base_folder}/{CONF.evaplan.gcs_folders.sector_mp}"
+        
+        print(f"[INFO] Guardando {len(sectores_mp)} archivo(s) de SectorMP en GCS...")
+        print(f"[INFO] Bucket destino: {bucket_name}")
+        print(f"[INFO] Carpeta destino: {folder_name}")
+        
+        # Guardar cada sector en GCS
+        gcs_uris = []
+        for item in sectores_mp:
+            periodo = item.get('periodo')
+            avance_data = item.get('avance_data')
+            peri_idp = periodo.get('peri_idp')
+            
+            if not peri_idp or not avance_data:
+                print(f"[WARN] Datos incompletos para periodo {periodo.get('peri_nombre', 'N/A')}, se omite")
+                continue
+            
+            # Guardar en GCS
+            gcs_uri = save_avance_to_gcs(
+                avance_data=avance_data,
+                bucket_name=bucket_name,
+                folder_name=folder_name,
+                tipo_avance="SectorMP",
+                peri_idp=peri_idp
+            )
+            
+            gcs_uris.append(gcs_uri)
+            print(f"[OK] SectorMP guardado para periodo {periodo.get('peri_nombre', 'N/A')}: {gcs_uri}")
+        
+        print(f"[OK] Se guardaron {len(gcs_uris)} archivo(s) de SectorMP exitosamente.")
+        
+        return gcs_uris
+
+    save_sector_mp_task = PythonOperator(
+        task_id="save_sector_mp_to_gcs",
+        python_callable=_save_sector_mp_to_gcs_task,
+    )
+
     # Tarea para disparar el DAG de load
     trigger_load_dag = TriggerDagRunOperator(
         task_id="trigger_load_evaplan",
@@ -797,7 +895,8 @@ with DAG(
         get_avance_x_subprograma_task,
         get_avance_general_task,
         get_avance_subprogramas_task,
-        get_avance_programas_task
+        get_avance_programas_task,
+        get_sector_mp_task
     ]
     
     # Guardar todos los avances después de obtenerlos
@@ -807,6 +906,7 @@ with DAG(
     get_avance_general_task >> save_avance_general_task
     get_avance_subprogramas_task >> save_avance_subprogramas_task
     get_avance_programas_task >> save_avance_programas_task
+    get_sector_mp_task >> save_sector_mp_task
     
     # Disparar el DAG de load cuando todas las tareas de guardado terminen
     [
@@ -815,6 +915,7 @@ with DAG(
         save_avance_x_subprograma_task,
         save_avance_general_task,
         save_avance_subprogramas_task,
-        save_avance_programas_task
+        save_avance_programas_task,
+        save_sector_mp_task
     ] >> trigger_load_dag >> end
 

@@ -186,6 +186,7 @@ with DAG(
                 "evaplan_gold_avance_general_table_name": getattr(CONF.evaplan.tables.gold, "avance_general", "evaplan_api_avance_general_processed_data"),
                 "evaplan_gold_avance_subprogramas_table_name": getattr(CONF.evaplan.tables.gold, "avance_subprogramas", "evaplan_api_avance_subprogramas_processed_data"),
                 "evaplan_gold_avance_programas_table_name": getattr(CONF.evaplan.tables.gold, "avance_programas", "evaplan_api_avance_programas_processed_data"),
+                "evaplan_gold_sector_mp_table_name": getattr(CONF.evaplan.tables.gold, "sector_mp", "evaplan_api_sector_mp_processed_data"),
                 "evaplan_gold_fact_entidad_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_entidad", "FACT_ENTIDAD"),
                 "evaplan_gold_fact_programa_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_programa", "FACT_PROGRAMA"),
                 "evaplan_gold_fact_resumen_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_resumen", "FACT_RESUMEN"),
@@ -262,8 +263,14 @@ with DAG(
             append_env=True,
         )
 
+        dbt_sector_mp = BashOperator(
+            task_id="dbt_sector_mp_processed_data",
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_sector_mp_processed_data", DBT_PROJECT_DIR),
+            append_env=True,
+        )
+
         # Dependencias dentro del grupo gold: ensure_dataset -> ejecución secuencial de todas las vistas
-        ensure_dataset_gold_task >> dbt_avance_mr >> dbt_avance_mp >> dbt_avance_x_subprograma >> dbt_avance_general >> dbt_avance_subprogramas >> dbt_avance_programas
+        ensure_dataset_gold_task >> dbt_avance_mr >> dbt_avance_mp >> dbt_avance_x_subprograma >> dbt_avance_general >> dbt_avance_subprogramas >> dbt_avance_programas >> dbt_sector_mp
 
     # Grupo de tareas para la capa gold_facts
     with TaskGroup(group_id="gold_facts") as gold_facts_group:

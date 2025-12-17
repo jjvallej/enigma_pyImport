@@ -25,6 +25,7 @@ AVANCE_X_SUBPROGRAMA_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_x
 AVANCE_GENERAL_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_general}"
 AVANCE_SUBPROGRAMAS_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_subprogramas}"
 AVANCE_PROGRAMAS_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.avance_programas}"
+SECTOR_MP_ENDPOINT = f"{API_BASE_URL}{CONF.evaplan.endpoints.sector_mp}"
 
 def get_auth_credentials() -> Dict[str, str]:
     """
@@ -670,6 +671,75 @@ def get_avance_programas(token: str, peri_idp: int) -> Dict[str, Any]:
     except Exception as e:
         raise Exception(f"Error inesperado al obtener AvanceProgramas: {e}")
 
+def get_sector_mp(token: str, peri_idp: int) -> Dict[str, Any]:
+    """
+    Obtiene los datos de SectorMP desde la API de Evaplan.
+    
+    Args:
+        token: Token de autenticación Bearer
+        peri_idp: ID del periodo
+    
+    Returns:
+        Diccionario con la respuesta completa de la API
+    
+    Raises:
+        Exception: Si la petición falla
+    """
+    if DEBUG:
+        print(f"[INFO] Obteniendo SectorMP desde la API de Evaplan...")
+        print(f"[DEBUG] Endpoint base: {SECTOR_MP_ENDPOINT}")
+        print(f"[DEBUG] Periodo ID: {peri_idp}")
+    
+    try:
+        # Usar Session como en los otros módulos para mejor compatibilidad
+        session = requests.Session()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        
+        params = {"id": peri_idp}
+        
+        # Construir URL completa para logging
+        full_url = f"{SECTOR_MP_ENDPOINT}?{urlencode(params)}"
+        print(f"[DEBUG] URL completa con ID: {full_url}")
+        
+        response = session.get(
+            SECTOR_MP_ENDPOINT,
+            headers=headers,
+            params=params,
+            timeout=240  # Timeout de 4 minutos para dar más tiempo a la conexión desde Composer
+        )
+        
+        response.raise_for_status()
+        
+        result = response.json()
+        
+        if DEBUG:
+            print(f"[DEBUG] Respuesta de SectorMP recibida")
+        
+        # Validar estructura de respuesta
+        if not result.get("success"):
+            error_msg = result.get("message", "Error desconocido al obtener SectorMP")
+            raise Exception(f"Error al obtener SectorMP: {error_msg}")
+        
+        # Agregar peri_idp al nivel raíz de la respuesta
+        result["peri_idp"] = peri_idp
+        
+        if DEBUG:
+            data = result.get("data", [])
+            print(f"[OK] Se obtuvieron {len(data)} registro(s) de SectorMP")
+        
+        return result
+        
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error al obtener SectorMP desde la API de Evaplan: {e}")
+    except json.JSONDecodeError as e:
+        raise Exception(f"Error al parsear respuesta JSON de SectorMP: {e}")
+    except Exception as e:
+        raise Exception(f"Error inesperado al obtener SectorMP: {e}")
+
 # ---------------------------
 # Funciones de GCS
 # ---------------------------
@@ -926,7 +996,8 @@ def save_avance_to_gcs(
         "AvanceXSubprograma": "avance_x_subprograma",
         "AvanceGeneral": "avance_general",
         "AvanceSubprogramas": "avance_subprogramas",
-        "AvanceProgramas": "avance_programas"
+        "AvanceProgramas": "avance_programas",
+        "SectorMP": "sector_mp"
     }
     
     # Convertir tipo_avance a formato minúsculas con guiones bajos
@@ -939,7 +1010,13 @@ def save_avance_to_gcs(
     
     try:
         data = avance_data.get("data", {})
-        fecha_consulta_str = data.get("fecha_consulta")
+        # Para sector_mp, data es un array, no un objeto, así que fecha_consulta está en el nivel raíz
+        if tipo_avance == "SectorMP" and isinstance(data, list):
+            # Para sector_mp, la fecha_consulta está en el nivel raíz del JSON, no en data
+            fecha_consulta_str = avance_data.get("fecha_consulta")
+        else:
+            # Para otros tipos, fecha_consulta está dentro de data (que es un objeto)
+            fecha_consulta_str = data.get("fecha_consulta") if isinstance(data, dict) else None
         
         if fecha_consulta_str:
             # Parsear fecha_consulta (formato esperado: "2025-11-22 13:33:26")
