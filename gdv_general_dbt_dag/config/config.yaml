@@ -86,6 +86,7 @@ evaplan:
       fact_entidad: "FACT_ENTIDAD"
       fact_programa: "FACT_PROGRAMA"
       fact_resumen: "FACT_RESUMEN"
+      fact_sector: "FACT_SECTOR"
   # Credenciales de autenticación
   # NOTA: Configurar las credenciales aquí para que el código funcione
   credentials:

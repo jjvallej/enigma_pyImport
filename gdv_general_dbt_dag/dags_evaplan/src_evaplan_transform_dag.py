@@ -190,6 +190,7 @@ with DAG(
                 "evaplan_gold_fact_entidad_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_entidad", "FACT_ENTIDAD"),
                 "evaplan_gold_fact_programa_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_programa", "FACT_PROGRAMA"),
                 "evaplan_gold_fact_resumen_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_resumen", "FACT_RESUMEN"),
+                "evaplan_gold_fact_sector_table_name": getattr(CONF.evaplan.tables.gold_facts, "fact_sector", "FACT_SECTOR"),
             }
             vars_json = json.dumps(dbt_vars)
             vars_arg = f"--vars '{vars_json}'"
@@ -293,8 +294,14 @@ with DAG(
             append_env=True,
         )
 
+        dbt_fact_sector = BashOperator(
+            task_id="dbt_fact_sector",
+            bash_command=_get_dbt_command_with_logs("dbt run --select evaplan_api_processed_data_fact_sector", DBT_PROJECT_DIR),
+            append_env=True,
+        )
+
         # Dependencias dentro del grupo gold_facts: ejecución secuencial
-        dbt_fact_entidad >> dbt_fact_programa >> dbt_fact_resumen
+        dbt_fact_entidad >> dbt_fact_programa >> dbt_fact_resumen >> dbt_fact_sector
 
     # Tarea final
     end = EmptyOperator(
