@@ -6,11 +6,11 @@ El archivo "modules/evaplan/evaplan_ingest.py" es un módulo Python que se encar
 
 ## 2. Propósito y Funcionalidad
 
-El archivo "evaplan_ingest.py" cumple varias funciones críticas. En primer lugar, autentica con la API de Evaplan usando credenciales desde "config.yaml" y obtiene un token de acceso Bearer. En segundo lugar, obtiene la lista de periodos disponibles desde la API. En tercer lugar, identifica el periodo más reciente. En cuarto lugar, obtiene datos de diferentes endpoints de la API como AvanceMR, AvanceMP, AvanceXSubprograma, AvanceGeneral, AvanceSubprogramas, y AvanceProgramas, cada uno requiriendo el ID del periodo. En quinto lugar, guarda todas las respuestas JSON en GCS con nombres de archivo que incluyen fechas y IDs de periodo para trazabilidad. Finalmente, proporciona funciones para leer los JSON más recientes desde GCS para uso en procesos posteriores.
+El archivo "evaplan_ingest.py" cumple varias funciones críticas. En primer lugar, autentica con la API de Evaplan usando credenciales desde "config.yaml" y obtiene un token de acceso Bearer. En segundo lugar, obtiene la lista de periodos disponibles desde la API. En tercer lugar, identifica el periodo más reciente. En cuarto lugar, obtiene datos de diferentes endpoints de la API como AvanceMR, AvanceMP, AvanceXSubprograma, AvanceGeneral, AvanceSubprogramas, AvanceProgramas, y SectorMP, cada uno requiriendo el ID del periodo. En quinto lugar, guarda todas las respuestas JSON en GCS con nombres de archivo que incluyen fechas y IDs de periodo para trazabilidad. Finalmente, proporciona funciones para leer los JSON más recientes desde GCS para uso en procesos posteriores.
 
 ## 3. Estructura del Archivo
 
-El archivo está organizado en varias secciones. La primera sección contiene imports, configuración, y construcción de endpoints completos desde "config.yaml", incluyendo los nuevos endpoints "AVANCE_SUBPROGRAMAS_ENDPOINT" y "AVANCE_PROGRAMAS_ENDPOINT". La segunda sección contiene funciones de autenticación como "get_auth_credentials" y "authenticate". La tercera sección contiene funciones para obtener datos de la API como "get_periodos", "get_periodo_mas_reciente", "get_avance_mr", "get_avance_mp", "get_avance_x_subprograma", "get_avance_general", "get_avance_subprogramas", y "get_avance_programas". La cuarta sección contiene funciones para interactuar con GCS como "upload_json_to_gcs", "save_periodos_to_gcs", "read_latest_periodos_json_from_gcs", "get_all_periodos_from_json", y "save_avance_to_gcs".
+El archivo está organizado en varias secciones. La primera sección contiene imports, configuración, y construcción de endpoints completos desde "config.yaml", incluyendo los endpoints "AVANCE_SUBPROGRAMAS_ENDPOINT", "AVANCE_PROGRAMAS_ENDPOINT" y "SECTOR_MP_ENDPOINT". La segunda sección contiene funciones de autenticación como "get_auth_credentials" y "authenticate". La tercera sección contiene funciones para obtener datos de la API como "get_periodos", "get_periodo_mas_reciente", "get_avance_mr", "get_avance_mp", "get_avance_x_subprograma", "get_avance_general", "get_avance_subprogramas", "get_avance_programas", y "get_sector_mp". La cuarta sección contiene funciones para interactuar con GCS como "upload_json_to_gcs", "save_periodos_to_gcs", "read_latest_periodos_json_from_gcs", "get_all_periodos_from_json", y "save_avance_to_gcs".
 
 ## 4. Función get_auth_credentials
 
@@ -22,7 +22,7 @@ La función "authenticate" autentica con la API de Evaplan y obtiene un token de
 
 ## 6. Funciones de Obtención de Datos
 
-Las funciones "get_periodos", "get_avance_mr", "get_avance_mp", "get_avance_x_subprograma", "get_avance_general", "get_avance_subprogramas", y "get_avance_programas" siguen un patrón similar. Cada función toma un token de autenticación y parámetros específicos como "peri_idp". Crea una sesión de requests con headers que incluyen el token Bearer. Hace una petición GET al endpoint correspondiente con parámetros de query si es necesario. Valida la respuesta verificando que tenga "success" como "True". Agrega "peri_idp" al nivel raíz de la respuesta para trazabilidad. Retorna el diccionario completo de la respuesta. Todas usan timeouts de 240 segundos y manejan errores de manera consistente. Las funciones "get_avance_subprogramas" y "get_avance_programas" fueron agregadas para soportar los nuevos endpoints de la API de Evaplan.
+Las funciones "get_periodos", "get_avance_mr", "get_avance_mp", "get_avance_x_subprograma", "get_avance_general", "get_avance_subprogramas", "get_avance_programas", y "get_sector_mp" siguen un patrón similar. Cada función toma un token de autenticación y parámetros específicos como "peri_idp". Crea una sesión de requests con headers que incluyen el token Bearer. Hace una petición GET al endpoint correspondiente con parámetros de query si es necesario. Valida la respuesta verificando que tenga "success" como "True". Agrega "peri_idp" al nivel raíz de la respuesta para trazabilidad. Retorna el diccionario completo de la respuesta. Todas usan timeouts de 240 segundos y manejan errores de manera consistente. Las funciones "get_avance_subprogramas", "get_avance_programas" y "get_sector_mp" fueron agregadas para soportar los nuevos endpoints de la API de Evaplan. La función "get_sector_mp" maneja la estructura especial de la respuesta donde los datos están en "data.AvanceMP" aunque el endpoint sea SectorMP.
 
 ## 7. Funciones de GCS
 
@@ -34,7 +34,7 @@ Los archivos JSON se guardan con nombres específicos que incluyen información 
 
 ## 9. Cómo se Usa en el Código
 
-El módulo se usa desde los DAGs de Airflow de Evaplan. Los DAGs primero autentican con la API, obtienen los periodos, identifican el más reciente, obtienen datos de todos los endpoints (incluyendo los nuevos AvanceSubprogramas y AvanceProgramas), y guardan todo en GCS. Los DAGs pueden leer los JSON más recientes desde GCS en pasos posteriores para cargar los datos a BigQuery. El módulo proporciona una interfaz completa para interactuar con la API y almacenar los datos en el Data Lake. El mapeo de nombres de endpoints incluye "AvanceSubprogramas" y "AvanceProgramas" para mantener consistencia con los nombres de carpetas en GCS.
+El módulo se usa desde los DAGs de Airflow de Evaplan. Los DAGs primero autentican con la API, obtienen los periodos, identifican el más reciente, obtienen datos de todos los endpoints (incluyendo AvanceSubprogramas, AvanceProgramas y SectorMP), y guardan todo en GCS. Los DAGs pueden leer los JSON más recientes desde GCS en pasos posteriores para cargar los datos a BigQuery. El módulo proporciona una interfaz completa para interactuar con la API y almacenar los datos en el Data Lake. El mapeo de nombres de endpoints incluye "AvanceSubprogramas", "AvanceProgramas" y "SectorMP" para mantener consistencia con los nombres de carpetas en GCS. La función "save_avance_to_gcs" maneja el caso especial de SectorMP donde "fecha_consulta" está en el nivel raíz del JSON dentro de "data".
 
 ## 10. Manejo de Errores
 
@@ -46,7 +46,7 @@ Es crítico que las credenciales estén correctamente configuradas en "config.ya
 
 ---
 
-Última actualización: 2025-12-15  
+Última actualización: 2025-12-17  
 Archivo documentado: "modules/evaplan/evaplan_ingest.py"  
-Versión del archivo: 3.0
+Versión del archivo: 3.1
 

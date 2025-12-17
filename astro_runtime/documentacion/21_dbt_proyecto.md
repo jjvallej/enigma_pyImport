@@ -112,6 +112,8 @@ Los modelos de Evaplan unen la tabla de periodos con cada tabla de avance, enriq
 
 - evaplan_api_avance_programas_processed_data: Tabla que une la tabla de periodos con la tabla de avance de programas. Proporciona datos agregados de programas con información del periodo.
 
+- evaplan_api_sector_mp_processed_data: Tabla que une la tabla de periodos con la tabla de SectorMP. Proporciona datos de avance de Metas de Producto agrupadas por sector con información del periodo. Los datos incluyen información sectorial como códigos MGA y SAP, nombre del sector, cantidad de metas, distribución de avance por rangos, y calificación promedio por sector.
+
 ### 7.10 Modelos Gold - Evaplan (FACT Tables)
 
 Los modelos FACT de Evaplan crean tablas de hechos agregadas optimizadas para análisis:
@@ -122,9 +124,11 @@ Los modelos FACT de Evaplan crean tablas de hechos agregadas optimizadas para an
 
 - evaplan_api_processed_data_fact_resumen: Tabla FACT_RESUMEN que consolida MP, MR, Subprogramas, Programas y Líneas Estratégicas por año y clasificación (Plan de Acción / Período de Gobierno). Deduplica por código (mp/mr/sub/prog/línea), calcula totales, programadas/no programadas, distribución de avance (>=80, 25-80, <25) y promedios PA/PG. Cruza indicadores externos (eficacia, eficiencia, efectividad) para 2024 desde una tabla de bronze parametrizada y replica métricas para PG sin indicadores.
 
+- evaplan_api_processed_data_fact_sector: Tabla FACT_SECTOR que transforma y estructura los datos de SectorMP para análisis. Convierte nombres de columnas a MAYÚSCULAS según el estándar de las tablas FACT, calcula porcentajes de avance por rangos (>=80, 25-80, <25) dividiendo las cantidades por el total de metas, y proporciona una estructura optimizada para dashboards y reportes. Incluye dimensiones (COD_MGA, COD_SAP, SECTOR), métricas base (CAN_MP, CANTIDAD_NP, MP_PROGRAMADAS), rangos de avance en cantidades y porcentajes, y calificación promedio por sector.
+
 ## 8. Definición de Fuentes
 
-El archivo "sources.yml" define todas las fuentes de datos que los modelos dbt pueden referenciar usando la función "source()". Este archivo organiza las fuentes por nombre lógico y especifica el schema y las tablas disponibles. Las fuentes definidas incluyen "bronze_ipmv2" con la tabla "ipm_raw_data", "bronze_idc" con las tres tablas de IDC, "bronze_evaplan" con las siete tablas de Evaplan (periodos, avance_mr, avance_mp, avance_x_subprograma, avance_general, avance_subprogramas, y avance_programas), "bronze_ipm_sisben" con la tabla de IPM SISBEN, "bronze_idi" con las tablas de IDI por año, "silver_evaplan" con las siete tablas transformadas de Evaplan, "silver_ipm_sisben" con la tabla transformada de IPM SISBEN, "gold_idc" con la tabla dimensional "DIM_IDC", y "gold_evaplan" con las seis tablas processed_data de Evaplan. El uso de fuentes permite que dbt valide las dependencias y genere documentación automática sobre el linaje de datos.
+El archivo "sources.yml" define todas las fuentes de datos que los modelos dbt pueden referenciar usando la función "source()". Este archivo organiza las fuentes por nombre lógico y especifica el schema y las tablas disponibles. Las fuentes definidas incluyen "bronze_ipmv2" con la tabla "ipm_raw_data", "bronze_idc" con las tres tablas de IDC, "bronze_evaplan" con las ocho tablas de Evaplan (periodos, avance_mr, avance_mp, avance_x_subprograma, avance_general, avance_subprogramas, avance_programas, y sector_mp), "bronze_ipm_sisben" con la tabla de IPM SISBEN, "bronze_idi" con las tablas de IDI por año, "silver_evaplan" con las ocho tablas transformadas de Evaplan, "silver_ipm_sisben" con la tabla transformada de IPM SISBEN, "gold_idc" con la tabla dimensional "DIM_IDC", y "gold_evaplan" con las siete tablas processed_data de Evaplan. El uso de fuentes permite que dbt valide las dependencias y genere documentación automática sobre el linaje de datos.
 
 ## 9. Macros Personalizadas
 

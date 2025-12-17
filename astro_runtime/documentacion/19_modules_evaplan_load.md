@@ -18,7 +18,7 @@ La función "get_json_files_from_current_date" obtiene todos los archivos JSON m
 
 ## 5. Función extract_data_from_json
 
-La función "extract_data_from_json" extrae los datos relevantes del JSON según el tipo de fuente. La función valida que el JSON tenga "success" como "True", obtiene el "peri_idp" del JSON si no se proporciona en el nombre del archivo, accede a la sección "data" del JSON, y extrae el array correspondiente según la fuente: "periodos" para periodos, "AvanceMR" para avance_mr, "AvanceMP" para avance_mp, "AvanceXSubprograma" para avance_x_subprograma, "AvanceGeneral" para avance_general, "avanceSubProgramas" para avance_subprogramas, y "avanceProgramas" para avance_programas. Retorna una tupla con la lista de registros y el "peri_idp". Esta función es crítica porque cada tipo de fuente tiene una estructura JSON diferente y necesita extraer los datos del lugar correcto.
+La función "extract_data_from_json" extrae los datos relevantes del JSON según el tipo de fuente. La función valida que el JSON tenga "success" como "True", obtiene el "peri_idp" del JSON si no se proporciona en el nombre del archivo, accede a la sección "data" del JSON, y extrae el array correspondiente según la fuente: "periodos" para periodos, "AvanceMR" para avance_mr, "AvanceMP" para avance_mp, "AvanceXSubprograma" para avance_x_subprograma, "AvanceGeneral" para avance_general, "avanceSubProgramas" para avance_subprogramas, "avanceProgramas" para avance_programas, y "AvanceMP" dentro de "data" para sector_mp. Retorna una tupla con la lista de registros y el "peri_idp". Esta función es crítica porque cada tipo de fuente tiene una estructura JSON diferente y necesita extraer los datos del lugar correcto. Para sector_mp, la función maneja la estructura especial donde los datos están en "data.AvanceMP" aunque el endpoint sea SectorMP.
 
 ## 6. Función normalize_json_records
 
@@ -42,7 +42,7 @@ El módulo maneja "peri_idp" de manera especial porque es una columna crítica p
 
 ## 11. Cómo se Usa en el Código
 
-El módulo se usa desde los DAGs de Airflow de Evaplan. Los DAGs llaman a "load_json_files_to_bq" para cada fuente, pasando el nombre de la fuente como "periodos", "avance_mr", "avance_mp", "avance_x_subprograma", "avance_general", "avance_subprogramas", o "avance_programas", el nombre del bucket desde "DEFAULT_BUCKET_NAME", el dataset desde "DATASET_ID_BRONZE", y el nombre de la tabla que se obtiene automáticamente desde "config.yaml" usando "get_table_name_for_fuente". La función maneja toda la lógica de carga automáticamente.
+El módulo se usa desde los DAGs de Airflow de Evaplan. Los DAGs llaman a "load_json_files_to_bq" para cada fuente, pasando el nombre de la fuente como "periodos", "avance_mr", "avance_mp", "avance_x_subprograma", "avance_general", "avance_subprogramas", "avance_programas", o "sector_mp", el nombre del bucket desde "DEFAULT_BUCKET_NAME", el dataset desde "DATASET_ID_BRONZE", y el nombre de la tabla que se obtiene automáticamente desde "config.yaml" usando "get_table_name_for_fuente". La función maneja toda la lógica de carga automáticamente. Para sector_mp, la función aplica lógica especial para extraer datos de "data.AvanceMP" debido a la estructura específica de la respuesta de la API.
 
 ## 12. Notas Importantes
 
@@ -50,7 +50,7 @@ El módulo busca solo archivos de la fecha actual o ayer para evitar procesar ar
 
 ---
 
-Última actualización: 2025-12-15  
+Última actualización: 2025-12-17  
 Archivo documentado: "modules/evaplan/evaplan_load.py"  
-Versión del archivo: 3.0
+Versión del archivo: 3.1
 

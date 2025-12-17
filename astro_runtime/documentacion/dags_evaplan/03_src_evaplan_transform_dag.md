@@ -24,11 +24,11 @@ Para cada fuente, la transformación ejecutada por "transform_fuente_to_silver" 
 
 ## 6. Grupo gold
 
-El grupo "gold" comienza con una tarea "ensure_dataset" que asegura que el dataset de gold exista en BigQuery. Luego, se ejecutan seis tareas dbt en paralelo que crean las tablas/vistas processed_data en gold: "evaplan_api_avance_mr_processed_data", "evaplan_api_avance_mp_processed_data", "evaplan_api_avance_x_subprograma_processed_data", "evaplan_api_avance_general_processed_data", "evaplan_api_avance_subprogramas_processed_data" y "evaplan_api_avance_programas_processed_data". Estas tareas enriquecen los avances con información de periodos y preparan los datos para los hechos.
+El grupo "gold" comienza con una tarea "ensure_dataset" que asegura que el dataset de gold exista en BigQuery. Luego, se ejecutan siete tareas dbt en secuencia que crean las tablas/vistas processed_data en gold: "evaplan_api_avance_mr_processed_data", "evaplan_api_avance_mp_processed_data", "evaplan_api_avance_x_subprograma_processed_data", "evaplan_api_avance_general_processed_data", "evaplan_api_avance_subprogramas_processed_data", "evaplan_api_avance_programas_processed_data" y "evaplan_api_sector_mp_processed_data". Estas tareas enriquecen los avances con información de periodos y preparan los datos para los hechos.
 
 ## 7. Grupo gold_facts
 
-El bloque "gold_facts" corre después del grupo gold y ejecuta tres tareas dbt secuenciales/paralelas dentro de un TaskGroup dedicado: "dbt_fact_entidad", "dbt_fact_programa" y "dbt_fact_resumen". Estas tareas materializan las tablas de hechos FACT_ENTIDAD, FACT_PROGRAMA y FACT_RESUMEN en la capa gold. El flujo de dependencias es: start → get_peri_idps → silver → gold → gold_facts → end.
+El bloque "gold_facts" corre después del grupo gold y ejecuta cuatro tareas dbt secuenciales dentro de un TaskGroup dedicado: "dbt_fact_entidad", "dbt_fact_programa", "dbt_fact_resumen" y "dbt_fact_sector". Estas tareas materializan las tablas de hechos FACT_ENTIDAD, FACT_PROGRAMA, FACT_RESUMEN y FACT_SECTOR en la capa gold. El flujo de dependencias es: start → get_peri_idps → silver → gold → gold_facts → end.
 
 ## 7. Configuración y Parámetros
 
