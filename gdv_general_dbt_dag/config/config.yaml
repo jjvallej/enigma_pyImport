@@ -148,3 +148,35 @@ idi:
     sheet_name: null  # null = primera hoja
     columns_to_drop: null  # null o lista de columnas
 
+# Conexión demo a base de datos Postgres (sc_stackdb)
+database_sc_stackdb:
+  # Datos de conexión (placeholders, reemplazar con credenciales reales en Airflow)
+  connection_id: "con_database_sc_stackdb"
+  database: "DataStackDB"    # usar la base sc_stackdb (DynamicBD)
+  schema: "sc_stackdb"   # search_path/schema donde está encuesta_hogares
+  table: "encuesta_hogares"
+  host: "172.16.19.3"
+  port: 5432
+  user: "app_owner"
+  password: "Ecf5#a87gd5A17bC_9BCB9"
+
+  # Configuración GCS para la exportación
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/database_sc_stackdb"
+  export_filename: "encuesta_hogares/{{ ds_nodash }}/encuesta_hogares.csv"
+  export_format: "csv"            # csv o json
+  field_delimiter: ","
+  gzip: false
+  use_server_side_cursor: true
+
+  # Configuración de carga a BigQuery (bronze)
+  target_dataset: "bronze_dpt_planeacion_municipal"
+  target_table: "database_test_raw_data"
+  write_disposition: "WRITE_TRUNCATE"
+  source_format: "CSV"
+  skip_leading_rows: 1
+  autodetect: true
+
+  # Scheduling sugerido (puede sobrescribirse en el DAG)
+  schedule_interval: null  # usar null para ejecución manual; puede ser "@daily"
+  start_days_ago: 1
+
