@@ -7,7 +7,8 @@ from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.google.cloud.transfers.postgres_to_gcs import PostgresToGCSOperator
 from airflow.providers.google.cloud.hooks.gcs import GCSHook
-from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.standard.operators.python import PythonOperator
 from airflow.utils import timezone
 
 import os
@@ -54,6 +55,24 @@ def ensure_gcs_folder():
     )
     print(f"[OK] Prefijo creado en GCS: gs://{DEFAULT_BUCKET_NAME}/{prefix}")
 
+
+def check_db_connection():
+    """Verifica conexión a Postgres y muestra credenciales usadas (password sin enmascarar, bajo pedido)."""
+    conn_id = DB_CFG.connection_id
+    hook = PostgresHook(postgres_conn_id=conn_id)
+    conn = hook.get_connection(conn_id)
+
+    print("[INFO] Verificando conexión Postgres con:")
+    print(f"  host={conn.host} port={conn.port} schema/database={conn.schema}")
+    print(f"  login={conn.login} password={conn.password}")
+    print(f"  extra={conn.extra_dejson}")
+
+    with hook.get_conn() as pg_conn:
+        with pg_conn.cursor() as cur:
+            cur.execute("SELECT 1;")
+            res = cur.fetchone()
+            print(f"[OK] Conexión exitosa. SELECT 1 -> {res}")
+
 DEFAULT_ARGS = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -75,6 +94,11 @@ with DAG(
 ) as dag:
     start = EmptyOperator(task_id="start")
 
+    check_conn = PythonOperator(
+        task_id="check_db_connection",
+        python_callable=check_db_connection,
+    )
+
     ensure_folder = PythonOperator(
         task_id="ensure_gcs_folder",
         python_callable=ensure_gcs_folder,
@@ -94,5 +118,5 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
-    start >> ensure_folder >> extract_to_gcs >> end
+    start >> check_conn >> ensure_folder >> extract_to_gcs >> end
 
