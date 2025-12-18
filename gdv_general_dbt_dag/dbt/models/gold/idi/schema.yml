@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: idi_processed_data
+    description: |
+      Vista gold que apunta directamente a la tabla consolidada de Silver (idi_transformed_data_consolidated).
+      Contiene datos consolidados del Índice de Desarrollo e Innovación (IDI) para análisis final.
+    columns:
+      - name: territorio
+        description: Nombre del territorio
+        data_type: STRING
+      - name: ano
+        description: Año del indicador
+        data_type: INT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+

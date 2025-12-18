@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: idi_transformed_data_2023
+    description: |
+      Modelo que contiene datos transformados del Índice de Desarrollo e Innovación (IDI) para el año 2023.
+      Incluye normalización de nombres de departamentos y estructura de datos.
+    columns:
+      - name: territorio
+        description: Nombre del territorio (departamento)
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: idi_transformed_data_2024
+    description: |
+      Modelo que contiene datos transformados del Índice de Desarrollo e Innovación (IDI) para el año 2024.
+      Incluye normalización de nombres de departamentos y estructura de datos.
+    columns:
+      - name: territorio
+        description: Nombre del territorio (departamento)
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: idi_transformed_data_consolidated
+    description: |
+      Modelo consolidado que une los datos de IDI de 2024 y 2023 homologados.
+      Normaliza nombres de departamentos eliminando acentos y caracteres especiales.
+      Este es el modelo final de la capa silver para IDI, listo para ser consumido por la capa gold.
+    columns:
+      - name: anio
+        description: Año del indicador (2023 o 2024)
+        data_type: INT64
+      - name: territorio
+        description: Nombre del territorio (departamento) normalizado en mayúsculas sin acentos
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+

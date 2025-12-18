@@ -119,7 +119,7 @@ SELECT
   CAST(uv.valor_normalizado AS FLOAT64) AS VALOR_NORMALIZADO,
   CAST(uv.ranking AS INT64) AS VALOR_RANKING
 FROM unified_values uv
-INNER JOIN `datagov-473122`.`gold_dpt_planeacion_municipal_dev`.`dim_idc` d
+INNER JOIN `datagov-473122`.`gold_dpt_planeacion_municipal_dev`.`DIM_IDC` d
   ON UPPER(REPLACE(uv.id_subindicador, '_', '-')) = UPPER(d.ID_SUBINDICADOR)
 ORDER BY
   uv.departamento,

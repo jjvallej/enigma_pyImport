@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: idc_fill_nulls_dato_original
+    description: |
+      Modelo que llena valores nulos en la tabla de datos originales de IDC.
+      Primera etapa de transformación en el pipeline de IDC.
+    columns:
+      - name: departamento
+        description: Nombre del departamento
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: idc_lowercase_columns_dato_original
+    description: |
+      Modelo que convierte nombres de columnas a minúsculas en la tabla de datos originales.
+      Etapa intermedia en el pipeline de transformación de IDC.
+    columns:
+      - name: departamento
+        description: Nombre del departamento en minúsculas
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: idc_uppercase_dato_original
+    description: |
+      Modelo final que normaliza la columna departamento a mayúsculas sin acentos ni caracteres especiales.
+      Ejemplo: "Archipiélago de San Andrés" -> "ARCHIPIELAGO DE SAN ANDRES".
+      Este es el modelo final para datos originales, usado en el modelo gold idc_processed_data.
+    columns:
+      - name: departamento
+        description: Nombre del departamento normalizado en mayúsculas sin acentos
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: idc_round_decimals_dato_original
+    description: |
+      Modelo que redondea valores decimales en la tabla de datos originales.
+      Aplica redondeo a los indicadores numéricos de IDC.
+    columns:
+      - name: departamento
+        description: Nombre del departamento
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+
+  - name: idc_round_decimals_valor_normalizado
+    description: |
+      Modelo que redondea valores decimales en la tabla de valores normalizados.
+      Aplica redondeo a los indicadores numéricos normalizados de IDC.
+    columns:
+      - name: departamento
+        description: Nombre del departamento
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+
+  - name: idc_round_integers_valor_ranking
+    description: |
+      Modelo que redondea valores a enteros en la tabla de valores de ranking.
+      Convierte valores de ranking a números enteros.
+    columns:
+      - name: departamento
+        description: Nombre del departamento
+        data_type: STRING
+      - name: ano_idc
+        description: Año del indicador IDC
+        data_type: INT64
+
+

@@ -1,0 +1,229 @@
+version: 2
+
+models:
+  - name: ipm_processed_data
+    description: |
+      Modelo gold que consume la tabla final de silver (ipm_transform_clean).
+      Estructura final con columnas en mayúsculas, sin porcentajes, sin sufijo _abs y sin fecha_lectura.
+      Contiene datos del Índice de Pobreza Multidimensional (IPM) por municipio.
+    columns:
+      - name: cod_mpio
+        description: Código del municipio
+        data_type: STRING
+      - name: Municipio
+        description: Nombre del municipio
+        data_type: STRING
+      - name: Total
+        description: Total de población
+        data_type: FLOAT64
+      - name: IPM_Pobre
+        description: Cantidad de personas en pobreza multidimensional
+        data_type: FLOAT64
+      - name: IPM_No_Pobre
+        description: Cantidad de personas no pobres multidimensionalmente
+        data_type: FLOAT64
+      - name: I1_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I1
+        data_type: FLOAT64
+      - name: I1_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I1
+        data_type: FLOAT64
+      - name: I2_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I2
+        data_type: FLOAT64
+      - name: I2_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I2
+        data_type: FLOAT64
+      - name: I3_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I3
+        data_type: FLOAT64
+      - name: I3_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I3
+        data_type: FLOAT64
+      - name: I4_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I4
+        data_type: FLOAT64
+      - name: I4_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I4
+        data_type: FLOAT64
+      - name: I5_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I5
+        data_type: FLOAT64
+      - name: I5_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I5
+        data_type: FLOAT64
+      - name: I6_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I6
+        data_type: FLOAT64
+      - name: I6_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I6
+        data_type: FLOAT64
+      - name: I7_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I7
+        data_type: FLOAT64
+      - name: I7_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I7
+        data_type: FLOAT64
+      - name: I8_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I8
+        data_type: FLOAT64
+      - name: I8_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I8
+        data_type: FLOAT64
+      - name: I9_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I9
+        data_type: FLOAT64
+      - name: I9_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I9
+        data_type: FLOAT64
+      - name: I10_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I10
+        data_type: FLOAT64
+      - name: I10_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I10
+        data_type: FLOAT64
+      - name: I11_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I11
+        data_type: FLOAT64
+      - name: I11_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I11
+        data_type: FLOAT64
+      - name: I12_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I12
+        data_type: FLOAT64
+      - name: I12_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I12
+        data_type: FLOAT64
+      - name: I13_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I13
+        data_type: FLOAT64
+      - name: I13_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I13
+        data_type: FLOAT64
+      - name: I14_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I14
+        data_type: FLOAT64
+      - name: I14_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I14
+        data_type: FLOAT64
+      - name: I15_CON_PRIVACION
+        description: Cantidad de personas con privación en indicador I15
+        data_type: FLOAT64
+      - name: I15_SIN_PRIVACION
+        description: Cantidad de personas sin privación en indicador I15
+        data_type: FLOAT64
+
+  - name: ipm_sisben_processed_data
+    description: |
+      Vista gold que selecciona columnas de descripción (texto) y valores numéricos de la capa silver para análisis final.
+      Contiene datos del SISBEN con información de vivienda, servicios, gastos, salud, educación, trabajo e ingresos.
+    columns:
+      - name: FICHA
+        description: Número de ficha SISBEN
+        data_type: STRING
+      - name: CODIGO_DEPARTAMENTO
+        description: Código del departamento
+        data_type: STRING
+      - name: DEPARTAMENTO
+        description: Nombre del departamento
+        data_type: STRING
+      - name: CODIGO_MUNICIPIO
+        description: Código del municipio
+        data_type: STRING
+      - name: CODIGO_CLASE
+        description: Código de clase (CABECERA, RURAL, etc.)
+        data_type: STRING
+      - name: GRUPO_SISBEN
+        description: Grupo SISBEN
+        data_type: STRING
+      - name: NIVEL_SISBEN
+        description: Nivel SISBEN
+        data_type: STRING
+      - name: TIPO_VIVIENDA
+        description: Tipo de vivienda
+        data_type: STRING
+      - name: MATERIAL_PAREDES
+        description: Material de las paredes
+        data_type: STRING
+      - name: ELIMINACION_BASURA
+        description: Método de eliminación de basura
+        data_type: STRING
+      - name: SERVICIO_ENERGIA
+        description: Servicio de energía
+        data_type: STRING
+      - name: SERVICIO_ALCANTARILLADO
+        description: Servicio de alcantarillado
+        data_type: STRING
+      - name: SERVICIO_GAS
+        description: Servicio de gas
+        data_type: STRING
+      - name: SERVICIO_ACUEDUCTO
+        description: Servicio de acueducto
+        data_type: STRING
+      - name: CANTIDAD_CUARTOS
+        description: Cantidad de cuartos en la vivienda
+        data_type: FLOAT64
+      - name: CANTIDAD_HOGARES
+        description: Cantidad de hogares
+        data_type: FLOAT64
+      - name: GASTO_ALIMENTO
+        description: Gasto en alimentos
+        data_type: FLOAT64
+      - name: GASTO_TRANSPORTE
+        description: Gasto en transporte
+        data_type: FLOAT64
+      - name: GASTO_EDUCACION
+        description: Gasto en educación
+        data_type: FLOAT64
+      - name: GASTO_SALUD
+        description: Gasto en salud
+        data_type: FLOAT64
+      - name: IPM
+        description: Indicador de pobreza multidimensional (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I1
+        description: Indicador I1 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I2
+        description: Indicador I2 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I3
+        description: Indicador I3 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I4
+        description: Indicador I4 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I5
+        description: Indicador I5 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I6
+        description: Indicador I6 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I7
+        description: Indicador I7 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I8
+        description: Indicador I8 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I9
+        description: Indicador I9 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I10
+        description: Indicador I10 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I11
+        description: Indicador I11 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I12
+        description: Indicador I12 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I13
+        description: Indicador I13 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I14
+        description: Indicador I14 de IPM (1 o 0)
+        data_type: FLOAT64
+      - name: IPM_I15
+        description: Indicador I15 de IPM (1 o 0)
+        data_type: FLOAT64
+

@@ -1,0 +1,355 @@
+version: 2
+
+models:
+  - name: evaplan_api_avance_mr_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_mr.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance de Metas de Resultado con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_avance_mp_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_mp.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance de Metas de Producto con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_avance_x_subprograma_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_x_subprograma.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance por subprograma con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_avance_general_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_general.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance general con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_avance_subprogramas_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_subprogramas.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance de subprogramas con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_avance_programas_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de avance_programas.
+      Realiza un JOIN por peri_idp para enriquecer los datos de avance de programas con toda la información del periodo.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_sector_mp_processed_data
+    description: |
+      Modelo gold que une la tabla de periodos con la tabla de sector_mp.
+      Realiza un JOIN por peri_idp para enriquecer los datos de sector_mp con toda la información del periodo.
+      Este modelo prepara los datos para la creación de la tabla FACT_SECTOR.
+    columns:
+      - name: peri_idp
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: peri_nombre
+        description: Nombre del periodo
+        data_type: STRING
+      - name: sector_mga
+        description: Código MGA del sector
+        data_type: FLOAT64
+      - name: sector_sap
+        description: Código SAP del sector
+        data_type: FLOAT64
+      - name: nombre_sector_sap
+        description: Nombre del sector según SAP
+        data_type: STRING
+      - name: cant_mp
+        description: Cantidad de metas programadas
+        data_type: FLOAT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_processed_data_fact_sector
+    description: |
+      Tabla FACT_SECTOR en la capa gold que contiene métricas agregadas de avance por sector.
+      Incluye rangos de avance (mayores o iguales a 80%, entre 25% y 80%, menores a 25%),
+      porcentajes calculados y calificaciones por meta programada.
+      Esta tabla está diseñada para análisis y reportes de avance por sector.
+    columns:
+      - name: ANIO
+        description: Identificador del periodo (peri_idp)
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre del periodo en mayúsculas
+        data_type: STRING
+      - name: FECHA_CIERRE
+        description: Fecha de cierre del periodo en mayúsculas
+        data_type: STRING
+      - name: FECHA_APERTURA
+        description: Fecha de apertura del periodo en mayúsculas
+        data_type: STRING
+      - name: COD_MGA
+        description: Código MGA del sector
+        data_type: FLOAT64
+      - name: COD_SAP
+        description: Código SAP del sector
+        data_type: FLOAT64
+      - name: SECTOR
+        description: Nombre del sector en mayúsculas
+        data_type: STRING
+      - name: CAN_MP
+        description: Cantidad de metas programadas
+        data_type: FLOAT64
+      - name: CANTIDAD_NP
+        description: Cantidad de no programadas
+        data_type: FLOAT64
+      - name: MP_PROGRAMADAS
+        description: Cantidad de metas programadas
+        data_type: FLOAT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de metas con avance mayor o igual a 80%
+        data_type: FLOAT64
+      - name: AVANCE_>=25_<80_CANT
+        description: Cantidad de metas con avance entre 25% y 80%
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de metas con avance menor a 25%
+        data_type: FLOAT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de metas con avance mayor o igual a 80%
+        data_type: FLOAT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de metas con avance entre 25% y 80%
+        data_type: FLOAT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de metas con avance menor a 25%
+        data_type: FLOAT64
+      - name: CALIFICACIÓN_x_MP_x_CORTE
+        description: Calificación por meta programada por corte
+        data_type: FLOAT64
+      - name: FECHA_LECTURA
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: evaplan_api_processed_data_fact_entidad
+    description: |
+      Tabla FACT_ENTIDAD en la capa gold que agrega datos de Metas de Producto (MP) y Metas de Resultado (MR) por entidad y año.
+      Incluye métricas de avance, eficacia, eficiencia y efectividad. Agrupa las métricas por entidad o dependencia.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre del periodo
+        data_type: STRING
+      - name: CLASIFICACION
+        description: Clasificación de la meta (META DE PRODUCTO o META DE RESULTADO)
+        data_type: STRING
+      - name: ENTIDAD O DEPENDENCIA
+        description: Nombre de la entidad o dependencia
+        data_type: STRING
+      - name: CANTIDAD_METAS
+        description: Cantidad total de metas
+        data_type: INT64
+      - name: CANTIDAD_PROGRAMADAS
+        description: Cantidad de metas programadas
+        data_type: INT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de metas con avance mayor o igual a 80%
+        data_type: INT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de metas con avance mayor o igual a 80%
+        data_type: FLOAT64
+      - name: AVANCE_>=25_< 80_CANT
+        description: Cantidad de metas con avance entre 25% y 80%
+        data_type: INT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de metas con avance entre 25% y 80%
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de metas con avance menor a 25%
+        data_type: INT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de metas con avance menor a 25%
+        data_type: FLOAT64
+      - name: CALIFICACION_X_CORTE
+        description: Calificación promedio por corte
+        data_type: FLOAT64
+      - name: EFICACIA
+        description: Índice de eficacia (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFICACIA
+        description: Clasificación de eficacia
+        data_type: STRING
+      - name: EFICIENCIA
+        description: Índice de eficiencia (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFICIENCIA
+        description: Clasificación de eficiencia
+        data_type: STRING
+      - name: EFECTIVIDA
+        description: Índice de efectividad (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFECTIVIDAD
+        description: Clasificación de efectividad
+        data_type: STRING
+
+  - name: evaplan_api_processed_data_fact_programa
+    description: |
+      Tabla FACT_PROGRAMA en la capa gold que agrega datos de programas y subprogramas.
+      Incluye métricas de avance y ponderación por programa y subprograma.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre del periodo
+        data_type: STRING
+      - name: PROGRAMA
+        description: Nombre del programa en mayúsculas
+        data_type: STRING
+      - name: SUBPROGRAMA
+        description: Código y nombre del subprograma
+        data_type: STRING
+      - name: MP_X_SUBPROG
+        description: Cantidad de metas por subprograma
+        data_type: INT64
+      - name: PROM_AVANCE_SUBPROGRAMA_X_MP
+        description: Promedio de avance del subprograma por meta
+        data_type: FLOAT64
+      - name: MP_PROGRAMADA_X_SUBPROGRAMA
+        description: Cantidad de metas programadas por subprograma
+        data_type: INT64
+      - name: PONDERACION_SUBPROGRAMA
+        description: Ponderación del subprograma
+        data_type: FLOAT64
+      - name: AVANCE_PONDERADO_SUBPROGRAMA
+        description: Avance ponderado del subprograma
+        data_type: FLOAT64
+
+  - name: evaplan_api_processed_data_fact_resumen
+    description: |
+      Tabla FACT_RESUMEN en la capa gold que consolida y resume métricas clave de Evaplan.
+      Incluye Metas de Producto (MP), Metas de Resultado (MR), Subprogramas, Programas y Líneas Estratégicas.
+      Agrupa por año, clasificación (Plan de Acción o Período de Gobierno) e ítem.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre del periodo
+        data_type: STRING
+      - name: CLASIFICACION
+        description: Clasificación (PLAN DE ACCIÓN o PERÍODO DE GOBIERNO)
+        data_type: STRING
+      - name: ITEM
+        description: Tipo de ítem (METAS DE PRODUCTO, METAS DE RESULTADO, SUBPROGRAMAS, PROGRAMAS, LÍNEAS ESTRATÉGICAS)
+        data_type: STRING
+      - name: TOTAL
+        description: Total de ítems
+        data_type: INT64
+      - name: PROGRAMADAS
+        description: Cantidad de ítems programados
+        data_type: INT64
+      - name: NO_PROGRAMADAS
+        description: Cantidad de ítems no programados
+        data_type: INT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de ítems con avance mayor o igual a 80%
+        data_type: INT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de ítems con avance mayor o igual a 80%
+        data_type: FLOAT64
+      - name: AVANCE_>=25_< 80_CANT
+        description: Cantidad de ítems con avance entre 25% y 80%
+        data_type: INT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de ítems con avance entre 25% y 80%
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de ítems con avance menor a 25%
+        data_type: INT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de ítems con avance menor a 25%
+        data_type: FLOAT64
+      - name: PROMEDIO_AVANCE_PORC
+        description: Promedio de avance porcentual
+        data_type: FLOAT64
+      - name: EFICACIA
+        description: Índice de eficacia (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIF_EFICACIA
+        description: Clasificación de eficacia
+        data_type: STRING
+      - name: EFICIENCIA
+        description: Índice de eficiencia (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIF_EFICIENCIA
+        description: Clasificación de eficiencia
+        data_type: STRING
+      - name: EFECTIVIDAD
+        description: Índice de efectividad (solo para año 2024)
+        data_type: FLOAT64
+      - name: CLASIF_EFECTIVIDAD
+        description: Clasificación de efectividad
+        data_type: STRING
+

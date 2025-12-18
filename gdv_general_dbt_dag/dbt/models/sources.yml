@@ -1,61 +1,102 @@
 version: 2
 sources:
   - name: bronze_ipmv2
+    description: Fuentes de datos raw del Índice de Pobreza Multidimensional (IPM) en la capa bronze
     schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: ipm_raw_data
+        description: Datos raw del Índice de Pobreza Multidimensional por municipio
   - name: bronze_idc
+    description: Fuentes de datos raw del Índice de Desarrollo Competitivo (IDC) en la capa bronze
     schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: idc_raw_data_dato_original
+        description: Datos raw originales del IDC por departamento
       - name: idc_raw_data_valor_normalizado
+        description: Datos raw con valores normalizados del IDC por departamento
       - name: idc_raw_data_valor_ranking
+        description: Datos raw con valores de ranking del IDC por departamento
   - name: bronze_evaplan
+    description: Fuentes de datos raw de la API de Evaplan en la capa bronze
     schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: evaplan_api_periodos_raw_data
+        description: Datos raw de periodos obtenidos de la API de Evaplan
       - name: evaplan_api_avance_mr_raw_data
+        description: Datos raw de avance de Metas de Resultado (MR) obtenidos de la API de Evaplan
       - name: evaplan_api_avance_mp_raw_data
+        description: Datos raw de avance de Metas de Producto (MP) obtenidos de la API de Evaplan
       - name: evaplan_api_avance_x_subprograma_raw_data
+        description: Datos raw de avance por subprograma obtenidos de la API de Evaplan
       - name: evaplan_api_avance_general_raw_data
+        description: Datos raw de avance general obtenidos de la API de Evaplan
       - name: evaplan_api_avance_subprogramas_raw_data
+        description: Datos raw de avance de subprogramas obtenidos de la API de Evaplan
       - name: evaplan_api_avance_programas_raw_data
+        description: Datos raw de avance de programas obtenidos de la API de Evaplan
       - name: evaplan_api_sector_mp_raw_data
+        description: Datos raw del endpoint SectorMP obtenidos de la API de Evaplan
   - name: bronze_ipm_sisben
+    description: Fuentes de datos raw del SISBEN en la capa bronze
     schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: ipm_sisben_raw
+        description: Datos raw del SISBEN con información de hogares y personas
   - name: bronze_idi
+    description: Fuentes de datos raw del Índice de Desarrollo e Innovación (IDI) en la capa bronze
     schema: "{{ var('bronze_dataset') }}"
     tables:
       - name: idi_raw_data_territorio_2023
+        description: Datos raw del IDI por territorio para el año 2023
       - name: idi_raw_data_territorio_2024
+        description: Datos raw del IDI por territorio para el año 2024
   - name: silver_evaplan
+    description: Fuentes de datos transformados de Evaplan en la capa silver
     schema: "{{ var('silver_dataset') }}"
     tables:
       - name: evaplan_api_periodos_transformed_data
+        description: Datos transformados de periodos de Evaplan
       - name: evaplan_api_avance_mr_transformed_data
+        description: Datos transformados de avance de Metas de Resultado (MR) de Evaplan
       - name: evaplan_api_avance_mp_transformed_data
+        description: Datos transformados de avance de Metas de Producto (MP) de Evaplan
       - name: evaplan_api_avance_x_subprograma_transformed_data
+        description: Datos transformados de avance por subprograma de Evaplan
       - name: evaplan_api_avance_general_transformed_data
+        description: Datos transformados de avance general de Evaplan
       - name: evaplan_api_avance_subprogramas_transformed_data
+        description: Datos transformados de avance de subprogramas de Evaplan
       - name: evaplan_api_avance_programas_transformed_data
+        description: Datos transformados de avance de programas de Evaplan
       - name: evaplan_api_sector_mp_transformed_data
+        description: Datos transformados del endpoint SectorMP de Evaplan
   - name: silver_ipm_sisben
+    description: Fuentes de datos transformados del SISBEN en la capa silver
     schema: "{{ var('silver_dataset') }}"
     tables:
       - name: ipm_sisben_transformed_data
+        description: Datos transformados del SISBEN con información de hogares, servicios, gastos, salud, educación e ingresos
   - name: gold_idc
+    description: Fuentes de datos procesados del IDC en la capa gold
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: DIM_IDC
+        description: Tabla dimensional del IDC con información de factores, pilares, indicadores y subindicadores
   - name: gold_evaplan
+    description: Fuentes de datos procesados de Evaplan en la capa gold
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: evaplan_api_avance_mr_processed_data
+        description: Datos procesados de avance de Metas de Resultado (MR) enriquecidos con información de periodos
       - name: evaplan_api_avance_mp_processed_data
+        description: Datos procesados de avance de Metas de Producto (MP) enriquecidos con información de periodos
       - name: evaplan_api_avance_x_subprograma_processed_data
+        description: Datos procesados de avance por subprograma enriquecidos con información de periodos
       - name: evaplan_api_avance_general_processed_data
+        description: Datos procesados de avance general enriquecidos con información de periodos
       - name: evaplan_api_avance_subprogramas_processed_data
+        description: Datos procesados de avance de subprogramas enriquecidos con información de periodos
       - name: evaplan_api_avance_programas_processed_data
+        description: Datos procesados de avance de programas enriquecidos con información de periodos
       - name: evaplan_api_sector_mp_processed_data
+        description: Datos procesados del endpoint SectorMP enriquecidos con información de periodos

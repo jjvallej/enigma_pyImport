@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: idc_processed_data
+    description: |
+      Modelo gold que une las 3 tablas (dato_original, valor_normalizado, valor_ranking) con el diccionario (dim_idc).
+      Usa UNPIVOT para convertir las columnas de indicadores en filas y hace JOIN con dim_idc usando ID_SUBINDICADOR.
+      Estructura final: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING.
+    columns:
+      - name: DEPARTAMENTO
+        description: Nombre del departamento
+        data_type: STRING
+      - name: ANIO
+        description: Año del indicador IDC
+        data_type: INT64
+      - name: ID_FACTOR
+        description: Identificador del factor
+        data_type: INT64
+      - name: ID_PILAR
+        description: Identificador del pilar
+        data_type: INT64
+      - name: ID_INDICADOR
+        description: Identificador del indicador
+        data_type: STRING
+      - name: ID_SUBINDICADOR
+        description: Identificador del subindicador
+        data_type: STRING
+      - name: VALOR_ORIGINAL
+        description: Valor original del indicador
+        data_type: FLOAT64
+      - name: VALOR_NORMALIZADO
+        description: Valor normalizado del indicador
+        data_type: FLOAT64
+      - name: VALOR_RANKING
+        description: Valor de ranking del indicador
+        data_type: INT64
+

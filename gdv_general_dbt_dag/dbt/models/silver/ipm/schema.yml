@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: ipm_transform_stg
+    description: |
+      Modelo staging que lee de bronze y normaliza nombres de columnas a snake_case.
+      Convierte nombres de columnas de formato PascalCase a snake_case para consistencia.
+    columns:
+      - name: cod_mpio
+        description: Código del municipio
+        data_type: STRING
+      - name: municipio
+        description: Nombre del municipio
+        data_type: STRING
+      - name: total
+        description: Total de población
+        data_type: FLOAT64
+      - name: ipm_pobre_abs
+        description: Cantidad absoluta de personas en pobreza multidimensional
+        data_type: FLOAT64
+      - name: ipm_no_pobre_abs
+        description: Cantidad absoluta de personas no pobres multidimensionalmente
+        data_type: FLOAT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos
+        data_type: TIMESTAMP
+
+  - name: ipm_transform_clean
+    description: |
+      Modelo final de transformación que transforma fecha_lectura a DATE y materializa como tabla.
+      Este es el modelo final de la capa silver para IPM, listo para ser consumido por la capa gold.
+    columns:
+      - name: cod_mpio
+        description: Código del municipio
+        data_type: STRING
+      - name: municipio
+        description: Nombre del municipio
+        data_type: STRING
+      - name: total
+        description: Total de población
+        data_type: FLOAT64
+      - name: ipm_pobre_abs
+        description: Cantidad absoluta de personas en pobreza multidimensional
+        data_type: FLOAT64
+      - name: ipm_no_pobre_abs
+        description: Cantidad absoluta de personas no pobres multidimensionalmente
+        data_type: FLOAT64
+      - name: ipm_pobre_porc
+        description: Porcentaje de personas en pobreza multidimensional
+        data_type: FLOAT64
+      - name: ipm_no_pobre_porc
+        description: Porcentaje de personas no pobres multidimensionalmente
+        data_type: FLOAT64
+      - name: fecha_lectura
+        description: Fecha de lectura (convertida a DATE)
+        data_type: DATE
+
+  - name: ipm_sisben_stg
+    description: |
+      Modelo staging para datos SISBEN que lee de bronze y prepara los datos para transformación.
+      Normaliza nombres de columnas y estructura de datos.
+    columns:
+      - name: _2_num_ficha
+        description: Número de ficha SISBEN
+        data_type: STRING
+      - name: _3_cod_departamento
+        description: Código del departamento
+        data_type: STRING
+      - name: departamento
+        description: Nombre del departamento
+        data_type: STRING
+
