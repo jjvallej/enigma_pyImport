@@ -81,7 +81,36 @@ sources:
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: DIM_IDC
-        description: Tabla dimensional del IDC con información de factores, pilares, indicadores y subindicadores
+        description: |
+          Tabla dimensional del IDC (Índice de Desarrollo Competitivo) que contiene la estructura jerárquica y descriptiva
+          de los indicadores. Esta tabla proporciona información sobre factores, pilares, indicadores y subindicadores,
+          permitiendo enriquecer los datos de valores del IDC con nombres descriptivos y la organización jerárquica.
+          Se utiliza en el modelo idc_processed_data para hacer JOIN y obtener la información dimensional completa.
+        columns:
+          - name: ID_FACTOR
+            description: "Identificador numérico del factor. Los factores son el nivel más alto de la jerarquía del IDC y agrupan pilares relacionados"
+            data_type: INT64
+          - name: ID_PILAR
+            description: "Identificador numérico del pilar. Los pilares pertenecen a un factor y agrupan indicadores relacionados"
+            data_type: INT64
+          - name: ID_INDICADOR
+            description: "Identificador alfanumérico del indicador principal (ej: INS, INF, TIC, AMB, SAL, EDU, EDS, NEG, LAB, FIN, TAM, SOF, INN). Los indicadores pertenecen a un pilar y agrupan subindicadores"
+            data_type: STRING
+          - name: ID_SUBINDICADOR
+            description: "Identificador alfanumérico del subindicador específico (ej: INS_1_1, INF_1_2, TIC_1_3, etc.). Este es el nivel más granular del IDC y se usa como clave para hacer JOIN con las tablas de valores"
+            data_type: STRING
+          - name: NOM_FACTOR
+            description: "Nombre descriptivo del factor. Proporciona el nombre completo del factor al que pertenece el indicador"
+            data_type: STRING
+          - name: NOM_PILAR
+            description: "Nombre descriptivo del pilar. Proporciona el nombre completo del pilar al que pertenece el indicador"
+            data_type: STRING
+          - name: NOM_INDICADOR
+            description: "Nombre descriptivo del indicador principal. Proporciona el nombre completo del indicador (ej: Instituciones, Infraestructura, TIC, Ambiente, Salud, Educación, etc.)"
+            data_type: STRING
+          - name: NOM_SUBINDICADOR
+            description: "Nombre descriptivo del subindicador específico. Proporciona el nombre completo y detallado del subindicador, que es el nivel más granular de descripción en el IDC"
+            data_type: STRING
   - name: gold_evaplan
     description: Fuentes de datos procesados de Evaplan en la capa gold
     schema: "{{ var('gold_dataset') }}"

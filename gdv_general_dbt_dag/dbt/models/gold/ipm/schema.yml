@@ -3,227 +3,440 @@ version: 2
 models:
   - name: ipm_processed_data
     description: |
-      Modelo gold que consume la tabla final de silver (ipm_transform_clean).
-      Estructura final con columnas en mayúsculas, sin porcentajes, sin sufijo _abs y sin fecha_lectura.
-      Contiene datos del Índice de Pobreza Multidimensional (IPM) por municipio.
+      Tabla FACT_DANE en la capa gold que contiene datos finales del Índice de Pobreza Multidimensional (IPM) por municipio.
+      Este modelo consume la tabla final de silver (ipm_transform_clean) y presenta una estructura final con columnas en mayúsculas,
+      sin porcentajes, sin sufijo _abs y sin fecha_lectura. Los datos representan la cantidad absoluta de personas en cada categoría
+      de privación según los 15 indicadores del IPM. Esta tabla está diseñada para análisis y reportes finales del IPM a nivel municipal.
     columns:
       - name: cod_mpio
-        description: Código del municipio
+        description: Código único del municipio según DANE
         data_type: STRING
       - name: Municipio
         description: Nombre del municipio
         data_type: STRING
       - name: Total
-        description: Total de población
+        description: Total de población en el municipio
         data_type: FLOAT64
       - name: IPM_Pobre
-        description: Cantidad de personas en pobreza multidimensional
+        description: Cantidad absoluta de personas en condición de pobreza multidimensional
         data_type: FLOAT64
       - name: IPM_No_Pobre
-        description: Cantidad de personas no pobres multidimensionalmente
+        description: Cantidad absoluta de personas no pobres multidimensionalmente
         data_type: FLOAT64
       - name: I1_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I1
+        description: Cantidad absoluta de personas con privación en el indicador I1 (Educación de los niños)
         data_type: FLOAT64
       - name: I1_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I1
+        description: Cantidad absoluta de personas sin privación en el indicador I1
         data_type: FLOAT64
       - name: I2_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I2
+        description: Cantidad absoluta de personas con privación en el indicador I2 (Barreras de acceso a servicios de salud)
         data_type: FLOAT64
       - name: I2_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I2
+        description: Cantidad absoluta de personas sin privación en el indicador I2
         data_type: FLOAT64
       - name: I3_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I3
+        description: Cantidad absoluta de personas con privación en el indicador I3 (Acceso al servicio de salud)
         data_type: FLOAT64
       - name: I3_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I3
+        description: Cantidad absoluta de personas sin privación en el indicador I3
         data_type: FLOAT64
       - name: I4_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I4
+        description: Cantidad absoluta de personas con privación en el indicador I4 (Trabajo infantil)
         data_type: FLOAT64
       - name: I4_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I4
+        description: Cantidad absoluta de personas sin privación en el indicador I4
         data_type: FLOAT64
       - name: I5_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I5
+        description: Cantidad absoluta de personas con privación en el indicador I5 (Asistencia escolar)
         data_type: FLOAT64
       - name: I5_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I5
+        description: Cantidad absoluta de personas sin privación en el indicador I5
         data_type: FLOAT64
       - name: I6_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I6
+        description: Cantidad absoluta de personas con privación en el indicador I6 (Rezago escolar)
         data_type: FLOAT64
       - name: I6_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I6
+        description: Cantidad absoluta de personas sin privación en el indicador I6
         data_type: FLOAT64
       - name: I7_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I7
+        description: Cantidad absoluta de personas con privación en el indicador I7 (Barreras de acceso a servicios para cuidado de la primera infancia)
         data_type: FLOAT64
       - name: I7_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I7
+        description: Cantidad absoluta de personas sin privación en el indicador I7
         data_type: FLOAT64
       - name: I8_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I8
+        description: Cantidad absoluta de personas con privación en el indicador I8 (Trabajo informal)
         data_type: FLOAT64
       - name: I8_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I8
+        description: Cantidad absoluta de personas sin privación en el indicador I8
         data_type: FLOAT64
       - name: I9_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I9
+        description: Cantidad absoluta de personas con privación en el indicador I9 (Desempleo de larga duración)
         data_type: FLOAT64
       - name: I9_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I9
+        description: Cantidad absoluta de personas sin privación en el indicador I9
         data_type: FLOAT64
       - name: I10_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I10
+        description: Cantidad absoluta de personas con privación en el indicador I10 (Barreras de acceso a servicios de cuidado)
         data_type: FLOAT64
       - name: I10_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I10
+        description: Cantidad absoluta de personas sin privación en el indicador I10
         data_type: FLOAT64
       - name: I11_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I11
+        description: Cantidad absoluta de personas con privación en el indicador I11 (Hacinamiento crítico)
         data_type: FLOAT64
       - name: I11_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I11
+        description: Cantidad absoluta de personas sin privación en el indicador I11
         data_type: FLOAT64
       - name: I12_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I12
+        description: Cantidad absoluta de personas con privación en el indicador I12 (Inadecuada eliminación de excretas)
         data_type: FLOAT64
       - name: I12_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I12
+        description: Cantidad absoluta de personas sin privación en el indicador I12
         data_type: FLOAT64
       - name: I13_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I13
+        description: Cantidad absoluta de personas con privación en el indicador I13 (Material inadecuado de pisos)
         data_type: FLOAT64
       - name: I13_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I13
+        description: Cantidad absoluta de personas sin privación en el indicador I13
         data_type: FLOAT64
       - name: I14_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I14
+        description: Cantidad absoluta de personas con privación en el indicador I14 (Material inadecuado de paredes exteriores)
         data_type: FLOAT64
       - name: I14_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I14
+        description: Cantidad absoluta de personas sin privación en el indicador I14
         data_type: FLOAT64
       - name: I15_CON_PRIVACION
-        description: Cantidad de personas con privación en indicador I15
+        description: Cantidad absoluta de personas con privación en el indicador I15 (Falta de servicio de acueducto)
         data_type: FLOAT64
       - name: I15_SIN_PRIVACION
-        description: Cantidad de personas sin privación en indicador I15
+        description: Cantidad absoluta de personas sin privación en el indicador I15
         data_type: FLOAT64
 
   - name: ipm_sisben_processed_data
     description: |
-      Vista gold que selecciona columnas de descripción (texto) y valores numéricos de la capa silver para análisis final.
-      Contiene datos del SISBEN con información de vivienda, servicios, gastos, salud, educación, trabajo e ingresos.
+      Vista FACT_SISBEN en la capa gold que contiene datos finales del SISBEN (Sistema de Identificación de Potenciales Beneficiarios de Programas Sociales).
+      Este modelo selecciona columnas de descripción (texto) y valores numéricos de la capa silver para análisis final. Incluye información detallada sobre:
+      vivienda y servicios públicos, gastos del hogar, eventos y desastres, características de las personas, discapacidades, salud, educación,
+      trabajo y pensiones, ingresos, e indicadores de pobreza multidimensional (IPM). Esta vista está diseñada para análisis socioeconómicos
+      y demográficos a nivel de hogar y persona.
     columns:
       - name: FICHA
-        description: Número de ficha SISBEN
+        description: Número único de ficha SISBEN que identifica al hogar
         data_type: STRING
       - name: CODIGO_DEPARTAMENTO
-        description: Código del departamento
+        description: Código del departamento según DANE
         data_type: STRING
       - name: DEPARTAMENTO
         description: Nombre del departamento
         data_type: STRING
       - name: CODIGO_MUNICIPIO
-        description: Código del municipio
+        description: Código del municipio según DANE
         data_type: STRING
       - name: CODIGO_CLASE
-        description: Código de clase (CABECERA, RURAL, etc.)
+        description: Código de clase del área (CABECERA, RURAL, etc.)
         data_type: STRING
       - name: GRUPO_SISBEN
-        description: Grupo SISBEN
+        description: Grupo SISBEN asignado al hogar
         data_type: STRING
       - name: NIVEL_SISBEN
-        description: Nivel SISBEN
+        description: Nivel SISBEN asignado al hogar
         data_type: STRING
       - name: TIPO_VIVIENDA
-        description: Tipo de vivienda
+        description: Tipo de vivienda (Casa, Apartamento, Cuarto, etc.)
         data_type: STRING
       - name: MATERIAL_PAREDES
-        description: Material de las paredes
+        description: Material de las paredes de la vivienda
         data_type: STRING
       - name: ELIMINACION_BASURA
         description: Método de eliminación de basura
         data_type: STRING
       - name: SERVICIO_ENERGIA
-        description: Servicio de energía
+        description: Disponibilidad del servicio de energía eléctrica
+        data_type: STRING
+      - name: ESTRATO_ENERGIA
+        description: Estrato del servicio de energía
         data_type: STRING
       - name: SERVICIO_ALCANTARILLADO
-        description: Servicio de alcantarillado
+        description: Disponibilidad del servicio de alcantarillado
         data_type: STRING
       - name: SERVICIO_GAS
-        description: Servicio de gas
+        description: Disponibilidad del servicio de gas
+        data_type: STRING
+      - name: SERVICIO_RECOLECCION_BASURA
+        description: Disponibilidad del servicio de recolección de basura
         data_type: STRING
       - name: SERVICIO_ACUEDUCTO
-        description: Servicio de acueducto
+        description: Disponibilidad del servicio de acueducto
+        data_type: STRING
+      - name: ESTRATO_ACUDUCTO
+        description: Estrato del servicio de acueducto
         data_type: STRING
       - name: CANTIDAD_CUARTOS
         description: Cantidad de cuartos en la vivienda
         data_type: FLOAT64
       - name: CANTIDAD_HOGARES
-        description: Cantidad de hogares
+        description: Cantidad de hogares en la vivienda
         data_type: FLOAT64
+      - name: ID_HOGAR
+        description: Identificador único del hogar
+        data_type: FLOAT64
+      - name: TIPO_OCUPACION_VIVIENDA
+        description: Tipo de ocupación de la vivienda (Propia, Arrendada, etc.)
+        data_type: STRING
+      - name: ORIGEN_AGUA
+        description: Origen del agua que consume el hogar
+        data_type: STRING
+      - name: AGUA_7_DIAS
+        description: Disponibilidad de agua en los últimos 7 días
+        data_type: STRING
+      - name: DIAS_AGUA
+        description: Cantidad de días con disponibilidad de agua
+        data_type: FLOAT64
+      - name: HORAS_AGUA
+        description: Cantidad de horas con disponibilidad de agua
+        data_type: FLOAT64
+      - name: USO_AGUA_BEBER
+        description: Uso del agua para beber
+        data_type: STRING
       - name: GASTO_ALIMENTO
-        description: Gasto en alimentos
+        description: Gasto mensual en alimentos (en pesos colombianos)
         data_type: FLOAT64
       - name: GASTO_TRANSPORTE
-        description: Gasto en transporte
+        description: Gasto mensual en transporte (en pesos colombianos)
         data_type: FLOAT64
       - name: GASTO_EDUCACION
-        description: Gasto en educación
+        description: Gasto mensual en educación (en pesos colombianos)
         data_type: FLOAT64
       - name: GASTO_SALUD
-        description: Gasto en salud
+        description: Gasto mensual en salud (en pesos colombianos)
+        data_type: FLOAT64
+      - name: GASTO_SERVICIOS_PUBLICOS
+        description: Gasto mensual en servicios públicos (en pesos colombianos)
+        data_type: FLOAT64
+      - name: GASTO_CELULAR
+        description: Gasto mensual en servicios de telefonía celular (en pesos colombianos)
+        data_type: FLOAT64
+      - name: GASTO_ARRIENDO
+        description: Gasto mensual en arriendo (en pesos colombianos)
+        data_type: FLOAT64
+      - name: GASTOS_OTROS
+        description: Otros gastos mensuales (en pesos colombianos)
+        data_type: FLOAT64
+      - name: TIEMPO_VIVIENDA
+        description: Tiempo que lleva viviendo en la vivienda actual
+        data_type: STRING
+      - name: NUM_INUNDACIONES
+        description: Número de inundaciones que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_AVALANCHAS
+        description: Número de avalanchas que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_TERREMOTOS
+        description: Número de terremotos que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_INCENDIOS
+        description: Número de incendios que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_VENDAVALES
+        description: Número de vendavales que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_HUNDIMIENTOS
+        description: Número de hundimientos que ha sufrido el hogar
+        data_type: FLOAT64
+      - name: NUM_PERSONAS_HOGAR
+        description: Número de personas que habitan en el hogar
+        data_type: FLOAT64
+      - name: SEXO
+        description: Sexo de la persona
+        data_type: STRING
+      - name: TIPO_DOCUMENTO
+        description: Tipo de documento de identidad de la persona
+        data_type: STRING
+      - name: EDAD
+        description: Edad de la persona en años
+        data_type: FLOAT64
+      - name: DISCAPACIDAD_VISUAL
+        description: Indica si la persona tiene discapacidad visual (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_AUDITIVA
+        description: Indica si la persona tiene discapacidad auditiva (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_HABLA
+        description: Indica si la persona tiene discapacidad para hablar (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_MOVIMIENTO
+        description: Indica si la persona tiene discapacidad de movimiento (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_BANARSE
+        description: Indica si la persona tiene discapacidad para bañarse (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_SALIR
+        description: Indica si la persona tiene discapacidad para salir (SI/NO)
+        data_type: STRING
+      - name: DISCAPACIDAD_ENTENDER
+        description: Indica si la persona tiene discapacidad para entender (SI/NO)
+        data_type: STRING
+      - name: SIN_DISCAPACIDAD
+        description: Indica si la persona no tiene ninguna discapacidad (SI/NO)
+        data_type: STRING
+      - name: SEGURIDAD_SOCIAL
+        description: Tipo de seguridad social de la persona
+        data_type: STRING
+      - name: ENFERMENDAD_30_DIAS
+        description: Indica si la persona estuvo enferma en los últimos 30 días (SI/NO)
+        data_type: STRING
+      - name: ACUDIO_SALUD
+        description: Indica si la persona acudió a servicios de salud (SI/NO)
+        data_type: STRING
+      - name: ATENDIDO
+        description: Indica si la persona fue atendida en servicios de salud (SI/NO)
+        data_type: STRING
+      - name: EMBARAZADA
+        description: Indica si la persona está embarazada (SI/NO)
+        data_type: STRING
+      - name: TIENE_HIJOS
+        description: Indica si la persona tiene hijos (SI/NO)
+        data_type: STRING
+      - name: TIPO_CUIDADO_HIJOS
+        description: Tipo de cuidado que reciben los hijos
+        data_type: STRING
+      - name: RECIBE_COMIDA_HIJO
+        description: Indica si el hijo recibe comida (SI/NO)
+        data_type: STRING
+      - name: SABE_LEER
+        description: Indica si la persona sabe leer (SI/NO)
+        data_type: STRING
+      - name: ESTUDIA
+        description: Indica si la persona está estudiando (SI/NO)
+        data_type: STRING
+      - name: NIVEL_EDUCATIVO
+        description: Nivel educativo más alto alcanzado por la persona
+        data_type: STRING
+      - name: GRADO_ACADEMICO
+        description: Grado académico actual de la persona
+        data_type: FLOAT64
+      - name: FONDO_PENSIONES
+        description: Fondo de pensiones al que está afiliada la persona
+        data_type: STRING
+      - name: ACTIVIDAD_MES
+        description: Actividad principal realizada el mes pasado
+        data_type: STRING
+      - name: SEMANAS_BUSCANDO_TRABAJO
+        description: Cantidad de semanas buscando trabajo
+        data_type: FLOAT64
+      - name: TIPO_EMPLEO
+        description: Tipo de empleo de la persona
+        data_type: STRING
+      - name: INGRESO_SALARIO
+        description: Indica si la persona tiene ingreso por salario (SI/NO)
+        data_type: STRING
+      - name: VALOR_SALARIO
+        description: Valor del salario mensual (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_HONORARIO_MES
+        description: Indica si la persona tiene ingreso por honorarios mensuales (SI/NO)
+        data_type: STRING
+      - name: VALOR_HONORARIO_MES
+        description: Valor de honorarios mensuales (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_COSECHA
+        description: Indica si la persona tiene ingreso por cosecha (SI/NO)
+        data_type: STRING
+      - name: MES_INGRESO_COSECHA
+        description: Mes en que recibe el ingreso por cosecha
+        data_type: FLOAT64
+      - name: VALOR_COSECHA
+        description: Valor del ingreso por cosecha (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_PENSION
+        description: Indica si la persona tiene ingreso por pensión (SI/NO)
+        data_type: STRING
+      - name: VALOR_PENSION
+        description: Valor de la pensión mensual (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_REMESA
+        description: Indica si la persona tiene ingreso por remesas nacionales (SI/NO)
+        data_type: STRING
+      - name: VALOR_REMESA
+        description: Valor de las remesas nacionales (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_REMESA_EXTERIOR
+        description: Indica si la persona tiene ingreso por remesas del exterior (SI/NO)
+        data_type: STRING
+      - name: VALOR_REMESA_EXTERIOR
+        description: Valor de las remesas del exterior (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_ARRIENDO
+        description: Indica si la persona tiene ingreso por arriendo (SI/NO)
+        data_type: STRING
+      - name: VALOR_INGRESO_ARRIENDO
+        description: Valor del ingreso por arriendo (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_OTROS
+        description: Indica si la persona tiene otros ingresos (SI/NO)
+        data_type: STRING
+      - name: VALOR_INGRESO_OTROS
+        description: Valor de otros ingresos (en pesos colombianos)
+        data_type: FLOAT64
+      - name: INGRESO_SUBCIDIOS
+        description: Indica si la persona recibe subsidios (SI/NO)
+        data_type: STRING
+      - name: FAMILIAS_ACCION
+        description: Valor recibido por Familias en Acción (en pesos colombianos)
+        data_type: FLOAT64
+      - name: COLOMBIA_MAYOR
+        description: Valor recibido por Colombia Mayor (en pesos colombianos)
+        data_type: FLOAT64
+      - name: OTRO_SUBCIDIO
+        description: Valor recibido por otros subsidios (en pesos colombianos)
         data_type: FLOAT64
       - name: IPM
-        description: Indicador de pobreza multidimensional (1 o 0)
+        description: Indicador de pobreza multidimensional (1 si es pobre, 0 si no es pobre)
         data_type: FLOAT64
       - name: IPM_I1
-        description: Indicador I1 de IPM (1 o 0)
+        description: Indicador I1 de IPM - Educación de los niños (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I2
-        description: Indicador I2 de IPM (1 o 0)
+        description: Indicador I2 de IPM - Barreras de acceso a servicios de salud (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I3
-        description: Indicador I3 de IPM (1 o 0)
+        description: Indicador I3 de IPM - Acceso al servicio de salud (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I4
-        description: Indicador I4 de IPM (1 o 0)
+        description: Indicador I4 de IPM - Trabajo infantil (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I5
-        description: Indicador I5 de IPM (1 o 0)
+        description: Indicador I5 de IPM - Asistencia escolar (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I6
-        description: Indicador I6 de IPM (1 o 0)
+        description: Indicador I6 de IPM - Rezago escolar (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I7
-        description: Indicador I7 de IPM (1 o 0)
+        description: Indicador I7 de IPM - Barreras de acceso a servicios para cuidado de la primera infancia (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I8
-        description: Indicador I8 de IPM (1 o 0)
+        description: Indicador I8 de IPM - Trabajo informal (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I9
-        description: Indicador I9 de IPM (1 o 0)
+        description: Indicador I9 de IPM - Desempleo de larga duración (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I10
-        description: Indicador I10 de IPM (1 o 0)
+        description: Indicador I10 de IPM - Barreras de acceso a servicios de cuidado (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I11
-        description: Indicador I11 de IPM (1 o 0)
+        description: Indicador I11 de IPM - Hacinamiento crítico (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I12
-        description: Indicador I12 de IPM (1 o 0)
+        description: Indicador I12 de IPM - Inadecuada eliminación de excretas (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I13
-        description: Indicador I13 de IPM (1 o 0)
+        description: Indicador I13 de IPM - Material inadecuado de pisos (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I14
-        description: Indicador I14 de IPM (1 o 0)
+        description: Indicador I14 de IPM - Material inadecuado de paredes exteriores (1 si tiene privación, 0 si no)
         data_type: FLOAT64
       - name: IPM_I15
-        description: Indicador I15 de IPM (1 o 0)
+        description: Indicador I15 de IPM - Falta de servicio de acueducto (1 si tiene privación, 0 si no)
         data_type: FLOAT64
-

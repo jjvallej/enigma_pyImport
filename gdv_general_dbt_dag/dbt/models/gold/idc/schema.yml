@@ -3,35 +3,38 @@ version: 2
 models:
   - name: idc_processed_data
     description: |
-      Modelo gold que une las 3 tablas (dato_original, valor_normalizado, valor_ranking) con el diccionario (dim_idc).
-      Usa UNPIVOT para convertir las columnas de indicadores en filas y hace JOIN con dim_idc usando ID_SUBINDICADOR.
-      Estructura final: DEPARTAMENTO, ANIO, ID_FACTOR, ID_PILAR, ID_INDICADOR, ID_SUBINDICADOR, VALOR_ORIGINAL, VALOR_NORMALIZADO, VALOR_RANKING.
+      Tabla FACT_IDC en la capa gold que consolida los datos del Índice de Desarrollo Competitivo (IDC) en formato normalizado.
+      Este modelo une las 3 tablas de valores (dato_original, valor_normalizado, valor_ranking) basadas cada una en las hojas de la fuente original,
+      con el diccionario dimensional (DIM_IDC) para obtener el nombre completo y la estructura jerárquica del indicador.
+      Usa UNPIVOT para convertir las columnas de indicadores (ins_1_1, inf_1_2, etc.) en filas, permitiendo un formato largo (long format)
+      donde cada fila representa un departamento, año y subindicador con sus tres valores (original, normalizado y ranking).
+      Hace JOIN con DIM_IDC usando ID_SUBINDICADOR para enriquecer los datos con información de factores, pilares, indicadores y nombres descriptivos.
+      Esta estructura facilita el análisis comparativo entre departamentos y la identificación de áreas de mejora en competitividad.
     columns:
       - name: DEPARTAMENTO
-        description: Nombre del departamento
+        description: Nombre del departamento normalizado en mayúsculas sin acentos ni caracteres especiales
         data_type: STRING
       - name: ANIO
-        description: Año del indicador IDC
+        description: Año del indicador IDC (convertido de ano_idc a INT64)
         data_type: INT64
       - name: ID_FACTOR
-        description: Identificador del factor
+        description: Identificador numérico del factor al que pertenece el indicador (convertido a INT64). Los factores agrupan pilares relacionados
         data_type: INT64
       - name: ID_PILAR
-        description: Identificador del pilar
+        description: Identificador numérico del pilar al que pertenece el indicador (convertido a INT64). Los pilares agrupan indicadores relacionados
         data_type: INT64
       - name: ID_INDICADOR
-        description: Identificador del indicador
+        description: "Identificador alfanumérico del indicador principal (ej: INS, INF, TIC, AMB, SAL, EDU, etc.)"
         data_type: STRING
       - name: ID_SUBINDICADOR
-        description: Identificador del subindicador
+        description: "Identificador alfanumérico del subindicador específico (ej: ins_1_1, inf_1_2, tic_1_3, etc.). Este es el nivel más granular del IDC"
         data_type: STRING
       - name: VALOR_ORIGINAL
-        description: Valor original del indicador
+        description: Valor original del indicador tal como se obtuvo de la fuente, convertido a FLOAT64. Representa el valor sin normalización
         data_type: FLOAT64
       - name: VALOR_NORMALIZADO
-        description: Valor normalizado del indicador
+        description: Valor normalizado del indicador convertido a FLOAT64. Este valor ha sido ajustado para permitir comparaciones entre diferentes escalas
         data_type: FLOAT64
       - name: VALOR_RANKING
-        description: Valor de ranking del indicador
+        description: Posición de ranking del departamento para este indicador (convertido a INT64). Un valor menor indica mejor posición en el ranking
         data_type: INT64
-
