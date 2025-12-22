@@ -3,41 +3,679 @@ version: 2
 models:
   - name: idi_transformed_data_2023
     description: |
-      Modelo que contiene datos transformados del Índice de Desarrollo e Innovación (IDI) para el año 2023.
-      Incluye normalización de nombres de departamentos y estructura de datos.
+      Modelo de homologación para el año 2023. 
+      Renombra columnas originales para alinearlas con 2024 y aplica COALESCE(..., 0).
+      Incluye i70 forzada a 0.
     columns:
-      - name: territorio
-        description: Nombre del territorio (departamento)
-        data_type: STRING
-      - name: fecha_lectura
-        description: Fecha y hora en que se realizó la lectura de los datos
-        data_type: TIMESTAMP
+      - name: codigo_sigep
+        description: "Código único de la entidad (CAST de columna 'codigo')."
+      - name: entidad
+        description: "Nombre de la entidad pública."
+      - name: orden
+        description: "Nivel administrativo (Nacional/Territorial)."
+      - name: clasificacion_organica
+        description: "Clasificación orgánica de la entidad."
+      - name: naturaleza_juridica
+        description: "Naturaleza jurídica."
+      - name: sector
+        description: "Sector administrativo (Homologado)."
+      - name: departamento
+        description: "Nombre del departamento original fuente 2023."
+      - name: municipio
+        description: "Nombre del municipio original fuente 2023."
+      - name: pdet
+        description: "Indicador de municipio PDET."
+      - name: capital
+        description: "Indicador si es capital de departamento."
+      - name: id_grupo_par
+        description: "ID del grupo de pares."
+      - name: grupo_par
+        description: "Nombre del grupo de pares."
+      - name: tipo_formulario
+        description: "Tipo de formulario aplicado."
+      - name: indice_de_desempeno_institucional
+        description: "Puntaje general del IDI."
+      - name: d1_talento_humano
+        description: "Dimensión 1: Talento Humano."
+      - name: d2_direcciona_miento_estrategico_y_planeacion
+        description: "Dimensión 2: Direccionamiento Estratégico."
+      - name: d3_gestion_para_resultados_con_valores
+        description: "Dimensión 3: Gestión para Resultados."
+      - name: d4_evaluacion_de_resultados
+        description: "Dimensión 4: Evaluación de Resultados."
+      - name: d5_informacion_y_comunicacion
+        description: "Dimensión 5: Información y Comunicación."
+      - name: d6_gestion_del_conocimiento
+        description: "Dimensión 6: Gestión del Conocimiento."
+      - name: d7_control_interno
+        description: "Dimensión 7: Control Interno."
+      - name: pol01_indice_de_gestion_estrategica_del_talento_humano
+        description: "Política 1: Gestión Estratégica del Talento Humano."
+      - name: i01_calidad_de_la_planeacion_estrategica_del_talento_humano
+        description: "i01: Calidad de la planeación estratégica del TH."
+      - name: i02_eficiencia_y_eficacia_de_la_seleccion_meritocratica_del_talento_humano
+        description: "i02: Eficiencia y eficacia de la selección meritocrática."
+      - name: i03_desarrollo_del_talento_humano_en_la_entidad
+        description: "i03: Desarrollo del talento humano."
+      - name: i04_desvinculacion_asistida_y_retencion_del_conocimiento_generado_por_el_talento_humano
+        description: "i04: Desvinculación asistida y retención del conocimiento."
+      - name: pol02_indice_de_integridad
+        description: "Política 2: Integridad."
+      - name: i05_cambio_cultural_basado_en_la_implementacion_del_codigo_de_integridad_del_servicio_publico
+        description: "i05: Cambio cultural código de integridad."
+      - name: i06_gestion_adecuada_de_acciones_preventivas_en_conflicto_de_interes
+        description: "i06: Gestión preventiva conflicto de interés."
+      - name: i07_coherencia_entre_los_elementos_que_materializan_la_integridad_en_el_servicio_publico_y_la_gestion_del_riesgo_y_control
+        description: "i07: Coherencia integridad, riesgo y control."
+      - name: pol03_indice_de_planeacion_institucional
+        description: "Política 3: Planeación Institucional."
+      - name: pol04_indice_de_gestion_presupuestal_y_eficiencia_del_gasto_publico
+        description: "Política 4: Gestión Presupuestal."
+      - name: pol05_indice_de_compras_y_contratacion_publica
+        description: "Política 5: Compras y Contratación Pública."
+      - name: i08_planeacion_efectiva_y_tecnica_de_la_contratacion_publica
+        description: "i08: Planeación efectiva de la contratación."
+      - name: i09_registro_y_publicacion_contractual_en_las_plataformas
+        description: "i09: Registro y publicación en plataformas."
+      - name: i10_aplicacion_de_lineamientos_normativos_documentos_estandar_e_instrumentos
+        description: "i10: Aplicación de lineamientos normativos."
+      - name: pol06_indice_de_fortalecimiento_organizacional_y_simplificacion_de_procesos
+        description: "Política 6: Fortalecimiento Organizacional."
+      - name: pol07_indice_de_gobierno_digital
+        description: "Política 7: Gobierno Digital."
+      - name: i11_gobernanza
+        description: "i11: Gobernanza."
+      - name: i12_innovacion_publica_digital
+        description: "i12: Innovación pública digital."
+      - name: i13_arquitectura
+        description: "i13: Arquitectura."
+      - name: i14_seguridad_y_privacidad_de_la_informacion
+        description: "i14: Seguridad y privacidad de la información."
+      - name: i15_servicios_ciudadanos_digitales
+        description: "i15: Servicios ciudadanos digitales."
+      - name: i16_cultura_y_apropiacion
+        description: "i16: Cultura y apropiación."
+      - name: i17_servicios_y_procesos_inteligentes
+        description: "i17: Servicios y procesos inteligentes."
+      - name: i18_estado_abierto
+        description: "i18: Estado abierto."
+      - name: i19_decisiones_basadas_en_datos
+        description: "i19: Decisiones basadas en datos."
+      - name: i20_proyectos_de_transformacion_digital
+        description: "i20: Proyectos de transformación digital."
+      - name: i21_estrategias_de_ciudades_y_territorios_inteligentes
+        description: "i21: Estrategias de ciudades inteligentes."
+      - name: pol08_indice_de_seguridad_digital
+        description: "Política 8: Seguridad Digital."
+      - name: i22_asigancion_de_recursos
+        description: "i22: Asignación de recursos."
+      - name: i23_implementacion_lineamientos_de_politica
+        description: "i23: Implementación lineamientos política."
+      - name: i24_despliegue_de_controles
+        description: "i24: Despliegue de controles."
+      - name: pol09_indice_defensa_juridica
+        description: "Política 9: Defensa Jurídica."
+      - name: i70_prevencion_del_dano_antijuridico
+        description: "i70: Prevención del daño antijurídico (Homologado 0)."
+      - name: i25_gestion_de_las_actuaciones_prejudiciales
+        description: "i25: Gestión de actuaciones prejudiciales."
+      - name: i26_gestion_de_la_defensa_judicial
+        description: "i26: Gestión de la defensa judicial."
+      - name: i27_gestion_del_cumplimento_de_sentencias_y_conciliaciones
+        description: "i27: Gestión cumplimiento de sentencias."
+      - name: i28_gestion_de_la_accion_de_repeticion
+        description: "i28: Gestión de la acción de repetición."
+      - name: i29_gestion_del_conocimiento_juridico
+        description: "i29: Gestión del conocimiento jurídico."
+      - name: pol10_indice_mejora_normativa
+        description: "Política 10: Mejora Normativa."
+      - name: i30_planeacion_y_diseno_de_los_actos_administrativos_de_caracter_general
+        description: "i30: Planeación y diseño actos administrativos."
+      - name: i31_redaccion_consulta_publica_y_revision_de_los_actos_administrativos_de_caracter_general
+        description: "i31: Redacción y consulta pública."
+      - name: i32_publicacion_y_evaluacion_de_los_actos_administrativos
+        description: "i32: Publicación y evaluación actos admin."
+      - name: pol11_indice_de_servicio_a_las_ciudadanias
+        description: "Política 11: Servicio a las Ciudadanías."
+      - name: i33_diagnostico_y_planeacion_del_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i33: Diagnóstico y planeación servicio."
+      - name: i34_talento_humano_idoneo_y_suficiente_al_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i34: Talento humano idóneo para servicio."
+      - name: i35_oferta_institucional_de_facil_acceso_comprension_y_uso_para_la_ciudadania
+        description: "i35: Oferta institucional de fácil acceso."
+      - name: i36_evaluacion_de_la_gestion_del_servicio_y_medicion_de_la_experiencia_ciudadana
+        description: "i36: Evaluación de la gestión y experiencia."
+      - name: i37_accesibilidad_para_personas_con_discapacidad
+        description: "i37: Accesibilidad para discapacidad."
+      - name: pol12_indice_de_racionalizacion_de_tramites
+        description: "Política 12: Racionalización de Trámites."
+      - name: i39_priorizacion_de_tramites_con_base_en_las_necesidades_y_expectativas_de_los_ciudadanos
+        description: "i39: Priorización de trámites."
+      - name: i40_tramites_racionalizados_y_recursos_tenidos_en_cuenta_para_mejorarlos
+        description: "i40: Trámites racionalizados."
+      - name: i41_beneficios_de_las_acciones_de_racionalizacion_adelantadas
+        description: "i41: Beneficios de racionalización."
+      - name: pol13_indice_de_participacion_ciudadana_en_la_gestion_publica
+        description: "Política 13: Participación Ciudadana."
+      - name: i42_capacidades_institucionales_instaladas_para_la_promocion_de_la_participacion
+        description: "i42: Capacidades institucionales participación."
+      - name: i43_planeacion_anual_de_la_estrategia_de_participacion_ciudadana_en_la_geston_publica
+        description: "i43: Planeación anual participación."
+      - name: i44_implementacion_de_acciones_de_participacion_ciudadana_en_las_diferentes_fases_del_ciclo_de_gestion
+        description: "i44: Implementación acciones participación."
+      - name: i45_capacidad_de_involucrar_efectivamente_a_los_diferentes_grupos_poblacionales_en_las_acciones_de_participacion_garantizando_el
+        description: "i45: Capacidad de involucrar grupos poblacionales."
+      - name: i46_evaluacion_de_los_resultados_de_la_estrategia_anual_de_participacion_ciudadana_y_su_aprovechamiento_en_acciones_de_mejora_in
+        description: "i46: Evaluación resultados participación."
+      - name: i47_rendicion_de_cuentas_en_la_gestion_publica
+        description: "i47: Rendición de cuentas."
+      - name: pol14_indice_de_seguimiento_y_evaluacion_del_desempeno_institucional
+        description: "Política 14: Seguimiento y Evaluación."
+      - name: pol15_indice_transparencia_acceso_a_la_informacion_y_lucha_contra_la_corrupcion
+        description: "Política 15: Transparencia y Lucha contra Corrupción."
+      - name: i48_gestion_de_riesgos_de_corrupcion
+        description: "i48: Gestión de riesgos de corrupción."
+      - name: i49_indice_de_transparencia_y_acceso_a_la_informacion_publica
+        description: "i49: Índice de transparencia y acceso."
+      - name: pol16_indice_de_gestion_documental
+        description: "Política 16: Gestión Documental."
+      - name: i50_calidad_del_componente_estrategico
+        description: "i50: Calidad componente estratégico."
+      - name: i51_calidad_del_componente_administracion_de_archivos
+        description: "i51: Calidad administración de archivos."
+      - name: i52_calidad_del_componente_documental
+        description: "i52: Calidad componente documental."
+      - name: i53_calidad_del_componente_tecnologico
+        description: "i53: Calidad componente tecnológico."
+      - name: i54_calidad_del_componente_cultural
+        description: "i54: Calidad componente cultural."
+      - name: pol17_indice_de_gestion_informacion_estadistica
+        description: "Política 17: Gestión Información Estadística."
+      - name: i55_indice_planeacion_estadistica
+        description: "i55: Índice planeación estadística."
+      - name: i56_indice_fortalecimiento_de_registros_administrativos
+        description: "i56: Fortalecimiento registros admin."
+      - name: i57_indice_calidad_estadistica
+        description: "i57: Índice calidad estadística."
+      - name: pol18_indice_de_gestion_del_conocimiento
+        description: "Política 18: Gestión del Conocimiento."
+      - name: i58_planeacion_de_la_gestion_del_conocimiento_y_la_innovacion
+        description: "i58: Planeación gestión del conocimiento."
+      - name: i59_generacion_y_produccion_del_conocimiento
+        description: "i59: Generación y producción conocimiento."
+      - name: i60_generacion_de_herramientas_de_uso_y_apropiacion_del_conocimiento
+        description: "i60: Herramientas uso y apropiación."
+      - name: i61_generacion_de_una_cultura_de_propicia_para_la_gestion_del_conocimiento_y_la_innovacion
+        description: "i61: Cultura propicia para conocimiento."
+      - name: i62_analitica_institucional_para_la_toma_de_decisiones
+        description: "i62: Analítica para toma de decisiones."
+      - name: pol19_indice_de_control_interno
+        description: "Política 19: Control Interno."
+      - name: i63_ambiente_propicio_para_el_ejercicio_del_control
+        description: "i63: Ambiente propicio para control."
+      - name: i64_evaluacion_estrategica_del_riesgo
+        description: "i64: Evaluación estratégica del riesgo."
+      - name: i65_actividades_de_control_efectivas
+        description: "i65: Actividades de control efectivas."
+      - name: i66_informacion_y_comunicacion_relevante_y_oportuna_para_el_control
+        description: "i66: Información y comunicación relevante."
+      - name: i67_actividades_de_monitoreo_sistematicas_y_orientadas_a_la_mejora
+        description: "i67: Actividades de monitoreo."
+      - name: i68_evaluacion_independiente_al_sistema_de_control_interno
+        description: "i68: Evaluación independiente SCI."
 
   - name: idi_transformed_data_2024
-    description: |
-      Modelo que contiene datos transformados del Índice de Desarrollo e Innovación (IDI) para el año 2024.
-      Incluye normalización de nombres de departamentos y estructura de datos.
+    description: "Modelo transformado para 2024. Mismo esquema que 2023 con i70 nativo."
     columns:
-      - name: territorio
-        description: Nombre del territorio (departamento)
-        data_type: STRING
-      - name: fecha_lectura
-        description: Fecha y hora en que se realizó la lectura de los datos
-        data_type: TIMESTAMP
+      - name: codigo_sigep
+        description: "Código único de la entidad."
+      - name: entidad
+        description: "Nombre de la entidad pública."
+      - name: orden
+        description: "Nivel administrativo."
+      - name: clasificacion_organica
+        description: "Clasificación orgánica."
+      - name: naturaleza_juridica
+        description: "Naturaleza jurídica."
+      - name: sector
+        description: "Sector administrativo."
+      - name: departamento
+        description: "Nombre del departamento original fuente 2024."
+      - name: municipio
+        description: "Nombre del municipio original fuente 2024."
+      - name: pdet
+        description: "Indicador PDET."
+      - name: capital
+        description: "Indicador Capital."
+      - name: id_grupo_par
+        description: "ID Grupo Par."
+      - name: grupo_par
+        description: "Nombre Grupo Par."
+      - name: tipo_formulario
+        description: "Tipo Formulario."
+      - name: indice_de_desempeno_institucional
+        description: "Puntaje general IDI 2024."
+      - name: d1_talento_humano
+        description: "Dimensión 1: Talento Humano."
+      - name: d2_direcciona_miento_estrategico_y_planeacion
+        description: "Dimensión 2."
+      - name: d3_gestion_para_resultados_con_valores
+        description: "Dimensión 3."
+      - name: d4_evaluacion_de_resultados
+        description: "Dimensión 4."
+      - name: d5_informacion_y_comunicacion
+        description: "Dimensión 5."
+      - name: d6_gestion_del_conocimiento
+        description: "Dimensión 6."
+      - name: d7_control_interno
+        description: "Dimensión 7."
+      - name: pol01_indice_de_gestion_estrategica_del_talento_humano
+        description: "Política 1: GETH."
+      - name: i01_calidad_de_la_planeacion_estrategica_del_talento_humano
+        description: "i01."
+      - name: i02_eficiencia_y_eficacia_de_la_seleccion_meritocratica_del_talento_humano
+        description: "i02."
+      - name: i03_desarrollo_del_talento_humano_en_la_entidad
+        description: "i03."
+      - name: i04_desvinculacion_asistida_y_retencion_del_conocimiento_generado_por_el_talento_humano
+        description: "i04."
+      - name: pol02_indice_de_integridad
+        description: "Política 2."
+      - name: i05_cambio_cultural_basado_en_la_implementacion_del_codigo_de_integridad_del_servicio_publico
+        description: "i05."
+      - name: i06_gestion_adecuada_de_acciones_preventivas_en_conflicto_de_interes
+        description: "i06."
+      - name: i07_coherencia_entre_los_elementos_que_materializan_la_integridad_en_el_servicio_publico_y_la_gestion_del_riesgo_y_control
+        description: "i07."
+      - name: pol03_indice_de_planeacion_institucional
+        description: "Política 3."
+      - name: pol04_indice_de_gestion_presupuestal_y_eficiencia_del_gasto_publico
+        description: "Política 4."
+      - name: pol05_indice_de_compras_y_contratacion_publica
+        description: "Política 5."
+      - name: i08_planeacion_efectiva_y_tecnica_de_la_contratacion_publica
+        description: "i08."
+      - name: i09_registro_y_publicacion_contractual_en_las_plataformas
+        description: "i09."
+      - name: i10_aplicacion_de_lineamientos_normativos_documentos_estandar_e_instrumentos
+        description: "i10."
+      - name: pol06_indice_de_fortalecimiento_organizacional_y_simplificacion_de_procesos
+        description: "Política 6."
+      - name: pol07_indice_de_gobierno_digital
+        description: "Política 7."
+      - name: i11_gobernanza
+        description: "i11."
+      - name: i12_innovacion_publica_digital
+        description: "i12."
+      - name: i13_arquitectura
+        description: "i13."
+      - name: i14_seguridad_y_privacidad_de_la_informacion
+        description: "i14."
+      - name: i15_servicios_ciudadanos_digitales
+        description: "i15."
+      - name: i16_cultura_y_apropiacion
+        description: "i16."
+      - name: i17_servicios_y_procesos_inteligentes
+        description: "i17."
+      - name: i18_estado_abierto
+        description: "i18."
+      - name: i19_decisiones_basadas_en_datos
+        description: "i19."
+      - name: i20_proyectos_de_transformacion_digital
+        description: "i20."
+      - name: i21_estrategias_de_ciudades_y_territorios_inteligentes
+        description: "i21."
+      - name: pol08_indice_de_seguridad_digital
+        description: "Política 8."
+      - name: i22_asigancion_de_recursos
+        description: "i22."
+      - name: i23_implementacion_lineamientos_de_politica
+        description: "i23."
+      - name: i24_despliegue_de_controles
+        description: "i24."
+      - name: pol09_indice_defensa_juridica
+        description: "Política 9."
+      - name: i70_prevencion_del_dano_antijuridico
+        description: "i70: Nativo 2024."
+      - name: i25_gestion_de_las_actuaciones_prejudiciales
+        description: "i25."
+      - name: i26_gestion_de_la_defensa_judicial
+        description: "i26."
+      - name: i27_gestion_del_cumplimento_de_sentencias_y_conciliaciones
+        description: "i27."
+      - name: i28_gestion_de_la_accion_de_repeticion
+        description: "i28."
+      - name: i29_gestion_del_conocimiento_juridico
+        description: "i29."
+      - name: pol10_indice_mejora_normativa
+        description: "Política 10."
+      - name: i30_planeacion_y_diseno_de_los_actos_administrativos_de_caracter_general
+        description: "i30."
+      - name: i31_redaccion_consulta_publica_y_revision_de_los_actos_administrativos_de_caracter_general
+        description: "i31."
+      - name: i32_publicacion_y_evaluacion_de_los_actos_administrativos
+        description: "i32."
+      - name: pol11_indice_de_servicio_a_las_ciudadanias
+        description: "Política 11."
+      - name: i33_diagnostico_y_planeacion_del_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i33."
+      - name: i34_talento_humano_idoneo_y_suficiente_al_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i34."
+      - name: i35_oferta_institucional_de_facil_acceso_comprension_y_uso_para_la_ciudadania
+        description: "i35."
+      - name: i36_evaluacion_de_la_gestion_del_servicio_y_medicion_de_la_experiencia_ciudadana
+        description: "i36."
+      - name: i37_accesibilidad_para_personas_con_discapacidad
+        description: "i37."
+      - name: pol12_indice_de_racionalizacion_de_tramites
+        description: "Política 12."
+      - name: i39_priorizacion_de_tramites_con_base_en_las_necesidades_y_expectativas_de_los_ciudadanos
+        description: "i39."
+      - name: i40_tramites_racionalizados_y_recursos_tenidos_en_cuenta_para_mejorarlos
+        description: "i40."
+      - name: i41_beneficios_de_las_acciones_de_racionalizacion_adelantadas
+        description: "i41."
+      - name: pol13_indice_de_participacion_ciudadana_en_la_gestion_publica
+        description: "Política 13."
+      - name: i42_capacidades_institucionales_instaladas_para_la_promocion_de_la_participacion
+        description: "i42."
+      - name: i43_planeacion_anual_de_la_estrategia_de_participacion_ciudadana_en_la_geston_publica
+        description: "i43."
+      - name: i44_implementacion_de_acciones_de_participacion_ciudadana_en_las_diferentes_fases_del_ciclo_de_gestion
+        description: "i44."
+      - name: i45_capacidad_de_involucrar_efectivamente_a_los_diferentes_groups_poblacionales
+        description: "i45."
+      - name: i46_evaluacion_de_los_resultados_de_la_estrategia_anual_de_participacion_ciudadana
+        description: "i46."
+      - name: i47_rendicion_de_cuentas_en_la_gestion_publica
+        description: "i47."
+      - name: pol14_indice_de_seguimiento_y_evaluacion_del_desempeno_institucional
+        description: "Política 14."
+      - name: pol15_indice_transparencia_acceso_a_la_informacion_y_lucha_contra_la_corrupcion
+        description: "Política 15."
+      - name: i48_gestion_de_riesgos_de_corrupcion
+        description: "i48."
+      - name: i49_indice_de_transparencia_y_acceso_a_la_informacion_publica
+        description: "i49."
+      - name: pol16_indice_de_gestion_documental
+        description: "Política 16."
+      - name: i50_calidad_del_componente_estrategico
+        description: "i50."
+      - name: i51_calidad_del_componente_administracion_de_archivos
+        description: "i51."
+      - name: i52_calidad_del_componente_documental
+        description: "i52."
+      - name: i53_calidad_del_componente_tecnologico
+        description: "i53."
+      - name: i54_calidad_del_componente_cultural
+        description: "i54."
+      - name: pol17_indice_de_gestion_informacion_estadistica
+        description: "Política 17."
+      - name: i55_indice_planeacion_estadistica
+        description: "i55."
+      - name: i56_indice_fortalecimiento_de_registros_administrativos
+        description: "i56."
+      - name: i57_indice_calidad_estadistica
+        description: "i57."
+      - name: pol18_indice_de_gestion_del_conocimiento
+        description: "Política 18."
+      - name: i58_planeacion_de_la_gestion_del_conocimiento_y_la_innovacion
+        description: "i58."
+      - name: i59_generacion_y_produccion_del_conocimiento
+        description: "i59."
+      - name: i60_generacion_de_herramientas_de_uso_y_apropiacion_del_conocimiento
+        description: "i60."
+      - name: i61_generacion_de_una_cultura_de_propicia_para_la_gestion_del_conocimiento
+        description: "i61."
+      - name: i62_analitica_institucional_para_la_toma_de_decisiones
+        description: "i62."
+      - name: pol19_indice_de_control_interno
+        description: "Política 19."
+      - name: i63_ambiente_propicio_para_el_ejercicio_del_control
+        description: "i63."
+      - name: i64_evaluacion_estrategica_del_riesgo
+        description: "i64."
+      - name: i65_actividades_de_control_efectivas
+        description: "i65."
+      - name: i66_informacion_y_comunicacion_relevante_y_oportuna_para_el_control
+        description: "i66."
+      - name: i67_actividades_de_monitoreo_sistematicas_y_orientadas_a_la_mejora
+        description: "i67."
+      - name: i68_evaluacion_independiente_al_sistema_de_control_interno
+        description: "i68."
 
   - name: idi_transformed_data_consolidated
     description: |
-      Modelo consolidado que une los datos de IDI de 2024 y 2023 homologados.
-      Normaliza nombres de departamentos eliminando acentos y caracteres especiales.
-      Este es el modelo final de la capa silver para IDI, listo para ser consumido por la capa gold.
+      Modelo final consolidado IDI (2023-2024). 
+      Une ambos años mediante UNION ALL. 
+      Normaliza 'departamento' (MAYÚSCULAS y sin tildes) para permitir análisis geoespacial consistente.
     columns:
+      # --- CAMPOS DE IDENTIFICACIÓN Y GEOGRAFÍA ---
       - name: anio
-        description: Año del indicador (2023 o 2024)
-        data_type: INT64
-      - name: territorio
-        description: Nombre del territorio (departamento) normalizado en mayúsculas sin acentos
-        data_type: STRING
-      - name: fecha_lectura
-        description: Fecha y hora en que se realizó la lectura de los datos
-        data_type: TIMESTAMP
+        description: "Año del reporte (2023 o 2024)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [2023, 2024]
+      - name: departamento
+        description: "Departamento normalizado (Ej: BOGOTA D.C., ANTIOQUIA)."
+        tests:
+          - not_null
+      - name: municipio
+        description: "Municipio de la entidad."
+      - name: codigo_sigep
+        description: "Código identificador único de la entidad pública."
+      - name: entidad
+        description: "Nombre oficial de la institución."
+      - name: orden
+        description: "Nivel administrativo: Nacional o Territorial."
+      - name: clasificacion_organica
+        description: "Clasificación orgánica según manual de oferta institucional."
+      - name: naturaleza_juridica
+        description: "Naturaleza jurídica de la entidad."
+      - name: sector
+        description: "Sector administrativo al que pertenece."
+      - name: pdet
+        description: "Indica si el municipio pertenece a Programas de Desarrollo con Enfoque Territorial."
+      - name: capital
+        description: "Indica si la entidad se ubica en una ciudad capital."
+      - name: id_grupo_par
+        description: "Identificador numérico del grupo de pares."
+      - name: grupo_par
+        description: "Nombre del grupo de comparación (pares)."
+      - name: tipo_formulario
+        description: "Versión del formulario FURAG diligenciado."
 
+      # --- DESEMPEÑO GENERAL Y DIMENSIONES ---
+      - name: indice_de_desempeno_institucional
+        description: "Puntaje general consolidado del IDI."
+      - name: d1_talento_humano
+        description: "Dimensión 1: Talento Humano."
+      - name: d2_direcciona_miento_estrategico_y_planeacion
+        description: "Dimensión 2: Direccionamiento Estratégico y Planeación."
+      - name: d3_gestion_para_resultados_con_valores
+        description: "Dimensión 3: Gestión para Resultados con Valores."
+      - name: d4_evaluacion_de_resultados
+        description: "Dimensión 4: Evaluación de Resultados."
+      - name: d5_informacion_y_comunicacion
+        description: "Dimensión 5: Información y Comunicación."
+      - name: d6_gestion_del_conocimiento
+        description: "Dimensión 6: Gestión del Conocimiento."
+      - name: d7_control_interno
+        description: "Dimensión 7: Control Interno."
+
+      # --- POLÍTICAS E INDICADORES (TOTALMENTE EXPLÍCITOS) ---
+      - name: pol01_indice_de_gestion_estrategica_del_talento_humano
+        description: "P01: Gestión Estratégica del Talento Humano."
+      - name: i01_calidad_de_la_planeacion_estrategica_del_talento_humano
+        description: "i01: Calidad planeación TH."
+      - name: i02_eficiencia_y_eficacia_de_la_seleccion_meritocratica_del_talento_humano
+        description: "i02: Selección meritocrática."
+      - name: i03_desarrollo_del_talento_humano_en_la_entidad
+        description: "i03: Desarrollo TH."
+      - name: i04_desvinculacion_asistida_y_retencion_del_conocimiento_generado_por_el_talento_humano
+        description: "i04: Retención conocimiento."
+      - name: pol02_indice_de_integridad
+        description: "P02: Integridad."
+      - name: i05_cambio_cultural_basado_en_la_implementacion_del_codigo_de_integridad_del_servicio_publico
+        description: "i05: Cambio cultural integridad."
+      - name: i06_gestion_adecuada_de_acciones_preventivas_en_conflicto_de_interes
+        description: "i06: Conflicto de interés."
+      - name: i07_coherencia_entre_los_elementos_que_materializan_la_integridad_en_el_servicio_publico_y_la_gestion_del_riesgo_y_control
+        description: "i07: Coherencia integridad y control."
+      - name: pol03_indice_de_planeacion_institucional
+        description: "P03: Planeación Institucional."
+      - name: pol04_indice_de_gestion_presupuestal_y_eficiencia_del_gasto_publico
+        description: "P04: Gestión Presupuestal."
+      - name: pol05_indice_de_compras_y_contratacion_publica
+        description: "P05: Compras y Contratación."
+      - name: i08_planeacion_efectiva_y_tecnica_de_la_contratacion_publica
+        description: "i08: Planeación contratación."
+      - name: i09_registro_y_publicacion_contractual_en_las_plataformas
+        description: "i09: Publicación plataformas."
+      - name: i10_aplicacion_de_lineamientos_normativos_documentos_estandar_e_instrumentos
+        description: "i10: Lineamientos normativos."
+      - name: pol06_indice_de_fortalecimiento_organizacional_y_simplificacion_de_procesos
+        description: "P06: Fortalecimiento Organizacional."
+      - name: pol07_indice_de_gobierno_digital
+        description: "P07: Gobierno Digital."
+      - name: i11_gobernanza
+        description: "i11: Gobernanza digital."
+      - name: i12_innovacion_publica_digital
+        description: "i12: Innovación digital."
+      - name: i13_arquitectura
+        description: "i13: Arquitectura TI."
+      - name: i14_seguridad_y_privacidad_de_la_informacion
+        description: "i14: Privacidad información."
+      - name: i15_servicios_ciudadanos_digitales
+        description: "i15: Servicios digitales."
+      - name: i16_cultura_y_apropiacion
+        description: "i16: Cultura digital."
+      - name: i17_servicios_y_procesos_inteligentes
+        description: "i17: Procesos inteligentes."
+      - name: i18_estado_abierto
+        description: "i18: Estado abierto."
+      - name: i19_decisiones_basadas_en_datos
+        description: "i19: Decisiones en datos."
+      - name: i20_proyectos_de_transformacion_digital
+        description: "i20: Proyectos transformación."
+      - name: i21_estrategias_de_ciudades_y_territorios_inteligentes
+        description: "i21: Territorios inteligentes."
+      - name: pol08_indice_de_seguridad_digital
+        description: "P08: Seguridad Digital."
+      - name: i22_asigancion_de_recursos
+        description: "i22: Recursos seguridad."
+      - name: i23_implementacion_lineamientos_de_politica
+        description: "i23: Lineamientos seguridad."
+      - name: i24_despliegue_de_controles
+        description: "i24: Controles seguridad."
+      - name: pol09_indice_defensa_juridica
+        description: "P09: Defensa Jurídica."
+      - name: i70_prevencion_del_dano_antijuridico
+        description: "i70: Prevención daño (0 en 2023, Real en 2024)."
+      - name: i25_gestion_de_las_actuaciones_prejudiciales
+        description: "i25: Actuaciones prejudiciales."
+      - name: i26_gestion_de_la_defensa_judicial
+        description: "i26: Defensa judicial."
+      - name: i27_gestion_del_cumplimento_de_sentencias_y_conciliaciones
+        description: "i27: Cumplimiento sentencias."
+      - name: i28_gestion_de_la_accion_de_repeticion
+        description: "i28: Acción repetición."
+      - name: i29_gestion_del_conocimiento_juridico
+        description: "i29: Conocimiento jurídico."
+      - name: pol10_indice_mejora_normativa
+        description: "P10: Mejora Normativa."
+      - name: i30_planeacion_y_diseno_de_los_actos_administrativos_de_caracter_general
+        description: "i30: Diseño actos admin."
+      - name: i31_redaccion_consulta_publica_y_revision_de_los_actos_administrativos_de_caracter_general
+        description: "i31: Redacción actos admin."
+      - name: i32_publicacion_y_evaluacion_de_los_actos_administrativos
+        description: "i32: Evaluación actos admin."
+      - name: pol11_indice_de_servicio_a_las_ciudadanias
+        description: "P11: Servicio Ciudadanía."
+      - name: i33_diagnostico_y_planeacion_del_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i33: Planeación servicio."
+      - name: i34_talento_humano_idoneo_y_suficiente_al_servicio_y_relacionamiento_con_la_ciudadania
+        description: "i34: TH para servicio."
+      - name: i35_oferta_institucional_de_facil_acceso_comprension_y_uso_para_la_ciudadania
+        description: "i35: Acceso oferta ciudadana."
+      - name: i36_evaluacion_de_la_gestion_del_servicio_y_medicion_de_la_experiencia_ciudadana
+        description: "i36: Experiencia ciudadana."
+      - name: i37_accesibilidad_para_personas_con_discapacidad
+        description: "i37: Accesibilidad."
+      - name: pol12_indice_de_racionalizacion_de_tramites
+        description: "P12: Racionalización Trámites."
+      - name: i39_priorizacion_de_tramites_con_base_en_las_necesidades_y_expectativas_de_los_ciudadanos
+        description: "i39: Priorización trámites."
+      - name: i40_tramites_racionalizados_y_recursos_tenidos_en_cuenta_para_mejorarlos
+        description: "i40: Racionalización técnica."
+      - name: i41_beneficios_de_las_acciones_de_racionalizacion_adelantadas
+        description: "i41: Beneficios trámites."
+      - name: pol13_indice_de_participacion_ciudadana_en_la_gestion_publica
+        description: "P13: Participación Ciudadana."
+      - name: i42_capacidades_institucionales_instaladas_para_la_promocion_de_la_participacion
+        description: "i42: Capacidades participación."
+      - name: i43_planeacion_anual_de_la_estrategia_de_participacion_ciudadana_en_la_geston_publica
+        description: "i43: Planeación participación."
+      - name: i44_implementacion_de_acciones_de_participacion_ciudadana_en_las_diferentes_fases_del_ciclo_de_gestion
+        description: "i44: Implementación participación."
+      - name: i45_capacidad_de_involucrar_efectivamente_a_los_diferentes_grupos_poblacionales
+        description: "i45: Involucramiento poblacional."
+      - name: i46_evaluacion_de_los_resultados_de_la_estrategia_anual_de_participacion_ciudadana
+        description: "i46: Resultados participación."
+      - name: i47_rendicion_de_cuentas_en_la_gestion_publica
+        description: "i47: Rendición cuentas."
+      - name: pol14_indice_de_seguimiento_y_evaluacion_del_desempeno_institucional
+        description: "P14: Seguimiento y Evaluación."
+      - name: pol15_indice_transparencia_acceso_a_la_informacion_y_lucha_contra_la_corrupcion
+        description: "P15: Transparencia y Lucha Corrupción."
+      - name: i48_gestion_de_riesgos_de_corrupcion
+        description: "i48: Riesgos corrupción."
+      - name: i49_indice_de_transparencia_y_acceso_a_la_informacion_publica
+        description: "i49: Acceso info pública."
+      - name: pol16_indice_de_gestion_documental
+        description: "P16: Gestión Documental."
+      - name: i50_calidad_del_componente_estrategico
+        description: "i50: Estrategia documental."
+      - name: i51_calidad_del_componente_administracion_de_archivos
+        description: "i51: Administración archivos."
+      - name: i52_calidad_del_componente_documental
+        description: "i52: Calidad documental."
+      - name: i53_calidad_del_componente_tecnologico
+        description: "i53: Tecnología documental."
+      - name: i54_calidad_del_componente_cultural
+        description: "i54: Cultura documental."
+      - name: pol17_indice_de_gestion_informacion_estadistica
+        description: "P17: Información Estadística."
+      - name: i55_indice_planeacion_estadistica
+        description: "i55: Planeación estadística."
+      - name: i56_indice_fortalecimiento_de_registros_administrativos
+        description: "i56: Registros administrativos."
+      - name: i57_indice_calidad_estadistica
+        description: "i57: Calidad estadística."
+      - name: pol18_indice_de_gestion_del_conocimiento
+        description: "P18: Gestión del Conocimiento."
+      - name: i58_planeacion_de_la_gestion_del_conocimiento_y_la_innovacion
+        description: "i58: Planeación conocimiento."
+      - name: i59_generacion_y_produccion_del_conocimiento
+        description: "i59: Producción conocimiento."
+      - name: i60_generacion_de_herramientas_de_uso_y_apropiacion_del_conocimiento
+        description: "i60: Herramientas conocimiento."
+      - name: i61_generacion_de_una_cultura_de_propicia_para_la_gestion_del_conocimiento
+        description: "i61: Cultura conocimiento."
+      - name: i62_analitica_institucional_para_la_toma_de_decisiones
+        description: "i62: Analítica institucional."
+      - name: pol19_indice_de_control_interno
+        description: "P19: Control Interno."
+      - name: i63_ambiente_propicio_para_el_ejercicio_del_control
+        description: "i63: Ambiente control."
+      - name: i64_evaluacion_estrategica_del_riesgo
+        description: "i64: Evaluación riesgo."
+      - name: i65_actividades_de_control_efectivas
+        description: "i65: Actividades control."
+      - name: i66_informacion_y_comunicacion_relevante_y_oportuna_para_el_control
+        description: "i66: Comunicación control."
+      - name: i67_actividades_de_monitoreo_sistematicas_y_orientadas_a_la_mejora
+        description: "i67: Monitoreo sistemático."
+      - name: i68_evaluacion_independiente_al_sistema_de_control_interno
+        description: "i68: Evaluación independiente."
