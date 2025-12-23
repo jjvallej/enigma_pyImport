@@ -187,3 +187,16 @@ database_sc_stackdb:
   schedule_interval: null  # usar null para ejecución manual; puede ser "@daily"
   start_days_ago: 1
 
+# Configuración para generación y publicación de documentación de dbt
+dbt_docs:
+  # Target de dbt a usar (dev, prod, local)
+  target: "dev"
+  # Prefijo en GCS donde se guardará la documentación
+  destination_prefix: "dbt_docs"
+  # Frecuencia de actualización (null = manual, "@daily" = diario, "@weekly" = semanal)
+  schedule_interval: "@daily"
+  # Configuración del bucket para hosting estático
+  bucket_config:
+    index_page: "index.html"
+    error_page: "index.html"  # Opcional, usar index.html como fallback
+

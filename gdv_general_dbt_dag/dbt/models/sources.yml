@@ -1514,28 +1514,6 @@ sources:
           - name: fecha_lectura
             description: "Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan. Esta fecha se agrega automáticamente durante el proceso de carga para rastrear cuándo se obtuvieron los datos."
             data_type: TIMESTAMP
-        columns:
-          - name: Fila
-            description: "Identificador de fila o número de registro. Campo auxiliar para identificar cada registro en la tabla."
-            data_type: STRING
-          - name: LINEA_ESTRATEGICA
-            description: "Línea estratégica asociada al programa. Identifica la línea estratégica a la que pertenece el programa y sus metas."
-            data_type: STRING
-          - name: DETALLE_PROGRAMAS_JSON
-            description: "Detalle de programas en formato JSON. Contiene información estructurada sobre los programas, incluyendo subprogramas, metas de producto, cumplimientos, y otras métricas relacionadas con cada programa."
-            data_type: STRING
-          - name: PG_SUMA_CUMPL_LINEA_ESTRATEGICA
-            description: "Suma de cumplimiento de la línea estratégica según Plan de Gestión (PG). Agrega el cumplimiento de todos los programas asociados a la línea estratégica considerando el plan de gestión."
-            data_type: STRING
-          - name: PA_PROMEDIO_CUMPL_LINEA_ESTRATEGICA
-            description: "Promedio de cumplimiento de la línea estratégica según Plan de Acción (PA). Calcula el promedio de cumplimiento de todos los programas asociados a la línea estratégica considerando el plan de acción."
-            data_type: STRING
-          - name: peri_idp
-            description: "Identificador único del periodo de seguimiento. Es un número entero que identifica de manera única cada periodo de reporte en el sistema Evaplan."
-            data_type: INT64
-          - name: fecha_lectura
-            description: "Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan. Esta fecha se agrega automáticamente durante el proceso de carga para rastrear cuándo se obtuvieron los datos."
-            data_type: TIMESTAMP
       - name: evaplan_api_sector_mp_raw_data
         description: |
           "Tabla que contiene datos raw (sin transformar) del avance de Metas de Producto (MP) desagregado por sector obtenidos directamente de la API de Evaplan. 
