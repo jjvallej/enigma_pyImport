@@ -297,42 +297,87 @@ def configure_bucket_for_static_website(
     error_page: Optional[str] = None
 ) -> None:
     """
-    Configura un bucket de GCS para servir contenido estático como sitio web.
+    Configura un bucket de GCS para servir contenido estático como sitio web público.
+    
+    Esta función:
+    1. Configura IAM para permitir acceso público a los objetos (allUsers)
+    2. Configura CORS para que el navegador pueda cargar manifest.json, catalog.json, etc.
     
     NOTA: Esta función requiere permisos de administrador del bucket.
     
     Args:
         bucket_name: Nombre del bucket
-        index_page: Página principal (normalmente 'index.html')
+        index_page: Página principal (normalmente 'index.html' o 'dbt_docs/index.html')
         error_page: Página de error (opcional)
     """
     if DEBUG:
-        print(f"[INFO] Configurando bucket {bucket_name} para sitio web estático")
+        print(f"[INFO] Configurando bucket {bucket_name} para acceso público y CORS")
     
     gcs_client = get_gcs_client()
     bucket = gcs_client.bucket(bucket_name)
     
-    # Habilitar acceso público (requiere permisos)
-    # NOTA: En producción, considera usar Cloud Load Balancer o Cloud Run en su lugar
     try:
-        # Configurar el bucket para servir contenido estático
-        bucket.website_main_page_suffix = index_page
-        if error_page:
-            bucket.website_404_page = error_page
+        # 1. Configurar IAM para permitir acceso público a los objetos
+        # Esto permite que cualquier usuario (allUsers) pueda leer los objetos del bucket
+        policy = bucket.get_iam_policy(requested_policy_version=3)
         
-        # Hacer el bucket público para lectura (opcional, solo si quieres acceso público)
-        # bucket.iam().policy().bindings.append({
-        #     "role": "roles/storage.objectViewer",
-        #     "members": {"allUsers"}
-        # })
+        # Verificar si ya existe un binding para allUsers
+        has_public_access = False
+        viewer_binding = None
+        
+        for binding in policy.bindings:
+            if binding.get("role") == "roles/storage.objectViewer":
+                if "allUsers" in binding.get("members", set()):
+                    has_public_access = True
+                    break
+                viewer_binding = binding
+        
+        # Agregar o actualizar binding para allUsers si no existe
+        if not has_public_access:
+            if viewer_binding:
+                # Agregar allUsers al binding existente
+                if "members" not in viewer_binding:
+                    viewer_binding["members"] = set()
+                viewer_binding["members"].add("allUsers")
+            else:
+                # Crear nuevo binding
+                policy.bindings.append({
+                    "role": "roles/storage.objectViewer",
+                    "members": {"allUsers"}
+                })
+            
+            bucket.set_iam_policy(policy)
+            
+            if DEBUG:
+                print(f"[OK] IAM configurado: allUsers puede leer objetos del bucket")
+        else:
+            if DEBUG:
+                print(f"[INFO] El bucket ya tiene acceso público configurado")
+        
+        # 2. Configurar CORS para permitir que el navegador cargue manifest.json y catalog.json
+        # desde el bucket cuando se accede a index.html
+        cors_policy = [
+            {
+                "origin": ["*"],  # Permitir cualquier origen
+                "method": ["GET", "HEAD"],
+                "responseHeader": [
+                    "Content-Type", 
+                    "Content-Length", 
+                    "Cache-Control",
+                    "Access-Control-Allow-Origin"
+                ],
+                "maxAgeSeconds": 3600
+            }
+        ]
+        bucket.cors = cors_policy
+        bucket.patch()  # Aplicar los cambios
         
         if DEBUG:
-            print(f"[OK] Bucket configurado para servir {index_page}")
-            print(f"[INFO] URL del sitio: https://storage.googleapis.com/{bucket_name}/index.html")
-            print(f"[WARN] Para acceso público, necesitas configurar IAM manualmente en la consola de GCP")
+            print(f"[OK] CORS configurado para el bucket {bucket_name}")
+            print(f"[INFO] CORS permite cargar recursos desde cualquier origen")
             
     except Exception as e:
         print(f"[ERROR] Error al configurar bucket: {e}")
-        print(f"[INFO] Puedes configurar el bucket manualmente en la consola de GCP")
+        print(f"[INFO] Puedes configurar IAM y CORS manualmente en la consola de GCP")
         raise
 

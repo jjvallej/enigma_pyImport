@@ -57,6 +57,7 @@ try:
     from modules.dbt_docs import (
         generate_dbt_docs,
         upload_dbt_docs_to_gcs,
+        configure_bucket_for_static_website,
     )
 except ImportError as e:
     # Fallback: importar directamente desde el archivo
@@ -64,6 +65,7 @@ except ImportError as e:
         from modules.dbt_docs.dbt_docs_upload import (
             generate_dbt_docs,
             upload_dbt_docs_to_gcs,
+            configure_bucket_for_static_website,
         )
     except ImportError as e2:
         raise ImportError(
@@ -77,11 +79,11 @@ except ImportError as e:
 from modules.config import CONF, PROJECT_ID, DEFAULT_BUCKET_NAME
 # getattr es una función built-in de Python, no necesita importarse
 
-# Alias para mantener consistencia con el nombre usado en el código
-BUCKET_NAME = DEFAULT_BUCKET_NAME
-
 # Leer configuración desde config.yaml
 DBT_TARGET = getattr(CONF.dbt_docs, "target", "dev")
+# Usar bucket específico de dbt_docs si está configurado, sino usar el bucket por defecto
+DBT_DOCS_BUCKET_NAME = getattr(CONF.dbt_docs, "bucket_name", None)
+BUCKET_NAME = DBT_DOCS_BUCKET_NAME if DBT_DOCS_BUCKET_NAME else DEFAULT_BUCKET_NAME
 DOCS_DESTINATION_PREFIX = getattr(CONF.dbt_docs, "destination_prefix", "dbt_docs")
 SCHEDULE_INTERVAL_CONFIG = getattr(CONF.dbt_docs, "schedule_interval", "@daily")
 
@@ -143,12 +145,26 @@ def _upload_dbt_docs_task(**context):
         overwrite=True
     )
     
-    # URL pública del sitio (si el bucket está configurado para hosting estático)
+    # Configurar CORS en el bucket para permitir que el navegador cargue los recursos
+    print(f"[INFO] Configurando CORS en el bucket...")
+    try:
+        configure_bucket_for_static_website(
+            bucket_name=BUCKET_NAME,
+            index_page=f"{docs_prefix}/index.html",
+            error_page=f"{docs_prefix}/index.html"
+        )
+        print(f"[OK] CORS configurado correctamente")
+    except Exception as e:
+        print(f"[WARN] No se pudo configurar CORS automáticamente: {e}")
+        print(f"[INFO] Puedes configurarlo manualmente en la consola de GCP")
+    
+    # URL pública del sitio - IMPORTANTE: usar esta URL, no la URL de descarga directa
     public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{docs_prefix}/index.html"
     
     print(f"[OK] Documentación subida a: {gcs_uri}")
-    print(f"[INFO] URL pública: {public_url}")
-    print(f"[INFO] Para acceder a la documentación, asegúrate de que el bucket esté configurado para hosting estático")
+    print(f"[INFO] URL pública (usa esta URL): {public_url}")
+    print(f"[IMPORTANTE] NO uses la URL de descarga directa desde la consola de GCS")
+    print(f"[IMPORTANTE] Usa esta URL exacta: {public_url}")
     
     return {
         "gcs_uri": gcs_uri,

@@ -191,6 +191,8 @@ database_sc_stackdb:
 dbt_docs:
   # Target de dbt a usar (dev, prod, local)
   target: "dev"
+  # Bucket específico para la documentación de dbt (puede ser diferente al bucket por defecto)
+  bucket_name: "bucket_dbt_docs_dev"
   # Prefijo en GCS donde se guardará la documentación
   destination_prefix: "dbt_docs"
   # Frecuencia de actualización (null = manual, "@daily" = diario, "@weekly" = semanal)
