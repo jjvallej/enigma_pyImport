@@ -76,16 +76,43 @@ except ImportError as e:
             f"Módulo esperado en: {dbt_docs_module_path}"
         )
 
-from modules.config import CONF, PROJECT_ID, DEFAULT_BUCKET_NAME
+from modules.config import CONF, PROJECT_ID, DEFAULT_BUCKET_NAME, ENV
 # getattr es una función built-in de Python, no necesita importarse
 
 # Leer configuración desde config.yaml
-DBT_TARGET = getattr(CONF.dbt_docs, "target", "dev")
-# Usar bucket específico de dbt_docs si está configurado, sino usar el bucket por defecto
-DBT_DOCS_BUCKET_NAME = getattr(CONF.dbt_docs, "bucket_name", None)
+DBT_TARGET = getattr(CONF.dbt_docs, "target", ENV)  # Usa ENV como default si no está en config.yaml
+
+# Obtener el ambiente actual desde config.py (lee ENVIRONMENT o usa el default de config.py)
+# ENV ya se importa desde modules.config
+
+# Leer bucket de dbt_docs desde el ambiente configurado
+# Si no está definido en el ambiente, usar el bucket por defecto
+try:
+    current_env_config = getattr(CONF.environments, ENV)
+    DBT_DOCS_BUCKET_NAME = getattr(current_env_config, "dbt_docs_bucket_name", None)
+except AttributeError:
+    print(f"[WARN] Environment '{ENV}' not found in config. Defaulting to 'dev' for bucket lookup.")
+    current_env_config = CONF.environments.dev
+    DBT_DOCS_BUCKET_NAME = getattr(current_env_config, "dbt_docs_bucket_name", None)
+
 BUCKET_NAME = DBT_DOCS_BUCKET_NAME if DBT_DOCS_BUCKET_NAME else DEFAULT_BUCKET_NAME
 DOCS_DESTINATION_PREFIX = getattr(CONF.dbt_docs, "destination_prefix", "dbt_docs")
 SCHEDULE_INTERVAL_CONFIG = getattr(CONF.dbt_docs, "schedule_interval", "@daily")
+
+# Prints informativos
+print("=" * 80)
+print(f"[INFO] dbt Docs DAG - Versión 1")
+print(f"[INFO] Ambiente: {ENV.upper()}")
+if ENV == "prod":
+    print(f"[INFO] ⚠️  MODO PRODUCCIÓN ⚠️")
+elif ENV == "dev":
+    print(f"[INFO] 🔧 MODO DESARROLLO 🔧")
+else:
+    print(f"[INFO] 💻 MODO LOCAL 💻")
+print(f"[INFO] Bucket de documentación: {BUCKET_NAME}")
+print(f"[INFO] Target de dbt: {DBT_TARGET}")
+print(f"[INFO] Prefijo destino: {DOCS_DESTINATION_PREFIX}")
+print("=" * 80)
 
 # Convertir schedule_interval de string a objeto timedelta si es necesario
 # NOTA: En Airflow 2.4+, el parámetro es 'schedule' (no 'schedule_interval')

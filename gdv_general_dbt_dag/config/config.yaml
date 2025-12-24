@@ -6,6 +6,7 @@ environments:
     project_id: "datagov-473122"
     location: "us-central1"
     bucket_name: "datalake_gdv_dev"
+    dbt_docs_bucket_name: "bucket_dbt_docs_dev"  # Bucket específico para documentación de dbt
     dataset_bronze: "bronze_dpt_planeacion_municipal"
     dataset_silver: "silver_dpt_planeacion_municipal"
     dataset_gold: "gold_dpt_planeacion_municipal"
@@ -13,6 +14,7 @@ environments:
     project_id: "datagov-477214"
     location: "us-east1"
     bucket_name: "datalake_gdv_pdn"
+    dbt_docs_bucket_name: "bucket_dbt_docs_prod"  # Bucket específico para documentación de dbt
     dataset_bronze: "bronze_dpt_planeacion_municipal"
     dataset_silver: "silver_dpt_planeacion_municipal"
     dataset_gold: "gold_dpt_planeacion_municipal"
@@ -20,6 +22,7 @@ environments:
     project_id: "datagov-473122"  # Por defecto usa dev para desarrollo local
     location: "us-central1"
     bucket_name: "datalake_gdv_dev"
+    dbt_docs_bucket_name: "bucket_dbt_docs_dev"  # Bucket específico para documentación de dbt
     dataset_bronze: "bronze_dpt_planeacion_municipal"
     dataset_silver: "silver_dpt_planeacion_municipal"
     dataset_gold: "gold_dpt_planeacion_municipal"
@@ -190,9 +193,9 @@ database_sc_stackdb:
 # Configuración para generación y publicación de documentación de dbt
 dbt_docs:
   # Target de dbt a usar (dev, prod, local)
-  target: "dev"
-  # Bucket específico para la documentación de dbt (puede ser diferente al bucket por defecto)
-  bucket_name: "bucket_dbt_docs_dev"
+  # NOTA: El bucket se selecciona automáticamente según el ambiente configurado en ENVIRONMENT
+  # Los buckets están definidos en la sección environments (dbt_docs_bucket_name)
+  target: "dev"  # Cambiar a "prod" para producción
   # Prefijo en GCS donde se guardará la documentación
   destination_prefix: "dbt_docs"
   # Frecuencia de actualización (null = manual, "@daily" = diario, "@weekly" = semanal)
