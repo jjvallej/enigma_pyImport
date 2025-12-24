@@ -9,6 +9,7 @@ Este módulo permite:
 import os
 import subprocess
 import shutil
+import json
 from pathlib import Path
 from typing import Optional
 from google.cloud import storage
@@ -157,6 +158,30 @@ def upload_dbt_docs_to_gcs(
     files_to_upload = []
     doc_extensions = {'.html', '.json', '.css', '.js', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'}
     
+    # Verificar que los archivos críticos existan
+    index_html_path = os.path.join(local_docs_dir, 'index.html')
+    manifest_json_path = os.path.join(local_docs_dir, 'manifest.json')
+    catalog_json_path = os.path.join(local_docs_dir, 'catalog.json')
+    
+    if not os.path.exists(index_html_path):
+        raise FileNotFoundError(f"Archivo crítico no encontrado: {index_html_path}")
+    
+    if not os.path.exists(manifest_json_path):
+        raise FileNotFoundError(f"Archivo crítico no encontrado: {manifest_json_path}")
+    
+    if not os.path.exists(catalog_json_path):
+        print(f"[WARN] catalog.json no existe. Esto puede causar problemas en la documentación.")
+        print(f"[INFO] El catálogo puede no generarse si los datasets no existen en BigQuery.")
+        print(f"[INFO] Se intentará crear un catalog.json vacío para evitar errores.")
+        # Crear un catalog.json vacío mínimo para que dbt docs no falle
+        try:
+            empty_catalog = {"nodes": {}, "sources": {}, "errors": []}
+            with open(catalog_json_path, 'w', encoding='utf-8') as f:
+                json.dump(empty_catalog, f)
+            print(f"[INFO] catalog.json vacío creado: {catalog_json_path}")
+        except Exception as e:
+            print(f"[WARN] No se pudo crear catalog.json vacío: {e}")
+    
     for root, dirs, files in os.walk(local_docs_dir):
         for file in files:
             local_path = os.path.join(root, file)
@@ -222,7 +247,20 @@ def upload_dbt_docs_to_gcs(
                 'Cache-Control': 'public, max-age=3600'  # Cache por 1 hora
             }
             blob.patch()
+            
+            # Hacer el objeto público (permisos a nivel de objeto)
+            # Esto es necesario además de los permisos del bucket
+            try:
+                blob.make_public()
+            except Exception as e:
+                if DEBUG:
+                    print(f"[WARN] No se pudo hacer público {gcs_path}: {e}")
+                # Continuar de todas formas, los permisos del bucket pueden ser suficientes
+            
             uploaded_count += 1
+            
+            if DEBUG and file in ['manifest.json', 'catalog.json', 'index.html']:
+                print(f"[INFO] Subido: {gcs_path} ({os.path.getsize(local_path):,} bytes)")
             
             if DEBUG and uploaded_count % 10 == 0:
                 print(f"[INFO] Subidos {uploaded_count}/{len(files_to_upload)} archivos...")
