@@ -195,7 +195,7 @@ dbt_docs:
   # Target de dbt a usar (dev, prod, local)
   # NOTA: El bucket se selecciona automáticamente según el ambiente configurado en ENVIRONMENT
   # Los buckets están definidos en la sección environments (dbt_docs_bucket_name)
-  target: "dev"  # Cambiar a "prod" para producción
+  target: "prod"  # Cambiar a "prod" para producción
   # Prefijo en GCS donde se guardará la documentación
   destination_prefix: "dbt_docs"
   # Frecuencia de actualización (null = manual, "@daily" = diario, "@weekly" = semanal)

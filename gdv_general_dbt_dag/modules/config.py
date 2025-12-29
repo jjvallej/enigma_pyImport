@@ -24,7 +24,7 @@ CONF = sources_config
 # NOTA: Si no configuras ENVIRONMENT en Composer, cambia este valor por defecto:
 # - Para DEV: "dev"
 # - Para PROD: "prod"
-ENV = os.getenv("ENVIRONMENT", "dev")  # Cambia "dev" a "prod" si quieres usar producción por defecto
+ENV = os.getenv("ENVIRONMENT", "prod")  # Cambia "dev" a "prod" si quieres usar producción por defecto
 
 # Environment Specific Configurations
 # Load configurations for each environment from YAML
