@@ -50,3 +50,25 @@ models:
       +materialized: table
       +database: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
       +schema: "{{ env_var('DBT_DATASET_GOLD', 'gold_dpt_planeacion_municipal_dev') }}"
+      evaplan:
+        evaplan_api_avance_general_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_mp_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_mr_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_programas_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_subprogramas_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_x_subprograma_processed_data:
+          +docs:
+            show: false
+        evaplan_api_sector_mp_processed_data:
+          +docs:
+            show: false

@@ -3792,20 +3792,34 @@ sources:
             description: "Nombre descriptivo del subindicador específico. Proporciona el nombre completo y detallado del subindicador, que es el nivel más granular de descripción en el IDC"
             data_type: STRING
   - name: gold_evaplan
-    description: Fuentes de datos procesados de Evaplan en la capa gold
+    description: Fuentes de datos procesados de Evaplan en la capa gold (solo FACT tables)
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: evaplan_api_avance_mr_processed_data
         description: Datos procesados de avance de Metas de Resultado (MR) enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_avance_mp_processed_data
         description: Datos procesados de avance de Metas de Producto (MP) enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_avance_x_subprograma_processed_data
         description: Datos procesados de avance por subprograma enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_avance_general_processed_data
         description: Datos procesados de avance general enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_avance_subprogramas_processed_data
         description: Datos procesados de avance de subprogramas enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_avance_programas_processed_data
         description: Datos procesados de avance de programas enriquecidos con información de periodos
+        +docs:
+          show: false
       - name: evaplan_api_sector_mp_processed_data
         description: Datos procesados del endpoint SectorMP enriquecidos con información de periodos
+        +docs:
+          show: false
