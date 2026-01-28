@@ -50,13 +50,21 @@ def generate_dbt_docs(dbt_project_dir: str, target: str = "dev") -> str:
         
         # Construir comando dbt con --profiles-dir y --project-dir explícitos
         # Esto asegura que dbt encuentre el profiles.yml y el dbt_project.yml correctamente
+        # Excluir modelos específicos de evaplan que no deben aparecer en la documentación
         cmd = [
             "dbt", 
             "docs", 
             "generate", 
             "--target", target,
             "--profiles-dir", dbt_project_dir,
-            "--project-dir", dbt_project_dir
+            "--project-dir", dbt_project_dir,
+            "--exclude", "evaplan_api_avance_general_processed_data",
+            "--exclude", "evaplan_api_avance_mp_processed_data",
+            "--exclude", "evaplan_api_avance_mr_processed_data",
+            "--exclude", "evaplan_api_avance_programas_processed_data",
+            "--exclude", "evaplan_api_avance_subprogramas_processed_data",
+            "--exclude", "evaplan_api_avance_x_subprograma_processed_data",
+            "--exclude", "evaplan_api_sector_mp_processed_data"
         ]
         
         if DEBUG:
