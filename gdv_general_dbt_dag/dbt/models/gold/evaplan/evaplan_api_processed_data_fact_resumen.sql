@@ -194,7 +194,7 @@ all_stats AS (
 ),
 
 ----------------------------------------------------------------------------
--- 7. DATOS EXTERNOS (INDICADORES EXCEL)
+-- 7. DATOS EXTERNOS (INDICADORES EXCEL) - PLAN DE ACCIÓN
 ----------------------------------------------------------------------------
 datos_indicadores AS (
     SELECT
@@ -206,6 +206,21 @@ datos_indicadores AS (
         SAFE_CAST(efectividad_val AS FLOAT64) as efectividad,
         UPPER(TRIM(efectividad_clasif)) as clasif_efectividad
     FROM `{{ var('project_id') }}.{{ var('bronze_dataset') }}.stg_resumen_pa_2024`
+),
+
+----------------------------------------------------------------------------
+-- 7.1. DATOS EXTERNOS (INDICADORES EXCEL) - PERÍODO DE GOBIERNO
+----------------------------------------------------------------------------
+datos_indicadores_pg AS (
+    SELECT
+        UPPER(TRIM(item)) as item_join,
+        SAFE_CAST(eficacia_val AS FLOAT64) as eficacia,
+        UPPER(TRIM(eficacia_clasif)) as clasif_eficacia,
+        SAFE_CAST(eficiencia_val AS FLOAT64) as eficiencia,
+        UPPER(TRIM(eficiencia_clasif)) as clasif_eficiencia,
+        SAFE_CAST(efectividad_val AS FLOAT64) as efectividad,
+        UPPER(TRIM(efectividad_clasif)) as clasif_efectividad
+    FROM `{{ var('project_id') }}.{{ var('bronze_dataset') }}.stg_resumen_pg_2024`
 ),
 
 ----------------------------------------------------------------------------
@@ -286,9 +301,16 @@ SELECT
     T1.pg_lt_25,
     ROUND(SAFE_DIVIDE(T1.pg_lt_25 * 100, T1.TOTAL), 2),
     ROUND(T1.AVANCE_PG, 2),
-    0, NULL, 0, NULL, 0, NULL
+    CASE WHEN T1.anio = 2024 THEN COALESCE(T3.eficacia, 0) ELSE 0 END as EFICACIA,
+    CASE WHEN T1.anio = 2024 THEN T3.clasif_eficacia ELSE NULL END as CLASIF_EFICACIA,
+    CASE WHEN T1.anio = 2024 THEN COALESCE(T3.eficiencia, 0) ELSE 0 END as EFICIENCIA,
+    CASE WHEN T1.anio = 2024 THEN T3.clasif_eficiencia ELSE NULL END as CLASIF_EFICIENCIA,
+    CASE WHEN T1.anio = 2024 THEN COALESCE(T3.efectividad, 0) ELSE 0 END as EFECTIVIDAD,
+    CASE WHEN T1.anio = 2024 THEN T3.clasif_efectividad ELSE NULL END as CLASIF_EFECTIVIDAD
 
 FROM all_stats T1
+LEFT JOIN datos_indicadores_pg T3
+    ON UPPER(TRIM(T1.ITEM)) = T3.item_join
 LEFT JOIN period_info P
     ON T1.anio = P.anio
 ORDER BY ANIO DESC, CLASIFICACION, ITEM
