@@ -190,6 +190,30 @@ database_sc_stackdb:
   schedule_interval: null  # usar null para ejecución manual; puede ser "@daily"
   start_days_ago: 1
 
+# Delitos históricos: exportación cross-project desde BigQuery (observatorio-de-seguridad) a nuestro GCS y BigQuery
+delitos_historicos:
+  # Conexión en Airflow con Keyfile JSON del SA del otro proyecto (datos-delitos-historico-2016-2@observatorio-de-seguridad.iam.gserviceaccount.com)
+  connection_id: "con_bigquery_observatorio_seguridad"
+  # Proyecto donde está la tabla origen
+  source_project_id: "observatorio-de-seguridad"
+  source_dataset: "stg"
+  source_table: "historico_2016_2025"
+  # Ruta en nuestro GCS (bucket según environment: datalake_gdv_dev / datalake_gdv_pdn)
+  gcs_base_folder: "data_staging/dpt_seguridad/delitos_historicos_2016_2025"
+  # Nombre del archivo; {{ ds_nodash }} se reemplaza por la fecha de ejecución (YYYYMMDD)
+  export_filename: "historico_2016_2025_{{ ds_nodash }}.csv"
+  export_format: "csv"
+  field_delimiter: ","
+  # Carga a nuestro BigQuery (bronze) en el dataset bronze_dpt_seguridad
+  target_dataset: "bronze_dpt_seguridad"
+  target_table: "delitos_historicos_raw_data"
+  source_format: "CSV"
+  skip_leading_rows: 1
+  write_disposition: "WRITE_TRUNCATE"
+  autodetect: true
+  schedule_interval: null
+  start_days_ago: 1
+
 # Configuración para generación y publicación de documentación de dbt
 dbt_docs:
   # Target de dbt a usar (dev, prod, local)
