@@ -2714,6 +2714,91 @@ sources:
           - name: i68_evaluacion_independiente_al_sistema_de_control_interno
             description: "Indicador 68: Evaluación Independiente al Sistema de Control Interno. Evalúa la evaluación independiente del sistema de control interno."
             data_type: STRING
+  - name: bronze_seguridad
+    description: |
+      Fuentes de datos raw del departamento de seguridad en la capa bronze.
+      Incluye tablas cargadas desde sistemas externos (p. ej. Observatorio de Seguridad) vía Airflow.
+    schema: "{{ var('bronze_seguridad_dataset', 'bronze_dpt_seguridad') }}"
+    tables:
+      - name: delitos_historicos_raw_data
+        description: |
+          Tabla histórica de delitos (2016-2025) cargada desde el proyecto observatorio-de-seguridad.
+          Origen: BigQuery observatorio-de-seguridad.stg.historico_2016_2025.
+          La ingesta la realiza el DAG src_delitos_historicos_ingest_dag (export a GCS) y
+          src_delitos_historicos_load_dag (carga a este dataset bronze).
+        columns:
+          - name: FUENTE
+            description: "Origen o fuente del registro (ej. Deval). Identifica el sistema o base de la que proviene el dato."
+            data_type: STRING
+          - name: MUNICIPIO
+            description: "Nombre del municipio donde ocurrió el hecho."
+            data_type: STRING
+          - name: BARRIO
+            description: "Nombre del barrio o sector dentro del municipio."
+            data_type: STRING
+          - name: COMUNA
+            description: "Comuna o división territorial (puede coincidir con el municipio o ser una subdivisión)."
+            data_type: STRING
+          - name: CONDUCTA
+            description: "Tipo de conducta o delito reportado (ej. Tráfico, Fabricación O Porte De Estupefacientes)."
+            data_type: STRING
+          - name: ARMA
+            description: "Arma utilizada en el hecho; puede ser 'No Reportada' si no aplica o no se registra."
+            data_type: STRING
+          - name: MOVIL_AGRESOR
+            description: "Móvil o motivo atribuido al agresor; '-' cuando no se reporta."
+            data_type: STRING
+          - name: MOVIL_VICTIMA
+            description: "Móvil o motivo atribuido a la víctima; '-' cuando no se reporta."
+            data_type: STRING
+          - name: GENERO
+            description: "Género de la persona involucrada (ej. Masculino, Femenino)."
+            data_type: STRING
+          - name: EDAD
+            description: "Edad de la persona involucrada en el hecho."
+            data_type: STRING
+          - name: ZONA
+            description: "Zona donde ocurrió el hecho (ej. Urbana, Rural)."
+            data_type: STRING
+          - name: FECHA
+            description: "Fecha en que ocurrió el hecho (formato fecha)."
+            data_type: DATE
+          - name: HORA
+            description: "Franja horaria del hecho (ej. 06:00 - 11:59)."
+            data_type: STRING
+          - name: CANTIDAD
+            description: "Cantidad o número asociado al registro (ej. cantidad de hechos o unidades)."
+            data_type: INTEGER
+          - name: PERMISO
+            description: "Información sobre permiso cuando aplica; '-' si no aplica."
+            data_type: STRING
+          - name: TIPO
+            description: "Tipo de actuación o registro (ej. Captura)."
+            data_type: STRING
+          - name: CIRCUNSTANCIA
+            description: "Circunstancia del hecho (ej. Flagrancia Ley 906)."
+            data_type: STRING
+          - name: FABRICACION
+            description: "Información sobre fabricación cuando aplica (ej. Sin reporte)."
+            data_type: STRING
+          - name: UBICACION2
+            description: "Ubicación en formato amplio: ciudad, departamento, país (ej. Buenaventura, Valle Del Cauca, Colombia)."
+            data_type: STRING
+          - name: UBICACION
+            description: "Ubicación detallada: barrio, ciudad, departamento, país."
+            data_type: STRING
+          - name: COORDENADAS
+            description: "Coordenadas en formato texto (latitud, longitud)."
+            data_type: STRING
+          - name: LAT
+            description: "Latitud del lugar del hecho (grados decimales)."
+            data_type: FLOAT
+          - name: LON
+            description: "Longitud del lugar del hecho (grados decimales)."
+            data_type: FLOAT
+          - name: DISTRITO
+            description: "Distrito o zona policial/administrativa (ej. Distrito 8 Buenaventura)."
+            data_type: STRING
   - name: silver_evaplan
     description: |
       "Fuentes de datos transformados de Evaplan en la capa silver. 

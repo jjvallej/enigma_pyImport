@@ -95,9 +95,11 @@ def get_dbt_command(dbt_command: str, dbt_project_dir: str) -> str:
     # Construir argumentos --vars para pasar variables a dbt
     # Esto asegura que las variables estén disponibles incluso si env_var() no funciona dentro de vars:
     import json
+    bronze_seguridad = getattr(getattr(CONF, "delitos_historicos", None), "target_dataset", None) or "bronze_dpt_seguridad"
     dbt_vars = {
         "project_id": env_vars["DBT_PROJECT_ID"],
         "bronze_dataset": env_vars["DBT_DATASET_BRONZE"],
+        "bronze_seguridad_dataset": bronze_seguridad,
         "silver_dataset": env_vars["DBT_DATASET_SILVER"],
         "gold_dataset": env_vars["DBT_DATASET_GOLD"],
     }

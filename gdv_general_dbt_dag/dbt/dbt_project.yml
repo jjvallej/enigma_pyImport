@@ -27,6 +27,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 vars:
   project_id: "datagov-473122"
   bronze_dataset: "bronze_dpt_planeacion_municipal_dev"
+  bronze_seguridad_dataset: "bronze_dpt_seguridad"
   silver_dataset: "silver_dpt_planeacion_municipal_dev"
   gold_dataset: "gold_dpt_planeacion_municipal_dev"
   evaplan_gold_avance_mr_table_name: "evaplan_api_avance_mr_processed_data"
