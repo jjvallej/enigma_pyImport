@@ -112,6 +112,8 @@ sap_api_evaplan:
     usuario: "PRUEBASAP"
     password: "Inicio26"
   gcs_base_folder: "data_staging/dpt_planeacion_municipal/sap_api_evaplan"
+  # Clave del JSON de respuesta donde viene la lista de registros (ej. "infoz080")
+  response_list_key: "infoz080"
   # Nombre del archivo; {{ ds_nodash }} = fecha ejecución del DAG
   export_filename: "sap_api_evaplan_{{ ds_nodash }}.json"
   timeout_seconds: 900

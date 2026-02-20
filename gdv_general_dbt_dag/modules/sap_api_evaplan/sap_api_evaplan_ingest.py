@@ -60,7 +60,11 @@ def fetch_sap_api(ini_yyyymm: str, fin_yyyymm: str) -> List[dict]:
     if isinstance(data, list):
         return data
     if isinstance(data, dict):
-        # Si devuelve un objeto, intentar una clave común de lista
+        # Clave configurada en config (ej. "infoz080") donde viene la lista de registros
+        list_key = getattr(cfg, "response_list_key", None) or "infoz080"
+        if list_key in data and isinstance(data[list_key], list):
+            return data[list_key]
+        # Fallback: claves habituales
         for key in ("data", "items", "results", "records"):
             if key in data and isinstance(data[key], list):
                 return data[key]
