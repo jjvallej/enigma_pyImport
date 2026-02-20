@@ -96,6 +96,33 @@ evaplan:
     usuario: "usuario_api"  # Configurar el usuario de la API
     password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
 
+# API SAP (Evaplan / presupuesto): un solo endpoint con params ini/fin (YYYYMM)
+sap_api_evaplan:
+  url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
+  # Periodo a consultar en la API (formato YYYYMM). Si no se definen, se usa la fecha de ejecución del DAG (YYYYMM).
+  ini: "202401"
+  fin: "202401"
+  params:
+    sap_client: "710"
+    p1: "X"
+    p2: ""
+    p3: ""
+    p4: ""
+  credentials:
+    usuario: "PRUEBASAP"
+    password: "Inicio26"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/sap_api_evaplan"
+  # Nombre del archivo; {{ ds_nodash }} = fecha ejecución del DAG
+  export_filename: "sap_api_evaplan_{{ ds_nodash }}.json"
+  timeout_seconds: 900
+  # Carga a BigQuery (planeación municipal)
+  target_dataset: null  # null = dataset_bronze del environment
+  target_table: "sap_api_evaplan_raw_data"
+  source_format: "NEWLINE_DELIMITED_JSON"
+  write_disposition: "WRITE_TRUNCATE"
+  autodetect: true
+  schedule_interval: null
+
 idc:
   drive_url: "https://docs.google.com/spreadsheets/d/1ABWswq3dHMP74u-cKW9OaCTI3X3bfegF/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
   dictionary_drive_url: "https://drive.google.com/file/d/1Np3t7wFletxcMxqoeDrNhlvxqzaOQpLr/view?usp=sharing"  # URL del archivo CSV del diccionario
