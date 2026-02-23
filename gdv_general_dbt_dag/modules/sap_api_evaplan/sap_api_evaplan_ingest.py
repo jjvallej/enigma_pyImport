@@ -1,8 +1,10 @@
 """
 Ingesta desde la API SAP (zimportdata): consulta por periodo ini/fin (YYYYMM),
 guarda la respuesta como JSONL en GCS (data_staging/dpt_planeacion_municipal/sap_api_evaplan).
+Cada registro incluye fecha_lectura, run_ts, periodo_ini y periodo_fin para histórico en bronze.
 """
 import json
+from datetime import datetime, timezone
 from typing import Any, List, Optional
 
 import requests
@@ -97,6 +99,17 @@ def run_ingest(
     fin_yyyymm = str(fin_yyyymm).strip()
 
     records = fetch_sap_api(ini_yyyymm, fin_yyyymm)
+
+    # Fecha y hora de esta ejecución (UTC). Mismo formato STRING en todo el pipeline (ingest → load → transform).
+    now_utc = datetime.now(tz=timezone.utc)
+    fecha_lectura = run_ts = now_utc.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Añadir metadatos de ejecución a cada registro
+    for r in records:
+        r["fecha_lectura"] = fecha_lectura
+        r["run_ts"] = run_ts
+        r["periodo_ini"] = ini_yyyymm
+        r["periodo_fin"] = fin_yyyymm
 
     bucket = bucket_name or DEFAULT_BUCKET_NAME
     base_folder = (cfg.gcs_base_folder or "").rstrip("/")

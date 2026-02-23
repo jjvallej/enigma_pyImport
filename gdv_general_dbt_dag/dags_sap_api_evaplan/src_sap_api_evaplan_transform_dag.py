@@ -1,12 +1,12 @@
 """
-DAG de carga: toma el archivo JSONL de SAP API en GCS (dpt_planeacion_municipal/sap_api_evaplan)
-y lo carga en BigQuery bronze con esquema STRING (fecha_lectura y run_ts siempre STRING).
+DAG de transform: toma la última ejecución en Bronze (sap_api_evaplan_raw_data)
+y actualiza Gold (sap_api_evaplan_final_data): borra solo el bloque (periodo_ini, periodo_fin)
+de esa ejecución y vuelve a insertar sus registros. Mantiene el resto de periodos en Gold.
 """
 from datetime import timedelta
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
-from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.task_group import TaskGroup
 from airflow.utils import timezone
 
@@ -35,8 +35,8 @@ def add_project_root_to_path():
 
 add_project_root_to_path()
 
-from modules.config import CONF, DEFAULT_BUCKET_NAME  # noqa: E402
-from modules.sap_api_evaplan.sap_api_evaplan_load import run_load  # noqa: E402
+from modules.config import CONF  # noqa: E402
+from modules.sap_api_evaplan.sap_api_evaplan_transform import run_transform  # noqa: E402
 
 CFG = CONF.sap_api_evaplan
 
@@ -49,39 +49,22 @@ DEFAULT_ARGS = {
     "retry_delay": timedelta(minutes=5),
 }
 
-
-def _do_load(**context):
-    ds_nodash = context.get("ds_nodash", "")
-    base_folder = (CFG.gcs_base_folder or "").rstrip("/")
-    export_filename = getattr(CFG, "export_filename", "sap_api_evaplan.json").replace(
-        "{{ ds_nodash }}", ds_nodash
-    )
-    gcs_path = f"{base_folder}/{export_filename}"
-    run_load(gcs_path=gcs_path)
-
-
 with DAG(
-    dag_id="src_sap_api_evaplan_load_dag",
+    dag_id="src_sap_api_evaplan_transform_dag",
     default_args=DEFAULT_ARGS,
-    description="Carga SAP API Evaplan desde GCS a BigQuery (bronze) - planeación municipal",
+    description="Actualiza Gold (sap_api_evaplan_final_data) con la última ejecución en Bronze",
     schedule=getattr(CFG, "schedule_interval", None),
     start_date=timezone.datetime(2025, 1, 1),
     catchup=False,
-    tags=["planeacion_municipal", "sap_api_evaplan", "gcs", "bigquery", "bronze"],
+    tags=["planeacion_municipal", "sap_api_evaplan", "bigquery", "gold", "transform"],
 ) as dag:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
 
-    with TaskGroup(group_id="bronze") as bronze:
-        load_to_bq = PythonOperator(
-            task_id="load_sap_api_evaplan_raw_data",
-            python_callable=_do_load,
+    with TaskGroup(group_id="gold") as gold:
+        update_gold = PythonOperator(
+            task_id="update_sap_api_evaplan_final_data",
+            python_callable=run_transform,
         )
 
-    trigger_transform = TriggerDagRunOperator(
-        task_id="trigger_transform_sap_api_evaplan",
-        trigger_dag_id="src_sap_api_evaplan_transform_dag",
-        wait_for_completion=False,
-    )
-
-    start >> bronze >> trigger_transform >> end
+    start >> gold >> end

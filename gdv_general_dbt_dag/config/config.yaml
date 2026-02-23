@@ -101,7 +101,7 @@ sap_api_evaplan:
   url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
   # Periodo a consultar en la API (formato YYYYMM). Si no se definen, se usa la fecha de ejecución del DAG (YYYYMM).
   ini: "202401"
-  fin: "202401"
+  fin: "202412"
   params:
     sap_client: "710"
     p1: "X"
@@ -121,9 +121,12 @@ sap_api_evaplan:
   target_dataset: null  # null = dataset_bronze del environment
   target_table: "sap_api_evaplan_raw_data"
   source_format: "NEWLINE_DELIMITED_JSON"
-  write_disposition: "WRITE_TRUNCATE"
+  write_disposition: "WRITE_APPEND"
   autodetect: true
   schedule_interval: null
+  # Gold (transform)
+  gold_dataset: null  # null = dataset_gold del environment
+  gold_table: "sap_api_evaplan_final_data"
 
 idc:
   drive_url: "https://docs.google.com/spreadsheets/d/1ABWswq3dHMP74u-cKW9OaCTI3X3bfegF/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
