@@ -101,7 +101,7 @@ sap_api_evaplan:
   url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
   # Periodo a consultar en la API (formato YYYYMM). Si no se definen, se usa la fecha de ejecución del DAG (YYYYMM).
   ini: "202401"
-  fin: "202412"
+  fin: "202405"
   params:
     sap_client: "710"
     p1: "X"

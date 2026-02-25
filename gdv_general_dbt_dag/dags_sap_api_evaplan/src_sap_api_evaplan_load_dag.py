@@ -1,6 +1,12 @@
 """
 DAG de carga: toma el archivo JSONL de SAP API en GCS (dpt_planeacion_municipal/sap_api_evaplan)
-y lo carga en BigQuery bronze con esquema STRING (fecha_lectura y run_ts siempre STRING).
+y lo carga en BigQuery bronze.
+
+IMPORTANTE: Este DAG usa PythonOperator + run_load() (módulo sap_api_evaplan_load).
+Si en los logs de Composer ves "autodetect: True" o el traceback en gcs_to_bigquery.py,
+Composer está ejecutando una versión antigua. Re-sincroniza al bucket:
+  - dags_sap_api_evaplan/src_sap_api_evaplan_load_dag.py
+  - modules/sap_api_evaplan/sap_api_evaplan_load.py
 """
 from datetime import timedelta
 from airflow import DAG
@@ -51,6 +57,10 @@ DEFAULT_ARGS = {
 
 
 def _do_load(**context):
+    # Marca para verificar en logs que se ejecuta esta versión (PythonOperator + run_load).
+    # Si en los logs ves "autodetect: True" o el traceback en gcs_to_bigquery.py, Composer
+    # está usando una versión antigua del DAG; hay que re-sincronizar el código al bucket.
+    print("[SAP_EVAPLAN_LOAD] Usando PythonOperator + run_load() (esquema desde tabla o primera línea)")
     ds_nodash = context.get("ds_nodash", "")
     base_folder = (CFG.gcs_base_folder or "").rstrip("/")
     export_filename = getattr(CFG, "export_filename", "sap_api_evaplan.json").replace(

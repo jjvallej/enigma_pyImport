@@ -1,9 +1,10 @@
 """
 Carga JSONL de SAP API Evaplan desde GCS a BigQuery Bronze.
-Usa esquema explícito con todas las columnas como STRING para que fecha_lectura
-y run_ts sean siempre STRING (formato "YYYY-MM-DD HH:MM:SS") en ingest, load y transform.
+- Si la tabla Bronze ya existe: usa el esquema actual de la tabla para la carga, así no hay
+  conflicto cuando el mismo campo viene como entero en un periodo y float en otro (ej. saldosolpe).
+- Si la tabla no existe: crea con esquema STRING para todas las columnas (desde la primera línea del archivo).
 
-Si la tabla Bronze ya existía con fecha_lectura DATE o run_ts TIMESTAMP, ejecutar una sola vez:
+Si la tabla ya existía con fecha_lectura DATE o run_ts TIMESTAMP, ejecutar una sola vez:
   ALTER TABLE `proyecto.dataset.sap_api_evaplan_raw_data` ALTER COLUMN fecha_lectura SET DATA TYPE STRING;
   ALTER TABLE `proyecto.dataset.sap_api_evaplan_raw_data` ALTER COLUMN run_ts SET DATA TYPE STRING;
 """
@@ -33,6 +34,38 @@ def _schema_from_first_line(bucket_name: str, blob_path: str) -> List[bigquery.S
     return [bigquery.SchemaField(name, "STRING") for name in record.keys()]
 
 
+def _get_schema_for_load(
+    client: bigquery.Client,
+    table_ref: str,
+    bucket_name: str,
+    blob_path: str,
+) -> List[bigquery.SchemaField]:
+    """
+    Define el esquema a usar en el load:
+    - Si la tabla ya existe: usa el esquema de la tabla (mismo orden que las claves del archivo).
+      Así no hay cambio de tipo (ej. saldosolpe FLOAT sigue siendo FLOAT aunque el JSON traiga enteros).
+    - Si la tabla no existe: esquema STRING desde la primera línea del archivo.
+    """
+    try:
+        table = client.get_table(table_ref)
+        existing_types = {f.name: f for f in table.schema}
+    except Exception:
+        existing_types = {}
+
+    first_line_schema = _schema_from_first_line(bucket_name, blob_path)
+    if not existing_types:
+        return first_line_schema
+
+    # Usar tipos de la tabla para columnas que existan; STRING para columnas nuevas
+    result = []
+    for field in first_line_schema:
+        if field.name in existing_types:
+            result.append(existing_types[field.name])
+        else:
+            result.append(bigquery.SchemaField(field.name, "STRING"))
+    return result
+
+
 def run_load(
     bucket_name: str | None = None,
     gcs_path: str | None = None,
@@ -40,8 +73,8 @@ def run_load(
     table_id: str | None = None,
 ) -> None:
     """
-    Carga el archivo JSONL de GCS a BigQuery Bronze con esquema STRING para todas las columnas.
-    Así fecha_lectura y run_ts son siempre STRING (formato "YYYY-MM-DD HH:MM:SS") en ingest, load y transform.
+    Carga el archivo JSONL de GCS a BigQuery Bronze.
+    Si la tabla ya existe, usa su esquema para evitar conflictos FLOAT/INTEGER entre cargas.
     Si no se pasa gcs_path, se arma con gcs_base_folder y export_filename (sin reemplazar {{ ds_nodash }}).
     """
     cfg = _get_cfg()
@@ -57,18 +90,21 @@ def run_load(
     dataset_id = dataset_id or getattr(cfg, "target_dataset", None) or DATASET_ID_BRONZE
     table_id = table_id or getattr(cfg, "target_table", "sap_api_evaplan_raw_data")
 
-    schema = _schema_from_first_line(bucket_name, gcs_path)
     uri = f"gs://{bucket_name}/{gcs_path}"
-
     client = get_bq_client()
     table_ref = f"{PROJECT_ID}.{dataset_id}.{table_id}"
+
+    schema = _get_schema_for_load(client, table_ref, bucket_name, gcs_path)
+
     job_config = bigquery.LoadJobConfig(
         schema=schema,
         source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
         create_disposition=bigquery.CreateDisposition.CREATE_IF_NEEDED,
         autodetect=False,
+        schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
     )
     job = client.load_table_from_uri(uri, table_ref, job_config=job_config)
     job.result()
     print(f"[OK] Cargado {uri} -> {table_ref}")
+    print("[SAP_EVAPLAN_LOAD] run_load() completado (módulo sap_api_evaplan_load)")
