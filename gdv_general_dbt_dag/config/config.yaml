@@ -96,10 +96,8 @@ evaplan:
     usuario: "usuario_api"  # Configurar el usuario de la API
     password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
 
-# API SAP (Evaplan / presupuesto): un solo endpoint con params ini/fin (YYYYMM)
 sap_api_evaplan:
   url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
-  # Periodo a consultar en la API (formato YYYYMM). Si no se definen, se usa la fecha de ejecución del DAG (YYYYMM).
   ini: "202401"
   fin: "202412"
   params:
@@ -112,20 +110,16 @@ sap_api_evaplan:
     usuario: "PRUEBASAP"
     password: "Inicio26"
   gcs_base_folder: "data_staging/dpt_planeacion_municipal/sap_api_evaplan"
-  # Clave del JSON de respuesta donde viene la lista de registros (ej. "infoz080")
   response_list_key: "infoz080"
-  # Nombre del archivo; {{ ds_nodash }} = fecha ejecución del DAG
   export_filename: "sap_api_evaplan_{{ ds_nodash }}.json"
   timeout_seconds: 900
-  # Carga a BigQuery (planeación municipal)
-  target_dataset: null  # null = dataset_bronze del environment
+  target_dataset: null
   target_table: "sap_api_evaplan_raw_data"
   source_format: "NEWLINE_DELIMITED_JSON"
   write_disposition: "WRITE_APPEND"
   autodetect: true
   schedule_interval: null
-  # Gold (transform)
-  gold_dataset: null  # null = dataset_gold del environment
+  gold_dataset: null
   gold_table: "sap_api_evaplan_final_data"
 
 idc:
@@ -190,7 +184,6 @@ idi:
     sheet_name: null  # null = primera hoja
     columns_to_drop: null  # null o lista de columnas
 
-# Conexión demo a base de datos Postgres (sc_stackdb)
 database_sc_stackdb:
   # Datos de conexión (placeholders, reemplazar con credenciales reales en Airflow)
   connection_id: "con_database_sc_stackdb"
@@ -222,7 +215,6 @@ database_sc_stackdb:
   schedule_interval: null  # usar null para ejecución manual; puede ser "@daily"
   start_days_ago: 1
 
-# Delitos históricos: exportación cross-project desde BigQuery (observatorio-de-seguridad) a nuestro GCS y BigQuery
 delitos_historicos:
   # Conexión en Airflow con Keyfile JSON del SA del otro proyecto (datos-delitos-historico-2016-2@observatorio-de-seguridad.iam.gserviceaccount.com)
   connection_id: "con_bigquery_observatorio_seguridad"
@@ -246,7 +238,6 @@ delitos_historicos:
   schedule_interval: null
   start_days_ago: 1
 
-# Configuración para generación y publicación de documentación de dbt
 dbt_docs:
   # Target de dbt a usar (dev, prod, local)
   # NOTA: El bucket se selecciona automáticamente según el ambiente configurado en ENVIRONMENT
