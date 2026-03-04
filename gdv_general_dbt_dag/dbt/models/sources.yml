@@ -3908,3 +3908,215 @@ sources:
         description: Datos procesados del endpoint SectorMP enriquecidos con información de periodos
         +docs:
           show: false
+
+  - name: gold_sap_api_evaplan
+    description: Tabla Gold de la API SAP (zimportdata) - planeación municipal. Contiene los datos de la última ejecución consolidados por periodo (periodo_ini, periodo_fin). Poblada por el DAG de transform SAP API Evaplan.
+    schema: "{{ var('gold_dataset') }}"
+    tables:
+      - name: sap_api_evaplan_final_data
+        description: |
+          Tabla Gold con los datos finales de la API SAP zimportdata (Evaplan/presupuesto).
+          Refleja siempre la última ejecución: por cada rango de periodo (periodo_ini, periodo_fin) se mantienen
+          los registros más recientes. Incluye campos de centro de fondos, rubros, CDP, compromisos, pagos y metas de producto.
+        columns:
+          - name: rfundsctr
+            description: Centro de fondos (centro de coste)
+            data_type: STRING
+          - name: beschr
+            description: Descripción del centro de fondos
+            data_type: STRING
+          - name: rfund
+            description: Código de fondo
+            data_type: STRING
+          - name: rfundm
+            description: Código de fondo (variante)
+            data_type: STRING
+          - name: beschr1
+            description: Descripción adicional 1
+            data_type: STRING
+          - name: pospre1
+            description: Posición presupuestal nivel 1
+            data_type: STRING
+          - name: nompospre1
+            description: Nombre posición presupuestal 1
+            data_type: STRING
+          - name: pospre2
+            description: Posición presupuestal nivel 2
+            data_type: STRING
+          - name: nompospre2
+            description: Nombre posición presupuestal 2
+            data_type: STRING
+          - name: pospreSup
+            description: Posición presupuestal superior
+            data_type: STRING
+          - name: descrPospSup
+            description: Descripción posición presupuestal superior
+            data_type: STRING
+          - name: rcmmtitem
+            description: Ítem de compromiso
+            data_type: STRING
+          - name: maskPospre
+            description: Máscara posición presupuestal
+            data_type: STRING
+          - name: txtrubro
+            description: Texto rubro
+            data_type: STRING
+          - name: sector
+            description: Código sector
+            data_type: STRING
+          - name: nomsector
+            description: Nombre del sector
+            data_type: STRING
+          - name: proyecto
+            description: Código proyecto
+            data_type: STRING
+          - name: descrProg
+            description: Descripción del programa
+            data_type: STRING
+          - name: rfuncarea
+            description: Área funcional
+            data_type: STRING
+          - name: descrArea
+            description: Descripción del área
+            data_type: STRING
+          - name: homarea
+            description: Código área (homólogo)
+            data_type: STRING
+          - name: descrArea2
+            description: Descripción área 2
+            data_type: STRING
+          - name: rmeasure
+            description: Unidad de medida
+            data_type: STRING
+          - name: ztipoActTxt
+            description: Texto tipo de actividad
+            data_type: STRING
+          - name: rubro
+            description: Código rubro
+            data_type: STRING
+          - name: textopep
+            description: Texto PEP
+            data_type: STRING
+          - name: textopep1
+            description: Texto PEP 1
+            data_type: STRING
+          - name: textopep2
+            description: Texto PEP 2
+            data_type: STRING
+          - name: textopep3
+            description: Texto PEP 3
+            data_type: STRING
+          - name: rtcur
+            description: Moneda
+            data_type: STRING
+          - name: prinicial
+            description: Presupuesto inicial
+            data_type: STRING
+          - name: variacionc
+            description: Variación créditos
+            data_type: STRING
+          - name: variacions
+            description: Variación (otra)
+            data_type: STRING
+          - name: conprev
+            description: Con preventivo
+            data_type: STRING
+          - name: sinprev
+            description: Sin preventivo
+            data_type: STRING
+          - name: adiciones
+            description: Adiciones
+            data_type: STRING
+          - name: reduccion
+            description: Reducción
+            data_type: STRING
+          - name: creditos
+            description: Créditos
+            data_type: STRING
+          - name: ccreditos
+            description: Créditos (complemento)
+            data_type: STRING
+          - name: apdefinit
+            description: Apropiación definitiva
+            data_type: STRING
+          - name: valorcdp
+            description: Valor CDP
+            data_type: STRING
+          - name: modificdp
+            description: Modificación CDP
+            data_type: STRING
+          - name: reduccdp
+            description: Reducción CDP
+            data_type: STRING
+          - name: saldocdp
+            description: Saldo CDP
+            data_type: STRING
+          - name: saldosolpe
+            description: Saldo solicitud de compromiso (SOLPE)
+            data_type: STRING
+          - name: totalcdp
+            description: Total CDP
+            data_type: STRING
+          - name: compromi
+            description: Compromiso
+            data_type: STRING
+          - name: modicomp
+            description: Modificación compromiso
+            data_type: STRING
+          - name: reduccomp
+            description: Reducción compromiso
+            data_type: STRING
+          - name: saldocomp
+            description: Saldo compromiso
+            data_type: STRING
+          - name: totalcomp
+            description: Total compromiso
+            data_type: STRING
+          - name: saldocxp
+            description: Saldo cuenta por pagar
+            data_type: STRING
+          - name: valorpagbu
+            description: Valor pagado (budget)
+            data_type: STRING
+          - name: valorcxp
+            description: Valor cuenta por pagar
+            data_type: STRING
+          - name: predispon
+            description: Presupuesto disponible
+            data_type: STRING
+          - name: porcentaje
+            description: Porcentaje de avance o ejecución
+            data_type: STRING
+          - name: diferencia
+            description: Diferencia
+            data_type: STRING
+          - name: totalpac
+            description: Total PAC (Plan Anual de Caja)
+            data_type: STRING
+          - name: pacutiliza
+            description: PAC utilizado
+            data_type: STRING
+          - name: diferencia2
+            description: Diferencia (segunda)
+            data_type: STRING
+          - name: bpin
+            description: BPIN (Banco de Programas y Proyectos)
+            data_type: STRING
+          - name: metaprod
+            description: Meta de producto
+            data_type: STRING
+          - name: textometpro
+            description: Texto meta de producto
+            data_type: STRING
+          - name: fecha_lectura
+            description: Fecha y hora en que se realizó la lectura desde la API (formato YYYY-MM-DD HH:MM:SS)
+            data_type: STRING
+          - name: run_ts
+            description: Timestamp de la ejecución que generó estos registros (formato YYYY-MM-DD HH:MM:SS)
+            data_type: STRING
+          - name: periodo_ini
+            description: Periodo inicial consultado en la API (YYYYMM)
+            data_type: STRING
+          - name: periodo_fin
+            description: Periodo final consultado en la API (YYYYMM)
+            data_type: STRING
