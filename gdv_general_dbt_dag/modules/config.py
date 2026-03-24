@@ -106,7 +106,24 @@ def get_dbt_command(dbt_command: str, dbt_project_dir: str) -> str:
     vars_json = json.dumps(dbt_vars)
     vars_arg = f"--vars '{vars_json}'"
     
-    # Comando completo: exportar variables + ejecutar dbt con --vars
-    full_command = f'set -e && {export_vars} && cd {dbt_project_dir} && {dbt_command} {vars_arg} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1 || (echo "DBT command failed with exit code:" $? && exit 1)'
+    # Comando completo:
+    # - Ejecuta dbt
+    # - Muestra últimas líneas de dbt.log siempre (éxito o error)
+    # - Conserva el código de salida original
+    log_file = os.path.join(dbt_project_dir, "logs", "dbt.log")
+    full_command = (
+        f'set +e && {export_vars} && cd {dbt_project_dir} && '
+        f'{dbt_command} {vars_arg} --project-dir {dbt_project_dir} --profiles-dir {dbt_project_dir} 2>&1; '
+        f'DBT_EXIT_CODE=$? && '
+        f'echo "" && '
+        f'echo "==========================================" && '
+        f'echo "DBT LOGS (ultimas 120 lineas):" && '
+        f'echo "==========================================" && '
+        f'if [ -f "{log_file}" ]; then tail -n 120 "{log_file}"; '
+        f'else echo "Archivo de log no encontrado: {log_file}"; fi && '
+        f'echo "==========================================" && '
+        f'if [ $DBT_EXIT_CODE -ne 0 ]; then echo "DBT command failed with exit code: $DBT_EXIT_CODE"; fi && '
+        f'exit $DBT_EXIT_CODE'
+    )
     
     return full_command 
