@@ -1,0 +1,17 @@
+# Flujo detallado de DAGs - Fuente Seguridad (delitos_historicos)
+
+En esta fuente el flujo operativo está compuesto por dos DAGs: `src_delitos_historicos_ingest_dag` y `src_delitos_historicos_load_dag`. El orden de ejecución es primero ingesta y luego carga; además, el DAG de ingesta dispara automáticamente el DAG de carga.
+
+La ejecución inicia en `dags_seguridad/src_delitos_historicos_ingest_dag.py`. Este DAG usa la configuración `delitos_historicos` de `config/config.yaml`, en especial `connection_id`, `source_project_id`, `source_dataset`, `source_table`, `gcs_base_folder`, `export_filename` y `field_delimiter`, además del bucket efectivo `DEFAULT_BUCKET_NAME` desde `modules/config.py`. La tarea principal llama `run_ingest()` de `modules/delitos_historicos/delitos_historicos_ingest.py`, se conecta al BigQuery del proyecto externo (usando la conexión de Airflow), lee la tabla `observatorio-de-seguridad.stg.historico_2016_2025`, genera un CSV con encabezados y lo guarda en Cloud Storage en la ruta `gs://<bucket>/<gcs_base_folder>/<export_filename>`. Antes de exportar, también asegura el prefijo de GCS con `ensure_gcs_folder()`.
+
+El segundo paso ocurre en `dags_seguridad/src_delitos_historicos_load_dag.py`. Este DAG usa `PROJECT_ID`, `LOCATION`, `DEFAULT_BUCKET_NAME` y la configuración `delitos_historicos` (`target_dataset`, `target_table`, `source_format`, `write_disposition`, `skip_leading_rows`, `field_delimiter`, `autodetect`). Primero crea el dataset destino si no existe (`ensure_dataset_bronze_seguridad`). Después, dentro del grupo `bronze`, ejecuta `GCSToBigQueryOperator` para cargar el CSV exportado desde GCS a la tabla `PROJECT_ID.target_dataset.target_table`, que normalmente corresponde a `bronze_dpt_seguridad.delitos_historicos_raw_data`.
+
+Las variables globales de entorno se resuelven en `modules/config.py` con `ENVIRONMENT` y pueden sobreescribirse con `GCP_PROJECT`, `GCP_LOCATION`, `GCS_BUCKET_NAME`, `BQ_DATASET_BRONZE`, `BQ_DATASET_SILVER` y `BQ_DATASET_GOLD`. Para esta fuente aplican directamente `DEFAULT_BUCKET_NAME`, `PROJECT_ID` y `LOCATION`, junto con el dataset/table definidos en `delitos_historicos`.
+
+Lo parametrizable en `config/config.yaml` para esta fuente está en `delitos_historicos`: `connection_id`, `source_project_id`, `source_dataset`, `source_table`, `gcs_base_folder`, `export_filename`, `export_format`, `field_delimiter`, `target_dataset`, `target_table`, `source_format`, `skip_leading_rows`, `write_disposition`, `autodetect`, `schedule_interval` y `start_days_ago`. También es parametrizable por ambiente en `environments.<env>`: `project_id`, `location`, `bucket_name`, `dataset_bronze`, `dataset_silver` y `dataset_gold`.
+
+## Explicación simple (modo no técnico)
+
+Este flujo mueve información histórica de delitos desde un proyecto externo hacia nuestro entorno analítico. En el primer paso, un DAG se conecta al BigQuery del proyecto de seguridad, extrae la tabla histórica y la guarda como archivo CSV en Cloud Storage. En el segundo paso, otro DAG toma ese CSV y lo carga en una tabla de BigQuery en nuestra capa bronze de seguridad.
+
+En resumen, el camino es: tabla en BigQuery externo -> archivo CSV en Cloud Storage -> tabla bronze en BigQuery interno. Si cambian la conexión, ruta del archivo, nombre de tabla origen o tabla destino, esos ajustes se hacen en `config/config.yaml` sin rehacer toda la lógica del flujo.
