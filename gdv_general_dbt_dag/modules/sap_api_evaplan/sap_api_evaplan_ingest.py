@@ -98,10 +98,11 @@ def run_ingest(
     ini_yyyymm = str(ini_yyyymm).strip()
     fin_yyyymm = str(fin_yyyymm).strip()
 
+    # Timestamp exacto del momento de consumo del API (se toma antes del request HTTP).
+    now_utc = datetime.now(tz=timezone.utc)
     records = fetch_sap_api(ini_yyyymm, fin_yyyymm)
 
     # Fecha y hora de esta ejecución (UTC). Mismo formato STRING en todo el pipeline (ingest → load → transform).
-    now_utc = datetime.now(tz=timezone.utc)
     fecha_lectura = run_ts = now_utc.strftime("%Y-%m-%d %H:%M:%S")
 
     # Añadir metadatos de ejecución a cada registro
@@ -113,10 +114,11 @@ def run_ingest(
 
     bucket = bucket_name or DEFAULT_BUCKET_NAME
     base_folder = (cfg.gcs_base_folder or "").rstrip("/")
-    export_filename = (cfg.export_filename or "sap_api_evaplan.json").replace(
-        "{{ ds_nodash }}", ds_nodash
-    )
-    object_path = f"{base_folder}/{export_filename}"
+    yyyy = now_utc.strftime("%Y")
+    mm = now_utc.strftime("%m")
+    ts_compacto = now_utc.strftime("%Y%m%d_%H%M%S")
+    export_filename = f"sap_api_evaplan_{ts_compacto}.json"
+    object_path = f"{base_folder}/{yyyy}/{mm}/{export_filename}"
 
     # Escribir JSONL (una línea por objeto) para carga en BigQuery
     lines = [json.dumps(r, ensure_ascii=False) for r in records]

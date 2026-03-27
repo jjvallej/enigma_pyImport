@@ -62,12 +62,7 @@ def _do_load(**context):
     # está usando una versión antigua del DAG; hay que re-sincronizar el código al bucket.
     print("[SAP_EVAPLAN_LOAD] Usando PythonOperator + run_load() (esquema desde tabla o primera línea)")
     ds_nodash = context.get("ds_nodash", "")
-    base_folder = (CFG.gcs_base_folder or "").rstrip("/")
-    export_filename = getattr(CFG, "export_filename", "sap_api_evaplan.json").replace(
-        "{{ ds_nodash }}", ds_nodash
-    )
-    gcs_path = f"{base_folder}/{export_filename}"
-    run_load(gcs_path=gcs_path)
+    run_load(ds_nodash=ds_nodash)
 
 
 with DAG(

@@ -66,16 +66,45 @@ def _get_schema_for_load(
     return result
 
 
+def _resolve_gcs_path_for_execution(bucket_name: str, base_folder: str, ds_nodash: str) -> str:
+    """
+    Busca el archivo de SAP Evaplan para la fecha de ejecución en la estructura:
+    <base_folder>/YYYY/MM/sap_api_evaplan_YYYYMMDD_HHMMSS.json
+    y devuelve el más reciente.
+    """
+    if not ds_nodash or len(ds_nodash) < 8:
+        raise ValueError("ds_nodash inválido para resolver ruta jerárquica (esperado YYYYMMDD)")
+
+    yyyy = ds_nodash[:4]
+    mm = ds_nodash[4:6]
+    prefix = f"{base_folder}/{yyyy}/{mm}/sap_api_evaplan_{ds_nodash}_"
+
+    gcs_client = get_gcs_client()
+    bucket = gcs_client.bucket(bucket_name)
+    blobs = list(bucket.list_blobs(prefix=prefix))
+    files = [b for b in blobs if not b.name.endswith("/")]
+    if not files:
+        raise FileNotFoundError(
+            f"No se encontró archivo SAP Evaplan para ds_nodash={ds_nodash} con prefijo gs://{bucket_name}/{prefix}"
+        )
+
+    files.sort(key=lambda b: b.time_created or b.updated, reverse=True)
+    return files[0].name
+
+
 def run_load(
     bucket_name: str | None = None,
     gcs_path: str | None = None,
+    ds_nodash: str | None = None,
     dataset_id: str | None = None,
     table_id: str | None = None,
 ) -> None:
     """
     Carga el archivo JSONL de GCS a BigQuery Bronze.
     Si la tabla ya existe, usa su esquema para evitar conflictos FLOAT/INTEGER entre cargas.
-    Si no se pasa gcs_path, se arma con gcs_base_folder y export_filename (sin reemplazar {{ ds_nodash }}).
+    Si no se pasa gcs_path:
+    - si llega ds_nodash, busca el archivo más reciente de ese día en la estructura jerárquica YYYY/MM.
+    - si no llega ds_nodash, usa fallback con gcs_base_folder + export_filename.
     """
     cfg = _get_cfg()
     if not cfg:
@@ -84,8 +113,11 @@ def run_load(
     bucket_name = bucket_name or DEFAULT_BUCKET_NAME
     if gcs_path is None:
         base_folder = (cfg.gcs_base_folder or "").rstrip("/")
-        export_filename = getattr(cfg, "export_filename", "sap_api_evaplan.json")
-        gcs_path = f"{base_folder}/{export_filename}"
+        if ds_nodash:
+            gcs_path = _resolve_gcs_path_for_execution(bucket_name, base_folder, ds_nodash)
+        else:
+            export_filename = getattr(cfg, "export_filename", "sap_api_evaplan.json")
+            gcs_path = f"{base_folder}/{export_filename}"
 
     dataset_id = dataset_id or getattr(cfg, "target_dataset", None) or DATASET_ID_BRONZE
     table_id = table_id or getattr(cfg, "target_table", "sap_api_evaplan_raw_data")
