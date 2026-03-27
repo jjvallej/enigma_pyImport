@@ -1,17 +1,22 @@
 """
 Ingesta desde la API SAP (zimportdata): consulta por periodo ini/fin (YYYYMM),
 guarda la respuesta como JSONL en GCS (data_staging/dpt_planeacion_municipal/sap_api_evaplan).
-Cada registro incluye fecha_lectura, run_ts, periodo_ini y periodo_fin para histórico en bronze.
+Cada registro incluye fecha_lectura, run_ts, periodo_ini y periodo_fin para histórico en bronze
+(fecha_lectura y run_ts en hora local Colombia, America/Bogota).
 """
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, List, Optional
+from zoneinfo import ZoneInfo
 
 import requests
 from requests.auth import HTTPBasicAuth
 
 from modules.config import CONF, DEFAULT_BUCKET_NAME
 from modules.gcp_utils import get_gcs_client
+
+# Hora local Colombia (COT, UTC−5) para fecha_lectura, run_ts y nombre de archivo en GCS.
+_COLOMBIA_TZ = ZoneInfo("America/Bogota")
 
 
 def _get_cfg() -> Any:
@@ -98,12 +103,12 @@ def run_ingest(
     ini_yyyymm = str(ini_yyyymm).strip()
     fin_yyyymm = str(fin_yyyymm).strip()
 
-    # Timestamp exacto del momento de consumo del API (se toma antes del request HTTP).
-    now_utc = datetime.now(tz=timezone.utc)
+    # Timestamp exacto del momento de consumo del API (se toma antes del request HTTP), en hora Colombia.
+    now_co = datetime.now(tz=_COLOMBIA_TZ)
     records = fetch_sap_api(ini_yyyymm, fin_yyyymm)
 
-    # Fecha y hora de esta ejecución (UTC). Mismo formato STRING en todo el pipeline (ingest → load → transform).
-    fecha_lectura = run_ts = now_utc.strftime("%Y-%m-%d %H:%M:%S")
+    # Mismo formato STRING en todo el pipeline (ingest → load → transform). Zona: America/Bogota.
+    fecha_lectura = run_ts = now_co.strftime("%Y-%m-%d %H:%M:%S")
 
     # Añadir metadatos de ejecución a cada registro
     for r in records:
@@ -114,9 +119,9 @@ def run_ingest(
 
     bucket = bucket_name or DEFAULT_BUCKET_NAME
     base_folder = (cfg.gcs_base_folder or "").rstrip("/")
-    yyyy = now_utc.strftime("%Y")
-    mm = now_utc.strftime("%m")
-    ts_compacto = now_utc.strftime("%Y%m%d_%H%M%S")
+    yyyy = now_co.strftime("%Y")
+    mm = now_co.strftime("%m")
+    ts_compacto = now_co.strftime("%Y%m%d_%H%M%S")
     export_filename = f"sap_api_evaplan_{ts_compacto}.json"
     object_path = f"{base_folder}/{yyyy}/{mm}/{export_filename}"
 
