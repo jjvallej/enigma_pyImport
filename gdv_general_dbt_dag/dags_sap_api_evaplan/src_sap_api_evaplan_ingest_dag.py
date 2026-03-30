@@ -54,9 +54,30 @@ CFG = CONF.sap_api_evaplan
 _MODO_EJECUCION = str(getattr(CFG, "modo_ejecucion", "auto") or "auto").strip().lower()
 _MANUAL_MODE = _MODO_EJECUCION == "manual"
 
+if _MANUAL_MODE:
+    DAG_PARAMS = {
+        "fecha_inicio": Param(
+            "",
+            type="string",
+            title="Fecha inicio (YYYYMM)",
+            description="Obligatorio al disparar a mano si modo_ejecucion=manual. Formato YYYYMM (ej. 202401).",
+        ),
+        "fecha_fin": Param(
+            "",
+            type="string",
+            title="Fecha fin (YYYYMM)",
+            description="Obligatorio al disparar a mano si modo_ejecucion=manual. Formato YYYYMM.",
+        ),
+    }
+else:
+    # En modo auto no exponemos inputs en el formulario de Trigger DAG.
+    DAG_PARAMS = {}
+
 # Opcional: forzar periodo desde código (None = solo config.yaml + dag_run.conf al disparar manualmente)
-SCRIPT_OVERRIDE_INI = None
-SCRIPT_OVERRIDE_FIN = None
+#SCRIPT_OVERRIDE_INI = None
+#SCRIPT_OVERRIDE_FIN = None
+SCRIPT_OVERRIDE_INI = 202403
+SCRIPT_OVERRIDE_FIN = 202405
 
 
 def _do_ingest(**context):
@@ -108,28 +129,7 @@ with DAG(
     start_date=timezone.datetime(2025, 1, 1),
     catchup=False,
     tags=["planeacion_municipal", "sap_api_evaplan", "api", "gcs"],
-    params={
-        "fecha_inicio": Param(
-            "",
-            type="string",
-            title="Fecha inicio (YYYYMM)",
-            description=(
-                "Obligatorio al disparar a mano si modo_ejecucion=manual. Formato YYYYMM (ej. 202401)."
-                if _MANUAL_MODE
-                else "Vacío = resolución automática (script/config/ds)."
-            ),
-        ),
-        "fecha_fin": Param(
-            "",
-            type="string",
-            title="Fecha fin (YYYYMM)",
-            description=(
-                "Obligatorio al disparar a mano si modo_ejecucion=manual. Formato YYYYMM."
-                if _MANUAL_MODE
-                else "Vacío = resolución automática (script/config o mes actual en Colombia)."
-            ),
-        ),
-    },
+    params=DAG_PARAMS,
 ) as dag:
     start = EmptyOperator(task_id="start")
     end = EmptyOperator(task_id="end")
