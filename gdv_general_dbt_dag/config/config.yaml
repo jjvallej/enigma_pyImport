@@ -98,8 +98,12 @@ evaplan:
 
 sap_api_evaplan:
   url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
-  ini: "202401"
-  fin: "202412"
+  # auto: periodo desde SCRIPT_OVERRIDE_* o config (scheduler sin formulario obligatorio).
+  # manual: si disparas el DAG a mano, Airflow debe recibir fecha_inicio y fecha_fin; el scheduler sigue usando script/config.
+  modo_ejecucion: "manual"
+  # Periodo por defecto cuando no hay conf ni overrides en el DAG (ini/fin siguen siendo alias compatibles)
+  fecha_inicio: "202401"
+  fecha_fin: "202412"
   params:
     sap_client: "710"
     p1: "X"

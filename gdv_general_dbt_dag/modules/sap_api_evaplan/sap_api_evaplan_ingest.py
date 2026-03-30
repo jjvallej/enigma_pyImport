@@ -14,6 +14,9 @@ from requests.auth import HTTPBasicAuth
 
 from modules.config import CONF, DEFAULT_BUCKET_NAME
 from modules.gcp_utils import get_gcs_client
+from modules.sap_api_evaplan.sap_api_evaplan_period_resolve import (
+    resolve_sap_api_evaplan_periods,
+)
 
 # Hora local Colombia (COT, UTC−5) para fecha_lectura, run_ts y nombre de archivo en GCS.
 _COLOMBIA_TZ = ZoneInfo("America/Bogota")
@@ -84,22 +87,28 @@ def run_ingest(
     ds_nodash: str,
     ini_yyyymm: Optional[str] = None,
     fin_yyyymm: Optional[str] = None,
+    dag_conf: Optional[dict] = None,
+    script_ini: Optional[str] = None,
+    script_fin: Optional[str] = None,
     bucket_name: Optional[str] = None,
 ) -> str:
     """
     Consulta la API SAP para el periodo ini/fin, escribe JSONL en GCS y devuelve la URI.
 
-    ini/fin se toman en este orden: argumentos de la función → config.yaml (ini, fin) → ds_nodash (YYYYMM).
+    Resolución de periodo (si ini_yyyymm o fin_yyyymm no se pasan explícito): ver
+    ``resolve_sap_api_evaplan_periods`` (conf del DAG > script > config; fin por defecto = mes actual en CO).
     """
     cfg = _get_cfg()
     if not cfg:
         raise ValueError("No existe la sección 'sap_api_evaplan' en config.yaml")
 
-    if ini_yyyymm is None:
-        ini_yyyymm = getattr(cfg, "ini", None) or ds_nodash[:6]
-    if fin_yyyymm is None:
-        fin_yyyymm = getattr(cfg, "fin", None) or ds_nodash[:6]
-    # Asegurar string (por si en YAML vienen como número)
+    if ini_yyyymm is None or fin_yyyymm is None:
+        r_ini, r_fin = resolve_sap_api_evaplan_periods(
+            cfg, ds_nodash, dag_conf=dag_conf or {}, script_ini=script_ini, script_fin=script_fin
+        )
+        ini_yyyymm = ini_yyyymm if ini_yyyymm is not None else r_ini
+        fin_yyyymm = fin_yyyymm if fin_yyyymm is not None else r_fin
+
     ini_yyyymm = str(ini_yyyymm).strip()
     fin_yyyymm = str(fin_yyyymm).strip()
 

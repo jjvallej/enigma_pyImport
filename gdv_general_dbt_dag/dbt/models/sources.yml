@@ -3910,14 +3910,15 @@ sources:
           show: false
 
   - name: gold_sap_api_evaplan
-    description: Tabla Gold de la API SAP (zimportdata) - planeación municipal. Contiene los datos de la última ejecución consolidados por periodo (periodo_ini, periodo_fin). Poblada por el DAG de transform SAP API Evaplan.
+    description: Tabla Gold de la API SAP (zimportdata) - planeación municipal. Acumula bloques por (periodo_ini, periodo_fin); cada corrida reemplaza solo su bloque y conserva los demás. Poblada por el DAG de transform (dbt).
     schema: "{{ var('gold_dataset') }}"
     tables:
       - name: sap_api_evaplan_final_data
         description: |
           Tabla Gold con los datos finales de la API SAP zimportdata (Evaplan/presupuesto).
-          Refleja siempre la última ejecución: por cada rango de periodo (periodo_ini, periodo_fin) se mantienen
-          los registros más recientes. Incluye campos de centro de fondos, rubros, CDP, compromisos, pagos y metas de producto.
+          Por cada ejecución se actualiza solo el bloque identificado por (periodo_ini, periodo_fin) de esa corrida;
+          el resto de bloques cargados en corridas anteriores se conserva. Incluye campos de centro de fondos,
+          rubros, CDP, compromisos, pagos y metas de producto.
         columns:
           - name: rfundsctr
             description: Centro de fondos (centro de coste)
