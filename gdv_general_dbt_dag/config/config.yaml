@@ -100,7 +100,7 @@ sap_api_evaplan:
   url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
   # auto: periodo desde SCRIPT_OVERRIDE_* o config (scheduler sin formulario obligatorio).
   # manual: si disparas el DAG a mano, Airflow debe recibir fecha_inicio y fecha_fin; el scheduler sigue usando script/config.
-  modo_ejecucion: "manual"
+  modo_ejecucion: "auto"
   # Periodo por defecto cuando no hay conf ni overrides en el DAG (ini/fin siguen siendo alias compatibles)
   fecha_inicio: "202401"
   fecha_fin: "202412"
@@ -122,6 +122,10 @@ sap_api_evaplan:
   source_format: "NEWLINE_DELIMITED_JSON"
   write_disposition: "WRITE_APPEND"
   autodetect: true
+  # Programación solo del DAG de ingesta (cron Airflow de 5 campos). Ej. cada 10 min: "*/10 * * * *".
+  # Los DAGs load y transform no llevan schedule aquí: se disparan en cadena desde ingest / load.
+  ingest_schedule_interval: null
+  #ingest_schedule_interval: "*/25 * * * *"
   schedule_interval: null
   gold_dataset: null
   gold_table: "sap_api_evaplan_final_data"

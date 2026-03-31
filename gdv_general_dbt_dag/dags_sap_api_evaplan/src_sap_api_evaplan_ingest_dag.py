@@ -125,7 +125,10 @@ with DAG(
     dag_id="src_sap_api_evaplan_ingest_dag",
     default_args=DEFAULT_ARGS,
     description="Ingesta API SAP (zimportdata) a GCS - planeación municipal",
-    schedule=getattr(CFG, "schedule_interval", None),
+    schedule=(
+        getattr(CFG, "ingest_schedule_interval", None)
+        or getattr(CFG, "schedule_interval", None)
+    ),
     start_date=timezone.datetime(2025, 1, 1),
     catchup=False,
     tags=["planeacion_municipal", "sap_api_evaplan", "api", "gcs"],

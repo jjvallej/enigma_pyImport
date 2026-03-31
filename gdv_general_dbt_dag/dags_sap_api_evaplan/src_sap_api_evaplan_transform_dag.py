@@ -89,7 +89,8 @@ with DAG(
     dag_id="src_sap_api_evaplan_transform_dag",
     default_args=DEFAULT_ARGS,
     description="Actualiza Gold (sap_api_evaplan_final_data) con la última ejecución en Bronze",
-    schedule=getattr(CFG, "schedule_interval", None),
+    # Solo por trigger desde load.
+    schedule=None,
     start_date=timezone.datetime(2025, 1, 1),
     catchup=False,
     tags=["planeacion_municipal", "sap_api_evaplan", "bigquery", "gold", "transform"],

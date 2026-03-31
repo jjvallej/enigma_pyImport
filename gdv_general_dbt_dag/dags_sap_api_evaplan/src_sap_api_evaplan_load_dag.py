@@ -69,7 +69,8 @@ with DAG(
     dag_id="src_sap_api_evaplan_load_dag",
     default_args=DEFAULT_ARGS,
     description="Carga SAP API Evaplan desde GCS a BigQuery (bronze) - planeación municipal",
-    schedule=getattr(CFG, "schedule_interval", None),
+    # Solo por trigger desde ingest (no programar aquí: evita corridas sin archivo nuevo).
+    schedule=None,
     start_date=timezone.datetime(2025, 1, 1),
     catchup=False,
     tags=["planeacion_municipal", "sap_api_evaplan", "gcs", "bigquery", "bronze"],
