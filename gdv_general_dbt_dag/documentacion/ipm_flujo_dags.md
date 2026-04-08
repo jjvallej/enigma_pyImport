@@ -1,6 +1,6 @@
 # Flujo detallado de DAGs - Fuente IPM
 
-Este flujo se ejecuta con tres DAGs: `src_planeacion_ingest_ipm`, `src_planeacion_load_ipm` y `src_planeacion_transf_ipm`. El orden operativo es ingesta, luego carga y finalmente transformación; además, `ingest` dispara `load` y `load` dispara `transform`, por lo que la cadena queda automatizada.
+Este flujo se ejecuta con tres DAGs: `src_planeacion_ingest_ipm`, `src_planeacion_load_ipm` y `src_planeacion_transf_ipm`. El orden operativo es ingesta, luego carga y finalmente transformación; además, `ingest` dispara `load` y `load` dispara `transform`, por lo que la cadena queda automatizada. En el estado actual estos DAGs están con `schedule=None` y se ejecutan manualmente o por trigger de la cadena.
 
 La ejecución inicia en `dags_ipm/src_ipm_ingest_dag.py`. Este DAG toma `DRIVE_URL` desde `config/config.yaml` (`ipm.drive_url`), usa el bucket efectivo `DEFAULT_BUCKET_NAME` desde `modules/config.py`, y define la ruta destino como `ipm.gcs_folder + "/dane"`. La tarea `upload_file_from_drive_to_gcs` llama `move_file_from_drive_to_gcs()` de `modules/ipm/ipm_ingest.py`, descarga el Excel desde Google Drive (enlace público) y lo sube al bucket de Google Cloud Storage en la carpeta de IPM. Al terminar, ejecuta `TriggerDagRunOperator` para lanzar `src_planeacion_load_ipm`.
 
