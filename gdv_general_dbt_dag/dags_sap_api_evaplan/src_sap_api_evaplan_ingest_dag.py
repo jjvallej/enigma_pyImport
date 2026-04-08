@@ -76,8 +76,8 @@ else:
 # Opcional: forzar periodo desde código (None = solo config.yaml + dag_run.conf al disparar manualmente)
 #SCRIPT_OVERRIDE_INI = None
 #SCRIPT_OVERRIDE_FIN = None
-SCRIPT_OVERRIDE_INI = 202403
-SCRIPT_OVERRIDE_FIN = 202405
+SCRIPT_OVERRIDE_INI = 202501
+SCRIPT_OVERRIDE_FIN = 202512
 
 
 def _do_ingest(**context):
