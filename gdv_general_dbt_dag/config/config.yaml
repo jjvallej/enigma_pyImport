@@ -97,10 +97,11 @@ evaplan:
     password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
 
 sap_api_evaplan:
-  url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
+  # url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
+  url: "http://sappro-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
   # auto: periodo desde SCRIPT_OVERRIDE_* o config (scheduler sin formulario obligatorio).
   # manual: si disparas el DAG a mano, Airflow debe recibir fecha_inicio y fecha_fin; el scheduler sigue usando script/config.
-  modo_ejecucion: "manual"
+  modo_ejecucion: "auto"
   # Periodo por defecto cuando no hay conf ni overrides en el DAG (ini/fin siguen siendo alias compatibles)
   fecha_inicio: ""
   fecha_fin: ""
@@ -111,8 +112,10 @@ sap_api_evaplan:
     p3: ""
     p4: ""
   credentials:
-    usuario: "PRUEBASAP"
-    password: "Inicio26"
+    # usuario: "PRUEBASAP"
+    # password: "Inicio26"
+    usuario: "DATAWEBSER"
+    password: "Datagov26"
   gcs_base_folder: "data_staging/dpt_planeacion_municipal/sap_api_evaplan"
   response_list_key: "infoz080"
   export_filename: "sap_api_evaplan_{{ ds_nodash }}.json"
@@ -124,7 +127,8 @@ sap_api_evaplan:
   autodetect: true
   # Programación solo del DAG de ingesta (cron Airflow de 5 campos). Ej. cada 10 min: "*/10 * * * *".
   # Los DAGs load y transform no llevan schedule aquí: se disparan en cadena desde ingest / load.
-  ingest_schedule_interval: null
+  # 2:00 y 12:00 hora Colombia (UTC-5) => 07:00 y 17:00 UTC
+  ingest_schedule_interval: "0 7,17 * * *"
   #ingest_schedule_interval: "*/25 * * * *"
   schedule_interval: null
   gold_dataset: null
