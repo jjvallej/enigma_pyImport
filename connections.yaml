@@ -1,0 +1,18 @@
+# Archivo de Conexiones de Apache Airflow para el proyecto pyimport.
+# Se pueden importar usando el comando:
+#   airflow connections import connections.yaml
+
+sipsa_dane:
+  conn_type: http
+  host: https://www.dane.gov.co
+  description: "Conexión HTTP al portal DANE SIPSA para descarga de anexos mensuales de precios"
+
+noaa_oni:
+  conn_type: http
+  host: https://www.cpc.ncep.noaa.gov
+  description: "Conexión HTTP al portal NOAA CPC para consulta del índice El Niño/La Niña (ONI)"
+
+gobernacion_valle:
+  conn_type: http
+  host: https://datosabiertos.valledelcauca.gov.co
+  description: "Conexión HTTP al portal de Datos Abiertos de la Gobernación del Valle del Cauca"

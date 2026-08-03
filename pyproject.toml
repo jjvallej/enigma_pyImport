@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyimport"
+version = "0.1.0"
+description = "Python import utilities"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "xlrd>=2.0",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+airflow = [
+    "apache-airflow>=2.8.0",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+pyimport = "pyimport.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
