@@ -1,0 +1,202 @@
+# ==============================================================================
+# ARCHIVO DE CONFIGURACIÓN DE PIPELINE MULTIENTORNO (pyimport / airflow)
+# Ubicación: src/pyimport/config/config.yaml
+# ==============================================================================
+
+# Entorno Activo Predeterminado: "dev", "qa", o "prod"
+active_environment: "dev"
+
+# Configuración Específica por Entorno
+environments:
+  dev:
+    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
+    local_raw_path: "data/raw"
+    local_output_path: "data"
+    composer:
+      environment: "composer-gdv"
+      location: "us-east1"
+      project: "datagov-477214"
+    connections:
+      sipsa_dane: "sipsa_dane"
+      noaa_oni: "noaa_oni"
+      gobernacion_valle: "gobernacion_valle"
+      datos_gov_co: "datos_gov_co"
+      google_cloud_default: "google_cloud_default"
+      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
+      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
+      # Ejemplo:
+      # - conn_id: ckan_pg_01
+      #   municipio: alcala
+      ckan_comentarios: []
+    bigquery:
+      project_id: "datagov-477214"
+      location: "US"
+      datasets:
+        bronze: "valledata"
+        silver: "valledata"
+      buckets:
+        bronze: "gs://valledata-bronze-dev"
+        silver: "gs://valledata-silver-dev"
+      tables:
+        sipsa_bronze: "bronze_agri_sipsa"
+        oni_bronze: "bronze_oni_climatico"
+        cultivos_bronze: "bronze_cultivos_valle"
+        municipios_bronze: "bronze_municipios_valle"
+        consolidado_silver: "silver_agri_consolidado"
+        gold_spatial: "gold_cultivos_valle_geo"
+        comentarios_bronze: "bronze_comentarios"
+        comentarios_silver: "silver_comentarios"
+        comentarios_gold: "gold_comentarios_sentimiento"
+        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
+
+  qa:
+    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
+    local_raw_path: "data/raw"
+    local_output_path: "data"
+    composer:
+      environment: "composer-gdv"
+      location: "us-east1"
+      project: "datagov-477214"
+    connections:
+      sipsa_dane: "sipsa_dane"
+      noaa_oni: "noaa_oni"
+      gobernacion_valle: "gobernacion_valle"
+      datos_gov_co: "datos_gov_co"
+      google_cloud_default: "google_cloud_default"
+      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
+      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
+      # Ejemplo:
+      # - conn_id: ckan_pg_01
+      #   municipio: alcala
+      ckan_comentarios: []
+    bigquery:
+      project_id: "datagov-477214"
+      location: "US"
+      datasets:
+        bronze: "valledata"
+        silver: "valledata"
+      buckets:
+        bronze: "gs://valledata-bronze-qa"
+        silver: "gs://valledata-silver-qa"
+      tables:
+        sipsa_bronze: "bronze_agri_sipsa"
+        oni_bronze: "bronze_oni_climatico"
+        cultivos_bronze: "bronze_cultivos_valle"
+        municipios_bronze: "bronze_municipios_valle"
+        consolidado_silver: "silver_agri_consolidado"
+        gold_spatial: "gold_cultivos_valle_geo"
+        comentarios_bronze: "bronze_comentarios"
+        comentarios_silver: "silver_comentarios"
+        comentarios_gold: "gold_comentarios_sentimiento"
+        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
+
+  prod:
+    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
+    local_raw_path: "data/raw"
+    local_output_path: "data"
+    composer:
+      environment: "composer-gdv"
+      location: "us-east1"
+      project: "datagov-477214"
+    connections:
+      sipsa_dane: "sipsa_dane"
+      noaa_oni: "noaa_oni"
+      gobernacion_valle: "gobernacion_valle"
+      datos_gov_co: "datos_gov_co"
+      google_cloud_default: "google_cloud_default"
+      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
+      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
+      # Ejemplo:
+      # - conn_id: ckan_pg_01
+      #   municipio: alcala
+      ckan_comentarios: []
+    bigquery:
+      project_id: "datagov-477214"
+      location: "US"
+      datasets:
+        bronze: "valledata"
+        silver: "valledata"
+      buckets:
+        bronze: "gs://valledata-bronze-prod"
+        silver: "gs://valledata-silver-prod"
+      tables:
+        sipsa_bronze: "bronze_agri_sipsa"
+        oni_bronze: "bronze_oni_climatico"
+        cultivos_bronze: "bronze_cultivos_valle"
+        municipios_bronze: "bronze_municipios_valle"
+        consolidado_silver: "silver_agri_consolidado"
+        gold_spatial: "gold_cultivos_valle_geo"
+        comentarios_bronze: "bronze_comentarios"
+        comentarios_silver: "silver_comentarios"
+        comentarios_gold: "gold_comentarios_sentimiento"
+        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
+
+# Parámetros para Precios SIPSA (DANE)
+# start_period / end_period se calculan en ejecución:
+# inicio = max(2000-01, earliest_period), fin = diciembre del año anterior.
+# earliest_period evita sondear años sin anexos publicados en DANE.
+sipsa:
+  base_url: "https://www.dane.gov.co"
+  earliest_period: "2012-01"
+  output_filename: "sipsa_precios.csv"
+  path_templates:
+    - "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls"
+    - "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx"
+    - "/files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx"
+    - "/files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx"
+
+# Parámetros para Índice Climático ONI (NOAA)
+oni:
+  base_url: "https://www.cpc.ncep.noaa.gov"
+  path: "/products/analysis_monitoring/enso/oni/v5/"
+  url: "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v5/"
+  raw_filename: "oni_v5.html"
+  output_filename: "oni_promedio_anual.csv"
+
+# Parámetros para Cultivos del Valle
+cultivos:
+  base_url: "https://datosabiertos.valledelcauca.gov.co"
+  permanentes_path: "/dataset/55a3d384-fec1-4267-8541-7d62a3fc9223/resource/7c578f9f-094d-4e6e-b1db-2f5e3bde32c9/download/cultivos_permanentes.csv"
+  transitorios_path: "/dataset/16a0cede-1b2f-4db8-8a42-ca10d0223cee/resource/f0ed7211-5ab5-4fa0-885d-e343cc906f2c/download/cultivos_transitorios.csv"
+  permanentes_filename: "cultivos_permanentes.csv"
+  transitorios_filename: "cultivos_transitorios.csv"
+  output_filename: "cultivos_valle.csv"
+  consolidado_filename: "dataset_consolidado_valle.csv"
+
+# Parámetros para Datos Geográficos de Municipios del Valle (datos.gov.co iryd-wvq5)
+municipios:
+  base_url: "https://www.datos.gov.co"
+  download_path: "/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD"
+  url: "https://www.datos.gov.co/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD"
+  raw_filename: "municipios_valle.csv"
+  output_filename: "municipios_valle_clean.csv"
+
+# Parámetros para comentarios CKAN (tabla Postgres `comment` en hasta 14 instancias)
+# Las conexiones Postgres viven en environments.<env>.connections.ckan_comentarios (arreglo).
+ckan_comentarios:
+  table: comment
+  schema: public
+  raw_subdir: ckan_comentarios
+  raw_filename_template: "comment_{conn_id}.csv"
+  output_filename: "ckan_comentarios.csv"
+  silver_filename: "silver_comentarios.csv"
+  gold_filename: "gold_comentarios_sentimiento.csv"
+  max_connections: 14
+  sentiment_lang: es
+  use_test_data: true
+  test_data_records: 1000
+  test_data_seed: 42
+
+# Alertas Airflow / Composer ante fallos de DAGs
+airflow_alerts:
+  enabled: true
+  email_on_failure: true
+  # Lista de correos que reciben la alarma (requiere SMTP en Composer)
+  emails:
+    - "jhon.jairo.vallejo@gmail.com"
+  retries: 1
+  retry_delay_minutes: 5
+  fail_statuses:
+    - ERROR
+    - PARTIAL
+    - FAILED
