@@ -49,7 +49,7 @@ class CultivoRecord:
 
 
 def _norm_header(name: str) -> str:
-    return (
+    s = (
         str(name or "")
         .strip()
         .lower()
@@ -60,23 +60,25 @@ def _norm_header(name: str) -> str:
         .replace("ú", "u")
         .replace("ñ", "n")
     )
+    return re.sub(r"[^\w]", "", s)
 
 
 def _row_get(row: dict[str, str], *candidates: str) -> str:
     """Obtiene un valor por nombre de columna (tolerante a mayúsculas/tildes y sin asteriscos)."""
     normalized = {_norm_header(k): re.sub(r"[*]+", "", v or "").strip() for k, v in row.items()}
     for candidate in candidates:
-        value = normalized.get(_norm_header(candidate))
-        if value is not None and value != "":
-            return value
-        # permitir match exacto vacío vs ausente
-        if _norm_header(candidate) in normalized:
-            return normalized[_norm_header(candidate)]
+        cand_norm = _norm_header(candidate)
+        if cand_norm in normalized and normalized[cand_norm] != "":
+            return normalized[cand_norm]
+    for candidate in candidates:
+        cand_norm = _norm_header(candidate)
+        if cand_norm in normalized:
+            return normalized[cand_norm]
     return ""
 
 
 def parse_cultivos_permanentes(path: Path) -> list[CultivoRecord]:
-    """Lee permanentes por cabecera. tipo_cultivo queda 'Permanente'; cultivo = nombre (col Cultivo)."""
+    """Lee permanentes por cabecera. tipo_cultivo queda 'Permanente'."""
     records: list[CultivoRecord] = []
     with path.open("r", encoding="latin-1", errors="replace") as handle:
         reader = csv.DictReader(handle, delimiter=";")
@@ -86,15 +88,17 @@ def parse_cultivos_permanentes(path: Path) -> list[CultivoRecord]:
             cultivo = _row_get(row, "Cultivo")
             if not cultivo:
                 continue
+            ciclo = _row_get(row, "Ciclo") or "Anual"
+            anio = _row_get(row, "Año", "Anio", "Ano", "Ao", "A_o")
             records.append(
                 CultivoRecord(
                     tipo_cultivo="Permanente",
-                    anio=_row_get(row, "Año", "Anio"),
+                    anio=anio,
                     id_municipio=_row_get(row, "Id_municipio"),
                     municipio=_row_get(row, "Municipio"),
                     id_cultivo=_row_get(row, "Id_cultivo"),
                     cultivo=cultivo,
-                    ciclo=_row_get(row, "Ciclo"),
+                    ciclo=ciclo,
                     hectareas_sembradas=_row_get(row, "Hectareas_sembradas"),
                     hectareas_cosechadas=_row_get(row, "Hectareas_cosechadas"),
                     produccion_toneladas=_row_get(row, "Produccion_toneladas"),
@@ -107,7 +111,7 @@ def parse_cultivos_permanentes(path: Path) -> list[CultivoRecord]:
 
 
 def parse_cultivos_transitorios(path: Path) -> list[CultivoRecord]:
-    """Lee transitorios por cabecera. tipo_cultivo='Transitorio'; cultivo = nombre (col Cultivo)."""
+    """Lee transitorios por cabecera. tipo_cultivo queda 'Transitorio'."""
     records: list[CultivoRecord] = []
     with path.open("r", encoding="latin-1", errors="replace") as handle:
         reader = csv.DictReader(handle, delimiter=";")
@@ -117,15 +121,17 @@ def parse_cultivos_transitorios(path: Path) -> list[CultivoRecord]:
             cultivo = _row_get(row, "Cultivo")
             if not cultivo:
                 continue
+            ciclo = _row_get(row, "Ciclo") or "Anual"
+            anio = _row_get(row, "Año", "Anio", "Ano", "Ao", "A_o")
             records.append(
                 CultivoRecord(
                     tipo_cultivo="Transitorio",
-                    anio=_row_get(row, "Año", "Anio"),
+                    anio=anio,
                     id_municipio=_row_get(row, "Id_municipio"),
                     municipio=_row_get(row, "Municipio"),
                     id_cultivo=_row_get(row, "Id_cultivo"),
                     cultivo=cultivo,
-                    ciclo=_row_get(row, "Ciclo"),
+                    ciclo=ciclo,
                     hectareas_sembradas=_row_get(row, "Hectareas_sembradas"),
                     hectareas_cosechadas=_row_get(row, "Hectareas_cosechadas"),
                     produccion_toneladas=_row_get(row, "Produccion_toneladas"),

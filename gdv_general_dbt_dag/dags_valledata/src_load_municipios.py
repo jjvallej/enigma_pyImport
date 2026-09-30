@@ -158,6 +158,7 @@ def run_load_municipios(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
             schema=[
                 bigquery.SchemaField("codigo_municipio", "INTEGER"),
                 bigquery.SchemaField("municipio", "STRING"),
+                bigquery.SchemaField("clean_mun", "STRING"),
                 bigquery.SchemaField("latitud", "FLOAT"),
                 bigquery.SchemaField("longitud", "FLOAT"),
                 bigquery.SchemaField("superficie_piso_calido", "FLOAT"),

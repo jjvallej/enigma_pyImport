@@ -1,7 +1,7 @@
 """ETAPA TRANSFORM SPATIAL (src_transform_spatial.py)
 Transformación y consolidación de datos georreferenciados (GIS).
 Combina el dataset de cultivos con los polígonos/centroides de los 42 municipios del Valle del Cauca,
-pisos térmicos, distancia logística a Cavasa (Cali), índice climático ONI y precios SIPSA DANE.
+pisos térmicos, distancia logístic a Cavasa (Cali), índice climático ONI y precios SIPSA DANE.
 Genera los datasets Gold GeoJSON/WKT para análisis espacial y mapas interactivos.
 """
 
@@ -24,11 +24,15 @@ from src_common import (  # noqa: E402
     get_bigquery_client,
     get_bq_table_ref,
     get_composer_params,
+    get_raw_root,
     load_config,
     materialize_local,
+    read_bq_dataframe,
     require_config_value,
+    running_in_composer,
     storage_exists,
     storage_join,
+    write_bytes,
     get_airflow_dag_kwargs,
     run_with_airflow_alarm,
 )
@@ -156,13 +160,16 @@ def determine_predominant_thermal_floor(row: pd.Series) -> str:
     return floors[0][0] if floors[0][1] > 0 else "Calido"
 
 
-def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
-    cfg = config or load_config()
-    paths_cfg = cfg.get("paths", {})
-    base_dir = Path(paths_cfg.get("output_dir", "data"))
-    base_dir.mkdir(parents=True, exist_ok=True)
+def _load_municipios_df(cfg: Dict[str, Any], base_dir: Path) -> pd.DataFrame:
+    try:
+        mun_ref = get_bq_table_ref(cfg, "bronze", "municipios_bronze")
+        df = read_bq_dataframe(cfg, mun_ref)
+        if df is not None and not df.empty:
+            print(f"🗺️ [SRC_TRANSFORM_SPATIAL] Cargados {len(df)} municipios desde BigQuery: {mun_ref}", flush=True)
+            return df
+    except Exception as exc:
+        print(f"ℹ️ [SRC_TRANSFORM_SPATIAL] No se pudo leer BQ municipios ({exc}); usando CSV...", flush=True)
 
-    # 1. Cargar municipios limpios
     muni_file = base_dir / "municipios_valle_clean.csv"
     if not muni_file.exists():
         raw_muni = base_dir / "raw" / "municipios_valle.csv"
@@ -171,10 +178,42 @@ def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any
             df_muni_raw = pd.read_csv(raw_muni)
             df_muni = process_municipios_dataframe(df_muni_raw)
             df_muni.to_csv(muni_file, index=False)
+            return df_muni
         else:
             raise FileNotFoundError("Debe ejecutar primero src_ingest_municipios y src_load_municipios.")
-    else:
-        df_muni = pd.read_csv(muni_file)
+    return pd.read_csv(muni_file)
+
+
+def _load_master_df(cfg: Dict[str, Any], base_dir: Path) -> pd.DataFrame | None:
+    try:
+        silver_ref = get_bq_table_ref(cfg, "silver", "consolidado_silver")
+        df = read_bq_dataframe(cfg, silver_ref)
+        if df is not None and not df.empty:
+            print(f"🌾 [SRC_TRANSFORM_SPATIAL] Cargados {len(df)} registros consolidados desde BigQuery: {silver_ref}", flush=True)
+            return df
+    except Exception as exc:
+        print(f"ℹ️ [SRC_TRANSFORM_SPATIAL] No se pudo leer BQ consolidado Silver ({exc}); usando CSV...", flush=True)
+
+    master_file = base_dir / "dataset_consolidado_valle.csv"
+    if not master_file.exists():
+        master_file = base_dir / "silver" / "silver_agri_consolidado.csv"
+    if not master_file.exists():
+        master_file = base_dir / "cultivos_valle.csv"
+
+    if master_file.exists():
+        print(f"🌾 [SRC_TRANSFORM_SPATIAL] Cargando consolidado desde CSV local: {master_file}", flush=True)
+        return pd.read_csv(master_file, low_memory=False)
+    return None
+
+
+def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    cfg = config or load_config()
+    paths_cfg = cfg.get("paths", {})
+    base_dir = Path(paths_cfg.get("output_dir", "data"))
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Cargar municipios limpios
+    df_muni = _load_municipios_df(cfg, base_dir)
 
     # 2. Normalizar coordenadas y calcular métricas espaciales
     df_muni["latitud_dec"] = df_muni.apply(
@@ -203,59 +242,49 @@ def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any
         json.dump(geojson_data, f, ensure_ascii=False, indent=2)
 
     # 4. Cruce con Dataset Consolidado / Cultivos
-    master_file = base_dir / "dataset_consolidado_valle.csv"
-    if not master_file.exists():
-        master_file = base_dir / "cultivos_valle.csv"
+    df_master = _load_master_df(cfg, base_dir)
+    if df_master is not None and not df_master.empty:
+        # Remover columnas espaciales previas o brutas de df_master para evitar duplicados _x/_y
+        cols_to_drop = [
+            "latitud", "longitud", "altura_snm", "temperatura_media",
+            "superficie_piso_calido", "superficie_piso_medio",
+            "superficie_piso_frio", "superficie_piso_paramo"
+        ]
+        df_master = df_master.drop(columns=[c for c in cols_to_drop if c in df_master.columns], errors="ignore")
 
-    if master_file.exists():
-        df_master = pd.read_csv(master_file, low_memory=False)
-        # Merge por código de municipio o nombre de municipio
+        muni_cols = [
+            "codigo_municipio", "latitud_dec", "longitud_dec", "altura_snm",
+            "temperatura_media", "distancia_cavasa_km", "wkt_geometry",
+            "piso_predominante", "superficie_piso_calido", "superficie_piso_medio",
+            "superficie_piso_frio", "superficie_piso_paramo"
+        ]
+
         if "codigo_municipio" in df_master.columns:
-            df_geo = pd.merge(
-                df_master,
-                df_muni[
-                    [
-                        "codigo_municipio",
-                        "latitud_dec",
-                        "longitud_dec",
-                        "distancia_cavasa_km",
-                        "wkt_geometry",
-                        "piso_predominante",
-                        "superficie_piso_calido",
-                        "superficie_piso_medio",
-                        "superficie_piso_frio",
-                        "superficie_piso_paramo",
-                    ]
-                ],
-                on="codigo_municipio",
-                how="left",
-            )
+            df_geo = pd.merge(df_master, df_muni[[c for c in muni_cols if c in df_muni.columns]], on="codigo_municipio", how="left")
         else:
             if "clean_mun" not in df_master.columns and "municipio" in df_master.columns:
                 df_master["clean_mun"] = df_master["municipio"].apply(normalize_municipio)
             if "clean_mun" not in df_muni.columns and "municipio" in df_muni.columns:
                 df_muni["clean_mun"] = df_muni["municipio"].apply(normalize_municipio)
-            df_geo = pd.merge(
-                df_master,
-                df_muni[
-                    [
-                        "clean_mun",
-                        "latitud_dec",
-                        "longitud_dec",
-                        "distancia_cavasa_km",
-                        "wkt_geometry",
-                        "piso_predominante",
-                        "superficie_piso_calido",
-                        "superficie_piso_medio",
-                        "superficie_piso_frio",
-                        "superficie_piso_paramo",
-                    ]
-                ],
-                on="clean_mun",
-                how="left",
-            ).drop(columns=["clean_mun"], errors="ignore")
+            muni_cols_clean = ["clean_mun"] + [c for c in muni_cols if c != "codigo_municipio"]
+            df_geo = pd.merge(df_master, df_muni[[c for c in muni_cols_clean if c in df_muni.columns]], on="clean_mun", how="left").drop(columns=["clean_mun"], errors="ignore")
+
+        # Renombrar latitud_dec y longitud_dec a latitud y longitud oficiales WGS84
+        if "latitud_dec" in df_geo.columns:
+            df_geo["latitud"] = df_geo["latitud_dec"]
+            df_geo.drop(columns=["latitud_dec"], inplace=True)
+        if "longitud_dec" in df_geo.columns:
+            df_geo["longitud"] = df_geo["longitud_dec"]
+            df_geo.drop(columns=["longitud_dec"], inplace=True)
     else:
         df_geo = df_muni.copy()
+        if "latitud_dec" in df_geo.columns:
+            df_geo["latitud"] = df_geo["latitud_dec"]
+            df_geo.drop(columns=["latitud_dec"], inplace=True)
+        if "longitud_dec" in df_geo.columns:
+            df_geo["longitud"] = df_geo["longitud_dec"]
+            df_geo.drop(columns=["longitud_dec"], inplace=True)
+
 
     # 5. Exportar Dataset Gold Georreferenciado
     gold_path = base_dir / "gold_cultivos_valle_geo.csv"
@@ -265,11 +294,16 @@ def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any
     compat_path = base_dir / "gold_cultivos_municipios_geo.csv"
     df_geo.to_csv(compat_path, index=False, encoding="utf-8")
 
-    bq_table_ref = f"datagov-477214.valledata.gold_cultivos_valle_geo"
+    bq_table_ref = get_bq_table_ref(cfg, "silver", "gold_spatial")
     status_bq = "SIMULATED"
     try:
         from google.cloud import bigquery
-        client = get_bigquery_client(cfg, "datagov-477214", "US")
+        bq_cfg = require_config_value(cfg, "bigquery")
+        client = get_bigquery_client(
+            cfg,
+            require_config_value(bq_cfg, "project_id"),
+            require_config_value(bq_cfg, "location"),
+        )
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.CSV,
             skip_leading_rows=1,
@@ -283,8 +317,9 @@ def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any
     except Exception as exc:
         print(f"ℹ️ [Modo Simulación BQ Gold Spatial] {exc}", flush=True)
 
+    status = "SUCCESS" if status_bq == "SUCCESS" or not running_in_composer() else "SIMULATED"
     result = {
-        "status": "SUCCESS",
+        "status": status,
         "municipios_count": len(df_muni),
         "geojson_file": str(geojson_path),
         "gold_geo_file": str(gold_path),
@@ -307,21 +342,15 @@ def run_transform_spatial(config: Dict[str, Any] | None = None) -> Dict[str, Any
 if __name__ == "__main__":
     run_transform_spatial()
 
-# Airflow DAG (Composer 3: airflow.sdk; Composer 2: airflow.decorators).
 try:
-    try:
-        from airflow.sdk import dag as _af_dag, task as _af_task
-    except ImportError:
-        from airflow.decorators import dag as _af_dag, task as _af_task
-except ImportError:
-    _af_dag = _af_task = None
-
-if _af_dag is not None:
     from datetime import datetime
+    from airflow.decorators import dag, task
 
-    @_af_dag(
+    from src_common import get_airflow_dag_kwargs, run_with_airflow_alarm
+
+    @dag(
         dag_id="src_transform_spatial",
-        description="Etapa Transform Spatial (Polígonos Municipales, WKT/GeoJSON, Distancia Cavasa y Gold GIS)",
+        description="Etapa Transform Spatial Gold GIS (Polígonos Municipales, WKT/GeoJSON, Distancia Cavasa y Gold GIS)",
         start_date=datetime(2000, 1, 1),
         schedule=None,
         catchup=False,
@@ -329,7 +358,7 @@ if _af_dag is not None:
         **get_airflow_dag_kwargs(),
     )
     def transform_spatial_dag():
-        @_af_task(task_id="run_transform_spatial")
+        @task(task_id="run_transform_spatial")
         def execute_transform() -> Dict[str, Any]:
             return run_with_airflow_alarm(run_transform_spatial)
 
@@ -337,3 +366,6 @@ if _af_dag is not None:
 
     dag = transform_spatial_dag()
     DAG = dag
+except ImportError:
+    pass
+

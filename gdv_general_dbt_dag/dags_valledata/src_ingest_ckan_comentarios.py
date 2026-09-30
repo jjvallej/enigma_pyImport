@@ -119,40 +119,40 @@ def ingest_one_connection(
 
 
 _FIXTURE_POSITIVOS = (
-    "Excelente servicio, muy recomendado.",
-    "La información está clara y actualizada, gracias.",
-    "Me ayudó mucho este dataset para mi trabajo.",
-    "Muy buena calidad de los datos abiertos.",
-    "El portal es fácil de usar y rápido.",
-    "Gran trabajo del municipio publicando estos datos.",
-    "Todo funcionó perfecto, experiencia positiva.",
-    "Los metadatos están completos y bien documentados.",
-    "Me encantó la visualización, muy útil.",
-    "Respuesta oportuna y datos confiables.",
+    "{us:Excellent service, highly recommended.} {es:Excelente servicio, muy recomendado.}",
+    "{us:The information is clear and updated, thanks.} {es:La información está clara y actualizada, gracias.}",
+    "{us:This dataset helped me a lot with my work.} {es:Me ayudó mucho este dataset para mi trabajo.}",
+    "{us:Very good quality open data.} {es:Muy buena calidad de los datos abiertos.}",
+    "{us:The portal is easy to use and fast.} {es:El portal es fácil de usar y rápido.}",
+    "{us:Great job from the municipality publishing this data.} {es:Gran trabajo del municipio publicando estos datos.}",
+    "{us:Everything worked perfectly, positive experience.} {es:Todo funcionó perfecto, experiencia positiva.}",
+    "{us:Metadata is complete and well documented.} {es:Los metadatos están completos y bien documentados.}",
+    "{us:Loved the visualization, very useful.} {es:Me encantó la visualización, muy útil.}",
+    "{us:Timely response and reliable data.} {es:Respuesta oportuna y datos confiables.}",
 )
 _FIXTURE_NEGATIVOS = (
-    "La información está desactualizada y no sirve.",
-    "Hay muchos errores en los registros.",
-    "El archivo no descarga, pésimo servicio.",
-    "Datos incompletos, falta la mitad de los campos.",
-    "Muy lento el portal, una experiencia horrible.",
-    "No recomiendo este dataset, está mal estructurado.",
-    "La documentación es confusa y contradictoria.",
-    "Encontré duplicados y valores nulos por todas partes.",
-    "El enlace está roto desde hace semanas.",
-    "Pésima calidad, no se puede usar para análisis.",
+    "{us:The information is outdated and useless.} {es:La información está desactualizada y no sirve.}",
+    "{us:There are many errors in the records.} {es:Hay muchos errores en los registros.}",
+    "{us:The file does not download, terrible service.} {es:El archivo no descarga, pésimo servicio.}",
+    "{us:Incomplete data, half of the fields are missing.} {es:Datos incompletos, falta la mitad de los campos.}",
+    "{us:Portal is very slow, horrible experience.} {es:Muy lento el portal, una experiencia horrible.}",
+    "{us:I do not recommend this dataset, poorly structured.} {es:No recomiendo este dataset, está mal estructurado.}",
+    "{us:Documentation is confusing and contradictory.} {es:La documentación es confusa y contradictoria.}",
+    "{us:I found duplicates and null values everywhere.} {es:Encontré duplicados y valores nulos por todas partes.}",
+    "{us:The link has been broken for weeks.} {es:El enlace está roto desde hace semanas.}",
+    "{us:Terrible quality, cannot be used for analysis.} {es:Pésima calidad, no se puede usar para análisis.}",
 )
 _FIXTURE_NEUTROS = (
-    "¿Cada cuánto se actualiza este recurso?",
-    "Necesito el diccionario de datos, ¿dónde está?",
-    "Consulta sobre el significado de la columna codigo.",
-    "¿Hay versión histórica de este dataset?",
-    "Solicito el mismo archivo en formato CSV.",
-    "Buenas tardes, ¿quién es el responsable del dataset?",
-    "Quiero saber si incluye datos del 2024.",
-    "¿Se puede filtrar por municipio?",
-    "Información recibida, revisaré y comento después.",
-    "¿Existe API para consultar estos datos?",
+    "{us:How often is this resource updated?} {es:¿Cada cuánto se actualiza este recurso?}",
+    "{us:I need the data dictionary, where is it?} {es:Necesito el diccionario de datos, ¿dónde está?}",
+    "{us:Inquiry about the meaning of column code.} {es:Consulta sobre el significado de la columna código.}",
+    "{us:Is there a historical version of this dataset?} {es:¿Hay versión histórica de este dataset?}",
+    "{us:I request the same file in CSV format.} {es:Solicito el mismo archivo en formato CSV.}",
+    "{us:Good afternoon, who is responsible for the dataset?} {es:Buenas tardes, ¿quién es el responsable del dataset?}",
+    "{us:I want to know if it includes 2024 data.} {es:Quiero saber si incluye datos del 2024.}",
+    "{us:Can it be filtered by municipality?} {es:¿Se puede filtrar por municipio?}",
+    "{us:Information received, will review and comment later.} {es:Información recibida, revisaré y comento después.}",
+    "{us:Is there an API to query this data?} {es:¿Existe API para consultar estos datos?}",
 )
 _FIXTURE_MUNICIPIOS = (
     ("ckan_pg_alcala", "alcala"),
@@ -164,20 +164,16 @@ _FIXTURE_MUNICIPIOS = (
     ("ckan_pg_sevilla", "sevilla"),
     ("ckan_pg_cartago", "cartago"),
 )
-_FIXTURE_SUBJECTS = (
-    "Calidad del dataset",
-    "Actualización de datos",
-    "Problema de descarga",
-    "Consulta técnica",
-    "Sugerencia de mejora",
-    "Error en registros",
-    "Documentación",
-    "Acceso al recurso",
+_FIXTURE_DATASETS = (
+    ("ds_cultivos_valle_001", "Dataset Cultivos Valle del Cauca"),
+    ("ds_precios_sipsa_002", "Dataset Precios Mayoristas SIPSA"),
+    ("ds_rendimiento_agri_003", "Dataset Rendimiento Agrícola Municipal"),
+    ("ds_participacion_004", "Dataset Participación Ciudadana y Comentarios"),
 )
 
 
 def generate_comment_records(n: int = 1000, seed: int = 42) -> list[dict[str, str]]:
-    """Genera comentarios de prueba (mismo formato que la tabla CKAN `comment`)."""
+    """Genera comentarios de prueba con el esquema id, Id_dataset, nombre_dataset, comment, created ({us:...} {es:...})."""
     import random
     import uuid
     from datetime import timedelta
@@ -185,18 +181,10 @@ def generate_comment_records(n: int = 1000, seed: int = 42) -> list[dict[str, st
     rng = random.Random(seed)
     start = datetime(2022, 1, 1, tzinfo=timezone.utc)
     rows: list[dict[str, str]] = []
-    
-    # Crear pool de 4 thread_ids (datasets) por municipio
-    thread_pool: dict[str, list[str]] = {}
-    for _, m in _FIXTURE_MUNICIPIOS:
-        thread_pool[m] = [
-            str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{m}.dataset.{ds_idx}"))
-            for ds_idx in range(1, 5)
-        ]
 
     for i in range(1, n + 1):
         conn_id, municipio = _FIXTURE_MUNICIPIOS[i % len(_FIXTURE_MUNICIPIOS)]
-        thread_id = rng.choice(thread_pool[municipio])
+        ds_id, ds_name = _FIXTURE_DATASETS[i % len(_FIXTURE_DATASETS)]
         roll = rng.random()
         if roll < 0.38:
             label, base = "POS", rng.choice(_FIXTURE_POSITIVOS)
@@ -208,116 +196,69 @@ def generate_comment_records(n: int = 1000, seed: int = 42) -> list[dict[str, st
         rows.append(
             {
                 "id": str(uuid.UUID(int=rng.getrandbits(128))),
-                "thread_id": thread_id,
-                "content": f"{base} (ref {i})",
-                "subject": rng.choice(_FIXTURE_SUBJECTS),
-                "author_id": f"user_{rng.randint(1, 200):03d}",
-                "state": "approved",
-                "created_at": created.isoformat(),
-                "modified_at": (created + timedelta(hours=rng.randint(0, 72))).isoformat(),
+                "Id_dataset": ds_id,
+                "nombre_dataset": ds_name,
+                "comment": base,
+                "created": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "source_conn_id": conn_id,
                 "municipio": municipio,
-                "ingested_at": datetime.now(timezone.utc).isoformat(),
+                "ingested_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "fixture_sentiment_hint": label,
             }
         )
     return rows
 
 
+import json
+
+
 def write_comment_fixtures(rows: list[dict[str, str]], out_dir: Path) -> list[Path]:
-    """Escribe CSVs locales `comment_<conn_id>.csv` (CLI / tests)."""
+    """Escribe un único archivo JSON local `comentarios_staging.json` (CLI / tests)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     for old in out_dir.glob("comment_*.csv"):
-        old.unlink()
-    by_conn: dict[str, list[dict[str, str]]] = {}
-    for row in rows:
-        by_conn.setdefault(row["source_conn_id"], []).append(row)
-    fieldnames = [
-        "id",
-        "thread_id",
-        "content",
-        "subject",
-        "author_id",
-        "state",
-        "created_at",
-        "modified_at",
-        "source_conn_id",
-        "municipio",
-        "ingested_at",
-        "fixture_sentiment_hint",
-    ]
-    written: list[Path] = []
-    for conn_id, items in by_conn.items():
-        path = out_dir / f"comment_{conn_id}.csv"
-        with path.open("w", encoding="utf-8", newline="") as fh:
-            writer = csv.DictWriter(fh, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(items)
-        written.append(path)
-    return written
+        old.unlink(missing_ok=True)
+    for old in out_dir.glob("comment_*.json"):
+        old.unlink(missing_ok=True)
+    path = out_dir / "comentarios_staging.json"
+    json_text = json.dumps(rows, indent=2, ensure_ascii=False)
+    path.write_text(json_text, encoding="utf-8")
+    return [path]
 
 
-def _csv_text_for_conn(items: list[dict[str, str]]) -> str:
-    fieldnames = [
-        "id",
-        "thread_id",
-        "content",
-        "subject",
-        "author_id",
-        "state",
-        "created_at",
-        "modified_at",
-        "source_conn_id",
-        "municipio",
-        "ingested_at",
-        "fixture_sentiment_hint",
-    ]
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
-    writer.writeheader()
-    writer.writerows(items)
-    return buf.getvalue()
+def _json_text_for_rows(items: list[dict[str, str]]) -> str:
+    return json.dumps(items, indent=2, ensure_ascii=False)
 
 
 def _ingest_from_test_fixtures(cfg: Dict[str, Any], domain: Dict[str, Any]) -> Dict[str, Any]:
-    """Genera fixtures embebidos (sin archivo extra) y los publica a staging."""
+    """Genera datos JSON de prueba (simulando respuesta de API) y publica `comentarios_staging.json` a staging."""
     n_records = int(domain.get("test_data_records") or 1000)
     seed = int(domain.get("test_data_seed") or 42)
     raw_subdir = str(require_config_value(domain, "raw_subdir"))
 
     rows = generate_comment_records(n_records, seed=seed)
-    by_conn: dict[str, list[dict[str, str]]] = {}
-    for row in rows:
-        by_conn.setdefault(row["source_conn_id"], []).append(row)
+    filename = "comentarios_staging.json"
+    dest = storage_join(get_raw_root(cfg), raw_subdir, filename)
+    write_text(dest, _json_text_for_rows(rows), cfg=cfg)
 
-    results: List[Dict[str, Any]] = []
-    for conn_id, items in by_conn.items():
-        filename = f"comment_{_safe_filename_token(conn_id)}.csv"
-        dest = storage_join(get_raw_root(cfg), raw_subdir, filename)
-        write_text(dest, _csv_text_for_conn(items), cfg=cfg)
-        municipio = items[0].get("municipio") if items else ""
-        results.append(
-            {
-                "conn_id": conn_id,
-                "municipio": municipio or "",
-                "rows": len(items),
-                "dest": dest,
-                "status": "SUCCESS",
-            }
-        )
-
-    total_rows = sum(int(r["rows"]) for r in results)
     print(
-        f"🧪 [SRC_INGEST_CKAN_COMENTARIOS] Modo test_data | "
-        f"registros={total_rows} | archivos={len(results)}"
+        f"🧪 [SRC_INGEST_CKAN_COMENTARIOS] Modo API JSON test_data | "
+        f"registros={len(rows)} | archivo_json_staging={dest}"
     )
     return {
         "status": "SUCCESS",
         "mode": "test_data",
-        "connections": len(results),
-        "total_rows": total_rows,
+        "connections": 1,
+        "total_rows": len(rows),
         "errors": [],
-        "results": results,
+        "results": [
+            {
+                "conn_id": "api_json_fixtures",
+                "municipio": "todos",
+                "rows": len(rows),
+                "dest": dest,
+                "status": "SUCCESS",
+            }
+        ],
     }
 
 
@@ -332,12 +273,12 @@ def run_ingest_ckan_comentarios(config: Dict[str, Any] | None = None) -> Dict[st
     table = str(require_config_value(domain, "table"))
     raw_subdir = str(require_config_value(domain, "raw_subdir"))
     filename_template = str(
-        domain.get("raw_filename_template") or "comment_{conn_id}.csv"
+        domain.get("raw_filename_template") or "comment_{conn_id}.json"
     )
     use_test_data = bool(domain.get("use_test_data"))
 
     print(
-        f"🌐 [SRC_INGEST_CKAN_COMENTARIOS] Target={gcs_bucket} | "
+        f"🌐 [SRC_INGEST_CKAN_COMENTARIOS] Ingesta API JSON -> Target={gcs_bucket} | "
         f"tabla={schema}.{table} | conexiones={len(connections)} | "
         f"use_test_data={use_test_data} | "
         f"Composer={composer['environment']} ({composer['location']})"
@@ -355,18 +296,18 @@ def run_ingest_ckan_comentarios(config: Dict[str, Any] | None = None) -> Dict[st
 
     results: List[Dict[str, Any]] = []
     errors: List[str] = []
+
     for item in connections:
         try:
-            results.append(
-                ingest_one_connection(
-                    cfg,
-                    item,
-                    schema=schema,
-                    table=table,
-                    raw_subdir=raw_subdir,
-                    filename_template=filename_template,
-                )
+            res = ingest_one_connection(
+                cfg,
+                item,
+                schema=schema,
+                table=table,
+                raw_subdir=raw_subdir,
+                filename_template=filename_template,
             )
+            results.append(res)
         except Exception as exc:
             msg = f"{item.get('conn_id')}: {exc}"
             errors.append(msg)
@@ -382,7 +323,24 @@ def run_ingest_ckan_comentarios(config: Dict[str, Any] | None = None) -> Dict[st
                 }
             )
 
-    total_rows = sum(int(r.get("rows") or 0) for r in results)
+    # Consolidar en un solo archivo JSON de staging para load
+    total_rows = sum(int(r.get("rows") or 0) for r in results if r.get("status") == "SUCCESS")
+    if total_rows > 0:
+        single_staging_dest = storage_join(get_raw_root(cfg), raw_subdir, "comentarios_staging.json")
+        all_frames = []
+        for r in results:
+            if r.get("dest") and r.get("status") == "SUCCESS":
+                try:
+                    local_p = materialize_local(r["dest"], cfg=cfg)
+                    all_frames.append(pd.read_csv(local_p, dtype=str, keep_default_na=False))
+                except Exception:
+                    pass
+        if all_frames:
+            combined_df = pd.concat(all_frames, ignore_index=True, sort=False)
+            records = combined_df.to_dict(orient="records")
+            write_text(single_staging_dest, json.dumps(records, indent=2, ensure_ascii=False), cfg=cfg)
+            print(f"📦 [INGEST API JSON] Consolidados {len(records)} registros JSON en staging: {single_staging_dest}")
+
     status = "SUCCESS" if not errors else ("PARTIAL" if total_rows else "ERROR")
     print(
         f"✅ [SRC_INGEST_CKAN_COMENTARIOS] Fin | status={status} | "
@@ -395,6 +353,8 @@ def run_ingest_ckan_comentarios(config: Dict[str, Any] | None = None) -> Dict[st
         "errors": errors,
         "results": results,
     }
+
+
 
 
 if __name__ == "__main__":

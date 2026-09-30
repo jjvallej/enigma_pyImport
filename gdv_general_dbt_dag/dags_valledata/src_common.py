@@ -368,7 +368,7 @@ def compute_execution_date_range(today: date | None = None) -> Dict[str, str]:
 
 
 def find_config_file(config_path: str | Path | None = None) -> Path | None:
-    """Busca config.yaml exclusivamente en la carpeta asignada al proyecto ValleDATA ('dags_valledata/config/config.yaml')."""
+    """Busca config.yaml priorizando la ruta central del repositorio / Cloud Composer ('gdv_general_dbt_dag/config/config.yaml')."""
     if config_path:
         p = Path(config_path)
         if p.exists():
@@ -376,40 +376,39 @@ def find_config_file(config_path: str | Path | None = None) -> Path | None:
 
     candidates: List[Path | None] = []
 
-    # 1. Dentro de la carpeta dags_valledata del script actual (__file__/config/config.yaml)
+    # 1. Ruta absoluta oficial en Cloud Composer bucket (us-east1-composer-gdv-edf456f5-bucket/dags/gdv_general_dbt_dag/config/config.yaml)
+    candidates.extend([
+        Path("/home/airflow/gcs/dags/gdv_general_dbt_dag/config/config.yaml"),
+        Path("/home/airflow/gcs/dags/gdv_general_dbt_dag/dags_valledata/config/config.yaml"),
+        Path("/home/airflow/gcs/dags/dags_valledata/config/config.yaml"),
+    ])
+
+    # 2. Relativa a la ubicación del script (dags_valledata/.. -> gdv_general_dbt_dag/config/config.yaml)
     try:
         script_dir = Path(__file__).resolve().parent
+        candidates.append(script_dir.parent / "config" / "config.yaml")
         candidates.append(script_dir / "config" / "config.yaml")
         candidates.append(script_dir / "config.yaml")
     except Exception:
         script_dir = None
 
-    # 2. Al mismo nivel del DAG principal en ejecución (__main__/config/config.yaml)
+    # 3. Al mismo nivel del DAG principal en ejecución
     try:
         main_mod = sys.modules.get("__main__")
         if main_mod and hasattr(main_mod, "__file__") and main_mod.__file__:
             main_dir = Path(main_mod.__file__).resolve().parent
-            if "dags_valledata" in str(main_dir):
-                candidates.append(main_dir / "config" / "config.yaml")
-                candidates.append(main_dir / "config.yaml")
+            candidates.append(main_dir.parent / "config" / "config.yaml")
+            candidates.append(main_dir / "config" / "config.yaml")
     except Exception:
         pass
 
-    # 3. Ruta absoluta exclusiva del proyecto ValleDATA en Cloud Composer
+    # 4. Rutas relativas del repositorio local
     candidates.extend([
-        Path("/home/airflow/gcs/dags/gdv_general_dbt_dag/dags_valledata/config/config.yaml"),
-        Path("/home/airflow/gcs/dags/gdv_general_dbt_dag/dags_valledata/config.yaml"),
-        Path("/home/airflow/gcs/dags/dags_valledata/config/config.yaml"),
+        Path("dags/gdv_general_dbt_dag/config/config.yaml"),
+        Path("dags/gdv_general_dbt_dag/dags_valledata/config/config.yaml"),
+        Path("config/config.yaml"),
+        Path("config.yaml"),
     ])
-
-    # 4. Rutas relativas del espacio de trabajo pyimport/airflow
-    if script_dir:
-        candidates.extend([
-            script_dir.parent / "dags_valledata" / "config" / "config.yaml",
-            Path("dags/gdv_general_dbt_dag/dags_valledata/config/config.yaml"),
-            Path("config/config.yaml"),
-            Path("config.yaml"),
-        ])
 
     for c in candidates:
         if c is not None and c.exists():

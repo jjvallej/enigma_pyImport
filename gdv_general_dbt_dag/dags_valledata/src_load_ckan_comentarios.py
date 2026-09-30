@@ -35,26 +35,69 @@ from src_common import (  # noqa: E402
 )
 
 
+import json
+
+
 def _list_comment_files(cfg: Dict[str, Any]) -> List[str]:
-    """Lista todos los CSV de comentarios en staging (todos los municipios)."""
+    """Obtiene los archivos de staging (priorizando archivos JSON retornados por API)."""
     domain = require_config_value(cfg, "ckan_comentarios")
     raw_subdir = str(require_config_value(domain, "raw_subdir"))
     raw_root = storage_join(get_raw_root(cfg), raw_subdir)
-    files = list_storage(raw_root, name_prefix="comment_", cfg=cfg)
-    if not files:
-        files = [u for u in list_storage(raw_root, cfg=cfg) if u.lower().endswith(".csv")]
-    return sorted(files)
+    all_files = list_storage(raw_root, cfg=cfg)
+
+    # 1. Buscar primero archivos JSON de staging (API)
+    json_files = [u for u in sorted(all_files) if u.lower().endswith(".json")]
+    if json_files:
+        for preferred in ("comentarios_staging.json", "comment_consolidado.json"):
+            for f in json_files:
+                if Path(f).name == preferred:
+                    return [f]
+        return json_files
+
+    # 2. Fallback a archivos CSV si no existen archivos JSON
+    csv_files = [u for u in sorted(all_files) if u.lower().endswith(".csv")]
+    if csv_files:
+        for preferred in ("comentarios_staging.csv", "comment_consolidado.csv"):
+            for f in csv_files:
+                if Path(f).name == preferred:
+                    return [f]
+        return csv_files
+
+    return []
 
 
 def consolidate_comment_csvs(file_uris: List[str], cfg: Dict[str, Any]) -> pd.DataFrame:
-    """Consolida todos los CSV municipales en un único DataFrame."""
+    """Lee el archivo de staging (JSON de la API o CSV) y lo convierte en DataFrame de Pandas con campos id, Id_dataset, nombre_dataset, comment, created."""
     frames: List[pd.DataFrame] = []
     for uri in file_uris:
         local = materialize_local(uri, cfg=cfg)
-        frame = pd.read_csv(local, dtype=str, keep_default_na=False)
+
+        if uri.lower().endswith(".json"):
+            try:
+                frame = pd.read_json(local, dtype=str)
+            except Exception:
+                with open(local, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                frame = pd.DataFrame(data)
+        else:
+            frame = pd.read_csv(local, dtype=str, keep_default_na=False)
+
         frame["source_file"] = Path(uri).name
+
+        # Mapeo de columnas legacy si aplican
+        rename_map = {}
+        if "content" in frame.columns and "comment" not in frame.columns:
+            rename_map["content"] = "comment"
+        if "created_at" in frame.columns and "created" not in frame.columns:
+            rename_map["created_at"] = "created"
+        if "thread_id" in frame.columns and "Id_dataset" not in frame.columns:
+            rename_map["thread_id"] = "Id_dataset"
+        if "subject" in frame.columns and "nombre_dataset" not in frame.columns:
+            rename_map["subject"] = "nombre_dataset"
+        if rename_map:
+            frame = frame.rename(columns=rename_map)
+
         if "municipio" not in frame.columns:
-            # Deriva municipio del nombre comment_<conn>.csv si falta
             stem = Path(uri).stem.replace("comment_", "", 1)
             frame["municipio"] = stem
         if "source_conn_id" not in frame.columns:
@@ -62,7 +105,7 @@ def consolidate_comment_csvs(file_uris: List[str], cfg: Dict[str, Any]) -> pd.Da
         frames.append(frame)
         n_mun = frame["municipio"].nunique() if "municipio" in frame.columns else 0
         print(
-            f"📄 [LOAD] {Path(uri).name} -> {len(frame)} filas | municipios_en_archivo={n_mun}",
+            f"📄 [LOAD JSON -> CSV] {Path(uri).name} -> {len(frame)} filas convertidas | municipios={n_mun}",
             flush=True,
         )
 
@@ -70,11 +113,11 @@ def consolidate_comment_csvs(file_uris: List[str], cfg: Dict[str, Any]) -> pd.Da
         return pd.DataFrame()
 
     consolidated = pd.concat(frames, ignore_index=True, sort=False)
-    # Orden estable: municipio, luego fecha si existe
-    sort_cols = [c for c in ("municipio", "created_at", "id") if c in consolidated.columns]
+    sort_cols = [c for c in ("municipio", "created", "created_at", "id") if c in consolidated.columns]
     if sort_cols:
         consolidated = consolidated.sort_values(sort_cols, kind="mergesort").reset_index(drop=True)
     return consolidated
+
 
 
 def _write_consolidated_csv(df: pd.DataFrame, output_csv: Path, cfg: Dict[str, Any]) -> str:
@@ -106,12 +149,12 @@ def run_load_ckan_comentarios(config: Dict[str, Any] | None = None) -> Dict[str,
     files = _list_comment_files(cfg)
 
     print(
-        f"📦 [SRC_LOAD_CKAN_COMENTARIOS] Consolidando {len(files)} archivos municipales "
-        f"-> UN CSV: {output_csv} | "
-        f"Composer={composer['environment']} ({composer['location']}) | "
+        f"📦 [SRC_LOAD_CKAN_COMENTARIOS] Convirtiendo JSON de staging -> CSV Bronze: {output_csv} | "
+        f"Archivos={len(files)} | Composer={composer['environment']} ({composer['location']}) | "
         f"conn={google_cloud_default}",
         flush=True,
     )
+
 
     if not files:
         print(

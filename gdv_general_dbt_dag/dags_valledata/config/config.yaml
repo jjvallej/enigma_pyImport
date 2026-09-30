@@ -1,202 +1,411 @@
-# ==============================================================================
-# ARCHIVO DE CONFIGURACIÓN DE PIPELINE MULTIENTORNO (pyimport / airflow)
-# Ubicación: src/pyimport/config/config.yaml
-# ==============================================================================
-
-# Entorno Activo Predeterminado: "dev", "qa", o "prod"
-active_environment: "dev"
-
-# Configuración Específica por Entorno
+global_config:
+  debug: true
 environments:
   dev:
-    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
-    local_raw_path: "data/raw"
-    local_output_path: "data"
+    project_id: datagov-473122
+    location: us-central1
+    bucket_name: datalake_gdv_dev
+    dbt_docs_bucket_name: bucket_dbt_docs_dev
+    dataset_bronze: bronze_dpt_planeacion_municipal
+    dataset_silver: silver_dpt_planeacion_municipal
+    dataset_gold: gold_dpt_planeacion_municipal
+    gcs_bucket: gs://datalake_gdv_pdn/data_staging/valledata
+    local_raw_path: data/raw
+    local_output_path: data
     composer:
-      environment: "composer-gdv"
-      location: "us-east1"
-      project: "datagov-477214"
+      environment: composer-gdv
+      location: us-east1
+      project: datagov-477214
     connections:
-      sipsa_dane: "sipsa_dane"
-      noaa_oni: "noaa_oni"
-      gobernacion_valle: "gobernacion_valle"
-      datos_gov_co: "datos_gov_co"
-      google_cloud_default: "google_cloud_default"
-      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
-      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
-      # Ejemplo:
-      # - conn_id: ckan_pg_01
-      #   municipio: alcala
+      sipsa_dane: sipsa_dane
+      noaa_oni: noaa_oni
+      gobernacion_valle: gobernacion_valle
+      datos_gov_co: datos_gov_co
+      google_cloud_default: google_cloud_default
       ckan_comentarios: []
     bigquery:
-      project_id: "datagov-477214"
-      location: "US"
+      project_id: datagov-477214
+      location: us-east1
       datasets:
-        bronze: "valledata"
-        silver: "valledata"
+        bronze: valledata
+        silver: valledata
       buckets:
-        bronze: "gs://valledata-bronze-dev"
-        silver: "gs://valledata-silver-dev"
+        bronze: gs://valledata-bronze-dev
+        silver: gs://valledata-silver-dev
       tables:
-        sipsa_bronze: "bronze_agri_sipsa"
-        oni_bronze: "bronze_oni_climatico"
-        cultivos_bronze: "bronze_cultivos_valle"
-        municipios_bronze: "bronze_municipios_valle"
-        consolidado_silver: "silver_agri_consolidado"
-        gold_spatial: "gold_cultivos_valle_geo"
-        comentarios_bronze: "bronze_comentarios"
-        comentarios_silver: "silver_comentarios"
-        comentarios_gold: "gold_comentarios_sentimiento"
-        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
-
-  qa:
-    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
-    local_raw_path: "data/raw"
-    local_output_path: "data"
-    composer:
-      environment: "composer-gdv"
-      location: "us-east1"
-      project: "datagov-477214"
-    connections:
-      sipsa_dane: "sipsa_dane"
-      noaa_oni: "noaa_oni"
-      gobernacion_valle: "gobernacion_valle"
-      datos_gov_co: "datos_gov_co"
-      google_cloud_default: "google_cloud_default"
-      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
-      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
-      # Ejemplo:
-      # - conn_id: ckan_pg_01
-      #   municipio: alcala
-      ckan_comentarios: []
-    bigquery:
-      project_id: "datagov-477214"
-      location: "US"
-      datasets:
-        bronze: "valledata"
-        silver: "valledata"
-      buckets:
-        bronze: "gs://valledata-bronze-qa"
-        silver: "gs://valledata-silver-qa"
-      tables:
-        sipsa_bronze: "bronze_agri_sipsa"
-        oni_bronze: "bronze_oni_climatico"
-        cultivos_bronze: "bronze_cultivos_valle"
-        municipios_bronze: "bronze_municipios_valle"
-        consolidado_silver: "silver_agri_consolidado"
-        gold_spatial: "gold_cultivos_valle_geo"
-        comentarios_bronze: "bronze_comentarios"
-        comentarios_silver: "silver_comentarios"
-        comentarios_gold: "gold_comentarios_sentimiento"
-        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
-
+        sipsa_bronze: bronze_agri_sipsa
+        oni_bronze: bronze_oni_climatico
+        cultivos_bronze: bronze_cultivos_valle
+        municipios_bronze: bronze_municipios_valle
+        consolidado_silver: silver_agri_consolidado
+        panel_silver: silver_agri_panel
+        panel_enriquecido_silver: silver_agri_panel_enriquecido
+        modelo_base_silver: silver_agri_modelo_base
+        gold_spatial: gold_cultivos_valle_geo
+        comentarios_bronze: bronze_comentarios
+        comentarios_silver: silver_comentarios
+        comentarios_gold: gold_comentarios_sentimiento
+        gold_comentarios_sentimiento: gold_comentarios_sentimiento
   prod:
-    gcs_bucket: "gs://datalake_gdv_pdn/data_staging/valledata"
-    local_raw_path: "data/raw"
-    local_output_path: "data"
+    project_id: datagov-477214
+    location: us-east1
+    bucket_name: datalake_gdv_pdn
+    dbt_docs_bucket_name: bucket_dbt_docs_prod
+    dataset_bronze: bronze_dpt_planeacion_municipal
+    dataset_silver: silver_dpt_planeacion_municipal
+    dataset_gold: gold_dpt_planeacion_municipal
+    gcs_bucket: gs://datalake_gdv_pdn/data_staging/valledata
+    local_raw_path: data/raw
+    local_output_path: data
     composer:
-      environment: "composer-gdv"
-      location: "us-east1"
-      project: "datagov-477214"
+      environment: composer-gdv
+      location: us-east1
+      project: datagov-477214
     connections:
-      sipsa_dane: "sipsa_dane"
-      noaa_oni: "noaa_oni"
-      gobernacion_valle: "gobernacion_valle"
-      datos_gov_co: "datos_gov_co"
-      google_cloud_default: "google_cloud_default"
-      # Arreglo de conexiones Postgres a instancias CKAN (hasta 14).
-      # Cada ítem es una conexión Airflow tipo postgres (host/ruta distinta).
-      # Ejemplo:
-      # - conn_id: ckan_pg_01
-      #   municipio: alcala
+      sipsa_dane: sipsa_dane
+      noaa_oni: noaa_oni
+      gobernacion_valle: gobernacion_valle
+      datos_gov_co: datos_gov_co
+      google_cloud_default: google_cloud_default
       ckan_comentarios: []
     bigquery:
-      project_id: "datagov-477214"
-      location: "US"
+      project_id: datagov-477214
+      location: us-east1
       datasets:
-        bronze: "valledata"
-        silver: "valledata"
+        bronze: valledata
+        silver: valledata
       buckets:
-        bronze: "gs://valledata-bronze-prod"
-        silver: "gs://valledata-silver-prod"
+        bronze: gs://valledata-bronze-prod
+        silver: gs://valledata-silver-prod
       tables:
-        sipsa_bronze: "bronze_agri_sipsa"
-        oni_bronze: "bronze_oni_climatico"
-        cultivos_bronze: "bronze_cultivos_valle"
-        municipios_bronze: "bronze_municipios_valle"
-        consolidado_silver: "silver_agri_consolidado"
-        gold_spatial: "gold_cultivos_valle_geo"
-        comentarios_bronze: "bronze_comentarios"
-        comentarios_silver: "silver_comentarios"
-        comentarios_gold: "gold_comentarios_sentimiento"
-        gold_comentarios_sentimiento: "gold_comentarios_sentimiento"
-
-# Parámetros para Precios SIPSA (DANE)
-# start_period / end_period se calculan en ejecución:
-# inicio = max(2000-01, earliest_period), fin = diciembre del año anterior.
-# earliest_period evita sondear años sin anexos publicados en DANE.
+        sipsa_bronze: bronze_agri_sipsa
+        oni_bronze: bronze_oni_climatico
+        cultivos_bronze: bronze_cultivos_valle
+        municipios_bronze: bronze_municipios_valle
+        consolidado_silver: silver_agri_consolidado
+        panel_silver: silver_agri_panel
+        panel_enriquecido_silver: silver_agri_panel_enriquecido
+        modelo_base_silver: silver_agri_modelo_base
+        gold_spatial: gold_cultivos_valle_geo
+        comentarios_bronze: bronze_comentarios
+        comentarios_silver: silver_comentarios
+        comentarios_gold: gold_comentarios_sentimiento
+        gold_comentarios_sentimiento: gold_comentarios_sentimiento
+  local:
+    project_id: datagov-473122
+    location: us-central1
+    bucket_name: datalake_gdv_dev
+    dbt_docs_bucket_name: bucket_dbt_docs_dev
+    dataset_bronze: bronze_dpt_planeacion_municipal
+    dataset_silver: silver_dpt_planeacion_municipal
+    dataset_gold: gold_dpt_planeacion_municipal
+  qa:
+    gcs_bucket: gs://datalake_gdv_pdn/data_staging/valledata
+    local_raw_path: data/raw
+    local_output_path: data
+    composer:
+      environment: composer-gdv
+      location: us-east1
+      project: datagov-477214
+    connections:
+      sipsa_dane: sipsa_dane
+      noaa_oni: noaa_oni
+      gobernacion_valle: gobernacion_valle
+      datos_gov_co: datos_gov_co
+      google_cloud_default: google_cloud_default
+      ckan_comentarios: []
+    bigquery:
+      project_id: datagov-477214
+      location: us-east1
+      datasets:
+        bronze: valledata
+        silver: valledata
+      buckets:
+        bronze: gs://valledata-bronze-qa
+        silver: gs://valledata-silver-qa
+      tables:
+        sipsa_bronze: bronze_agri_sipsa
+        oni_bronze: bronze_oni_climatico
+        cultivos_bronze: bronze_cultivos_valle
+        municipios_bronze: bronze_municipios_valle
+        consolidado_silver: silver_agri_consolidado
+        panel_silver: silver_agri_panel
+        panel_enriquecido_silver: silver_agri_panel_enriquecido
+        modelo_base_silver: silver_agri_modelo_base
+        gold_spatial: gold_cultivos_valle_geo
+        comentarios_bronze: bronze_comentarios
+        comentarios_silver: silver_comentarios
+        comentarios_gold: gold_comentarios_sentimiento
+        gold_comentarios_sentimiento: gold_comentarios_sentimiento
+evaplan:
+  auth_endpoint: http://207.246.89.62/ApiEvaplan/auth/login
+  api_base_url: http://207.246.89.62/ApiEvaplan
+  endpoints:
+    periodos: /datos/periodos
+    avance_mr: /datos/AvanceMR
+    avance_mp: /datos/AvanceMP
+    avance_x_subprograma: /datos/AvanceXSubprograma
+    avance_general: /datos/AvanceGeneral
+    avance_subprogramas: /datos/AvanceSubprogramas
+    avance_programas: /datos/AvanceProgramas
+    sector_mp: /datos/SectorMP
+  gcs_base_folder: data_staging/dpt_planeacion_municipal/api_evaplan
+  gcs_folders:
+    periodos: periodos
+    avance_mr: avance_mr
+    avance_mp: avance_mp
+    avance_x_subprograma: avance_x_subprograma
+    avance_general: avance_general
+    avance_subprogramas: avance_subprogramas
+    avance_programas: avance_programas
+    sector_mp: sector_mp
+  fuentes:
+  - periodos
+  - avance_mr
+  - avance_mp
+  - avance_x_subprograma
+  - avance_general
+  - avance_subprogramas
+  - avance_programas
+  - sector_mp
+  tables:
+    bronze:
+      periodos: evaplan_api_periodos_raw_data
+      avance_mr: evaplan_api_avance_mr_raw_data
+      avance_mp: evaplan_api_avance_mp_raw_data
+      avance_x_subprograma: evaplan_api_avance_x_subprograma_raw_data
+      avance_general: evaplan_api_avance_general_raw_data
+      avance_subprogramas: evaplan_api_avance_subprogramas_raw_data
+      avance_programas: evaplan_api_avance_programas_raw_data
+      sector_mp: evaplan_api_sector_mp_raw_data
+    silver:
+      periodos: evaplan_api_periodos_transformed_data
+      avance_mr: evaplan_api_avance_mr_transformed_data
+      avance_mp: evaplan_api_avance_mp_transformed_data
+      avance_x_subprograma: evaplan_api_avance_x_subprograma_transformed_data
+      avance_general: evaplan_api_avance_general_transformed_data
+      avance_subprogramas: evaplan_api_avance_subprogramas_transformed_data
+      avance_programas: evaplan_api_avance_programas_transformed_data
+      sector_mp: evaplan_api_sector_mp_transformed_data
+    gold:
+      avance_mr: evaplan_api_avance_mr_processed_data
+      avance_mp: evaplan_api_avance_mp_processed_data
+      avance_x_subprograma: evaplan_api_avance_x_subprograma_processed_data
+      avance_general: evaplan_api_avance_general_processed_data
+      avance_subprogramas: evaplan_api_avance_subprogramas_processed_data
+      avance_programas: evaplan_api_avance_programas_processed_data
+      sector_mp: evaplan_api_sector_mp_processed_data
+    gold_facts:
+      fact_entidad: FACT_ENTIDAD
+      fact_programa: FACT_PROGRAMA
+      fact_resumen: FACT_RESUMEN
+      fact_sector: FACT_SECTOR
+  credentials:
+    usuario: usuario_api
+    password: ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+sap_api_evaplan:
+  url: http://sappro-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata
+  modo_ejecucion: auto
+  fecha_inicio: ''
+  fecha_fin: ''
+  params:
+    sap_client: '710'
+    p1: X
+    p2: ''
+    p3: ''
+    p4: ''
+  credentials:
+    usuario: DATAWEBSER
+    password: Datagov26
+  gcs_base_folder: data_staging/dpt_planeacion_municipal/sap_api_evaplan
+  response_list_key: infoz080
+  export_filename: sap_api_evaplan_{{ ds_nodash }}.json
+  timeout_seconds: 900
+  target_dataset: null
+  target_table: sap_api_evaplan_raw_data
+  source_format: NEWLINE_DELIMITED_JSON
+  write_disposition: WRITE_APPEND
+  autodetect: true
+  ingest_schedule_interval: 0 7,17 * * *
+  schedule_interval: null
+  gold_dataset: null
+  gold_table: sap_api_evaplan_final_data
+idc:
+  drive_url: https://docs.google.com/spreadsheets/d/1ABWswq3dHMP74u-cKW9OaCTI3X3bfegF/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true
+  dictionary_drive_url: https://drive.google.com/file/d/1Np3t7wFletxcMxqoeDrNhlvxqzaOQpLr/view?usp=sharing
+  gcs_folder: data_staging/dpt_planeacion_municipal/idc
+  tables:
+    dictionary: DIM_IDC
+    raw_data_mapping:
+      Dato_original: idc_raw_data_dato_original
+      Valor_normalizado: idc_raw_data_valor_normalizado
+      Valor_ranking: idc_raw_data_valor_ranking
+    silver:
+      dato_original: idc_transformed_data_dato_original
+      valor_normalizado: idc_transformed_data_valor_normalizado
+      valor_ranking: idc_transformed_data_valor_ranking
+    gold: FACT_IDC
+ipm:
+  drive_url: https://docs.google.com/spreadsheets/d/1qrwNEM4NWgVwLPiVKTA_rGNcp9y5PMou/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true
+  gcs_folder: data_staging/dpt_planeacion_municipal/ipm
+  tables:
+    bronze: ipm_raw_data
+    silver: ipm_transformed_data
+    gold: FACT_DANE
+ipm_sisben:
+  drive_url: https://docs.google.com/spreadsheets/d/1tUZvT4fC2PmeQrvTUHdUvjN8j3fdD53k/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true
+  gcs_folder: data_staging/dpt_planeacion_municipal/ipm/sisben
+  gcs_temp_folder: data_staging/dpt_planeacion_municipal/tmp_sisben
+  table_name: ipm_sisben_raw
+  excel_file_path: data_staging/dpt_planeacion_municipal/ipm/sisben
+  csv_files:
+  - hoja1_ipm_sisben.csv
+  - hoja2_ipm_sisben.csv
+  - hoja3_ipm_sisben.csv
+  external_table:
+    gcs_path: data_staging/dpt_planeacion_municipal/ipm/sisben/*.csv
+    skip_leading_rows: 1
+    field_delimiter: ','
+    allow_quoted_newlines: true
+  tables:
+    bronze: ipm_sisben_raw
+    silver: ipm_sisben_transformed_data
+    gold: FACT_SISBEN
+idi:
+  config_drive_url: https://docs.google.com/spreadsheets/d/1_mMOzghd048cmvasxStauXFXpImlaPod/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true
+  gcs_base_folder: data_staging/dpt_planeacion_municipal/idi
+  link_name_keywords:
+  - Resultados Territorio
+  - Resultados consolidados
+  tables:
+    bronze_prefix: idi_raw_data_territorio
+    silver:
+    - idi_transformed_data_2023
+    - idi_transformed_data_2024
+    - idi_transformed_data_consolidated
+    gold: IDI_PROCESSED_DATA
+  transform_config:
+    skip_rows: 2
+    sheet_name: null
+    columns_to_drop: null
+database_sc_stackdb:
+  connection_id: con_database_sc_stackdb
+  database: DataStackDB
+  schema: sc_stackdb
+  table: encuesta_hogares
+  host: 172.16.19.3
+  port: 5432
+  user: app_owner
+  password: Ecf5#a87gd5A17bC_9BCB9
+  gcs_base_folder: data_staging/dpt_planeacion_municipal/database_sc_stackdb
+  export_filename: encuesta_hogares/{{ ds_nodash }}/encuesta_hogares.csv
+  export_format: csv
+  field_delimiter: ','
+  gzip: false
+  use_server_side_cursor: true
+  target_dataset: bronze_dpt_planeacion_municipal
+  target_table: database_test_raw_data
+  write_disposition: WRITE_TRUNCATE
+  source_format: CSV
+  skip_leading_rows: 1
+  autodetect: true
+  schedule_interval: null
+  start_days_ago: 1
+delitos_historicos:
+  connection_id: con_bigquery_observatorio_seguridad
+  source_project_id: observatorio-de-seguridad
+  source_dataset: stg
+  source_table: historico_2016_2025
+  gcs_base_folder: data_staging/dpt_seguridad/delitos_historicos_2016_2025
+  export_filename: historico_2016_2025_{{ ds_nodash }}.csv
+  export_format: csv
+  field_delimiter: ','
+  target_dataset: bronze_dpt_seguridad
+  target_table: delitos_historicos_raw_data
+  source_format: CSV
+  skip_leading_rows: 1
+  write_disposition: WRITE_TRUNCATE
+  autodetect: true
+  schedule_interval: null
+  start_days_ago: 1
+valledata:
+  secop_ii_contratos:
+    api_url: https://www.datos.gov.co/api/v3/views/jbjy-vk9h/query.json
+    page_size: 1000
+    page_number: 1
+    max_pages: 100
+    timeout_seconds: 300
+    gcs_base_folder: data_staging/valledata/secop_ii_contratos
+    dataset: valledata
+    bronze_table: bronze_secop_ii_contratos
+    gold_table: gold_secop_ii_contratos
+dbt_docs:
+  target: prod
+  destination_prefix: dbt_docs
+  schedule_interval: '@daily'
+  bucket_config:
+    index_page: index.html
+    error_page: index.html
+active_environment: dev
 sipsa:
-  base_url: "https://www.dane.gov.co"
-  earliest_period: "2012-01"
-  output_filename: "sipsa_precios.csv"
+  base_url: https://www.dane.gov.co
+  earliest_period: 2012-01
+  output_filename: sipsa_precios.csv
   path_templates:
-    - "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls"
-    - "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx"
-    - "/files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx"
-    - "/files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx"
-
-# Parámetros para Índice Climático ONI (NOAA)
+  - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls
+  - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx
+  - /files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx
+  - /files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx
 oni:
-  base_url: "https://www.cpc.ncep.noaa.gov"
-  path: "/products/analysis_monitoring/enso/oni/v5/"
-  url: "https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v5/"
-  raw_filename: "oni_v5.html"
-  output_filename: "oni_promedio_anual.csv"
-
-# Parámetros para Cultivos del Valle
+  base_url: https://www.cpc.ncep.noaa.gov
+  path: /products/analysis_monitoring/enso/oni/v5/
+  url: https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v5/
+  raw_filename: oni_v5.html
+  output_filename: oni_promedio_anual.csv
 cultivos:
-  base_url: "https://datosabiertos.valledelcauca.gov.co"
-  permanentes_path: "/dataset/55a3d384-fec1-4267-8541-7d62a3fc9223/resource/7c578f9f-094d-4e6e-b1db-2f5e3bde32c9/download/cultivos_permanentes.csv"
-  transitorios_path: "/dataset/16a0cede-1b2f-4db8-8a42-ca10d0223cee/resource/f0ed7211-5ab5-4fa0-885d-e343cc906f2c/download/cultivos_transitorios.csv"
-  permanentes_filename: "cultivos_permanentes.csv"
-  transitorios_filename: "cultivos_transitorios.csv"
-  output_filename: "cultivos_valle.csv"
-  consolidado_filename: "dataset_consolidado_valle.csv"
-
-# Parámetros para Datos Geográficos de Municipios del Valle (datos.gov.co iryd-wvq5)
+  base_url: https://datosabiertos.valledelcauca.gov.co
+  permanentes_path: /dataset/55a3d384-fec1-4267-8541-7d62a3fc9223/resource/7c578f9f-094d-4e6e-b1db-2f5e3bde32c9/download/cultivos_permanentes.csv
+  transitorios_path: /dataset/16a0cede-1b2f-4db8-8a42-ca10d0223cee/resource/f0ed7211-5ab5-4fa0-885d-e343cc906f2c/download/cultivos_transitorios.csv
+  permanentes_filename: cultivos_permanentes.csv
+  transitorios_filename: cultivos_transitorios.csv
+  output_filename: cultivos_valle.csv
+  consolidado_filename: dataset_consolidado_valle.csv
 municipios:
-  base_url: "https://www.datos.gov.co"
-  download_path: "/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD"
-  url: "https://www.datos.gov.co/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD"
-  raw_filename: "municipios_valle.csv"
-  output_filename: "municipios_valle_clean.csv"
-
-# Parámetros para comentarios CKAN (tabla Postgres `comment` en hasta 14 instancias)
-# Las conexiones Postgres viven en environments.<env>.connections.ckan_comentarios (arreglo).
+  base_url: https://www.datos.gov.co
+  download_path: /api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD
+  url: https://www.datos.gov.co/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD
+  raw_filename: municipios_valle.csv
+  output_filename: municipios_valle_clean.csv
 ckan_comentarios:
   table: comment
   schema: public
   raw_subdir: ckan_comentarios
-  raw_filename_template: "comment_{conn_id}.csv"
-  output_filename: "ckan_comentarios.csv"
-  silver_filename: "silver_comentarios.csv"
-  gold_filename: "gold_comentarios_sentimiento.csv"
+  raw_filename_template: comment_{conn_id}.csv
+  output_filename: ckan_comentarios.csv
+  silver_filename: silver_comentarios.csv
+  gold_filename: gold_comentarios_sentimiento.csv
   max_connections: 14
   sentiment_lang: es
   use_test_data: true
   test_data_records: 1000
   test_data_seed: 42
-
-# Alertas Airflow / Composer ante fallos de DAGs
 airflow_alerts:
   enabled: true
   email_on_failure: true
-  # Lista de correos que reciben la alarma (requiere SMTP en Composer)
   emails:
-    - "jhon.jairo.vallejo@gmail.com"
+  - jhon.jairo.vallejo@gmail.com
   retries: 1
   retry_delay_minutes: 5
   fail_statuses:
-    - ERROR
-    - PARTIAL
-    - FAILED
+  - ERROR
+  - PARTIAL
+  - FAILED
+paths:
+  raw_dir: data/raw
+  output_dir: data
+  sipsa_csv: data/sipsa_precios.csv
+  oni_csv: data/oni_promedio_anual.csv
+  cultivos_csv: data/cultivos_valle.csv
+  municipios_csv: data/municipios_valle_clean.csv
+  consolidado_csv: data/dataset_consolidado_valle.csv
+  gold_spatial_csv: data/gold_cultivos_valle_geo.csv

@@ -44,6 +44,33 @@ from src_common import (  # noqa: E402
 )
 
 
+def parse_year(val: Any) -> int:
+    """Extrae el año como número entero puro (ej. 2020) evitando coerción a float o cero accidental."""
+    if pd.isna(val) or val is None:
+        return 0
+    if isinstance(val, (int, float)):
+        try:
+            i = int(val)
+            if 1900 <= i <= 2100:
+                return i
+        except (ValueError, OverflowError):
+            pass
+    s = str(val).strip()
+    if not s:
+        return 0
+    match = re.search(r"\b(19\d{2}|20\d{2})\b", s)
+    if match:
+        return int(match.group(1))
+    try:
+        f = float(s)
+        i = int(f)
+        if 1900 <= i <= 2100:
+            return i
+    except ValueError:
+        pass
+    return 0
+
+
 def parse_numeric(val: Any) -> float:
     if pd.isna(val) or val is None:
         return 0.0
@@ -60,35 +87,25 @@ def parse_numeric(val: Any) -> float:
 
 
 def normalize_semestre(ciclo: Any, tipo: str) -> str:
-    """Mapea Ciclo -> semestre. Transitorios: 1/2; permanentes: vacío."""
-    if tipo.lower().startswith("perman"):
-        return ""
-    raw = str(ciclo or "").strip().lower()
-    if not raw or raw in {"anual", "nan", "none"}:
-        return ""
-    if "2" in raw or raw in {"b", "semestre 2", "semestre2", "ii"}:
+    """Mapea Ciclo -> semestre ('1', '2', 'Anual'). Nunca devuelve vacío."""
+    raw = str(ciclo or "").strip()
+    val_lower = raw.lower()
+    if not raw or val_lower in {"nan", "none", "null", ""}:
+        return "Anual"
+    if "2" in val_lower or val_lower in {"b", "semestre 2", "semestre2", "ii", "2.0"}:
         return "2"
-    if "1" in raw or raw in {"a", "semestre 1", "semestre1", "i"}:
+    if "1" in val_lower or val_lower in {"a", "semestre 1", "semestre1", "i", "1.0"}:
         return "1"
-    return raw
+    if "anual" in val_lower:
+        return "Anual"
+    return raw.capitalize()
 
 
 def _find_column(df: pd.DataFrame, *candidates: str) -> str:
-    normalized = {
-        str(c)
-        .strip()
-        .lower()
-        .replace("á", "a")
-        .replace("é", "e")
-        .replace("í", "i")
-        .replace("ó", "o")
-        .replace("ú", "u")
-        .replace("ñ", "n"): c
-        for c in df.columns
-    }
-    for candidate in candidates:
-        key = (
-            candidate.strip()
+    def _norm(s: str) -> str:
+        s = (
+            str(s or "")
+            .strip()
             .lower()
             .replace("á", "a")
             .replace("é", "e")
@@ -97,20 +114,28 @@ def _find_column(df: pd.DataFrame, *candidates: str) -> str:
             .replace("ú", "u")
             .replace("ñ", "n")
         )
-        if key in normalized:
-            return normalized[key]
+        return re.sub(r"[^\w]", "", s)
+
+    normalized = {_norm(c): c for c in df.columns}
+    for candidate in candidates:
+        cand_norm = _norm(candidate)
+        if cand_norm in normalized:
+            return normalized[cand_norm]
     raise KeyError(f"No se encontró columna entre {candidates}. Disponibles: {list(df.columns)}")
 
 
-def _prepare_cultivos_frame(df: pd.DataFrame, tipo: str) -> pd.DataFrame:
+def _prepare_cultivos_frame(df: pd.DataFrame, fallback_tipo: str) -> pd.DataFrame:
     out = df.copy()
     try:
-        tipo_src = _find_column(out, "Tipo_cultivo")
-        out = out.drop(columns=[tipo_src])
+        col_tipo_src = _find_column(out, "Tipo_cultivo")
+        out["grupo_cultivo"] = out[col_tipo_src].fillna("").astype(str).str.strip()
+        out.drop(columns=[col_tipo_src], inplace=True)
     except KeyError:
-        pass
+        out["grupo_cultivo"] = ""
 
-    col_anio = _find_column(out, "Año", "Anio")
+    out["tipo_cultivo"] = fallback_tipo
+
+    col_anio = _find_column(out, "Año", "Anio", "Ano", "Ao")
     col_mun_id = _find_column(out, "Id_municipio")
     col_mun = _find_column(out, "Municipio")
     col_cultivo_id = _find_column(out, "Id_cultivo")
@@ -128,15 +153,17 @@ def _prepare_cultivos_frame(df: pd.DataFrame, tipo: str) -> pd.DataFrame:
         col_cos: "Hectareas_cosechadas",
     }
     out = out.rename(columns=rename)
-    out["tipo_cultivo"] = tipo
+    out["Año"] = out["Año"].apply(parse_year)
     out["Hectareas_sembradas"] = out["Hectareas_sembradas"].apply(parse_numeric)
     out["Hectareas_cosechadas"] = out["Hectareas_cosechadas"].apply(parse_numeric)
 
     try:
-        col_ciclo = _find_column(out, "Ciclo")
-        out["semestre"] = out[col_ciclo].apply(lambda v: normalize_semestre(v, tipo))
+        col_ciclo = _find_column(out, "Ciclo", "semestre", "ciclo")
+        out["semestre"] = out.apply(
+            lambda r: normalize_semestre(r.get(col_ciclo), fallback_tipo), axis=1
+        )
     except KeyError:
-        out["semestre"] = "" if tipo.lower().startswith("perman") else ""
+        out["semestre"] = normalize_semestre("Anual", fallback_tipo)
 
     return out
 
@@ -207,7 +234,7 @@ def _attach_sipsa(df_crops: pd.DataFrame, df_sipsa: pd.DataFrame) -> pd.DataFram
     df_sipsa = df_sipsa.copy()
     df_sipsa["clean_alimento"] = df_sipsa[name_col].apply(normalize_cultivo)
     df_sipsa["precio"] = pd.to_numeric(df_sipsa[price_col], errors="coerce")
-    df_sipsa["anio"] = pd.to_numeric(df_sipsa["anio"], errors="coerce").fillna(0).astype(int)
+    df_sipsa["anio"] = df_sipsa["anio"].apply(parse_year)
 
     if price_col == "valor" or "mes" in df_sipsa.columns:
         sipsa_avg = df_sipsa.groupby(["anio", "clean_alimento"], as_index=False)["precio"].mean()
@@ -240,6 +267,76 @@ def _attach_sipsa(df_crops: pd.DataFrame, df_sipsa: pd.DataFrame) -> pd.DataFram
     return df_crops.drop(columns=["clean_crop", "mapped_sipsa", "clean_alimento"], errors="ignore")
 
 
+def _load_cultivos_bronze(cfg: Dict[str, Any], paths_cfg: Dict[str, Any], raw_root: str) -> pd.DataFrame:
+    """Lee la capa Bronze de cultivos desde BigQuery o fallback local."""
+    try:
+        cultivos_bronze_ref = get_bq_table_ref(cfg, "bronze", "cultivos_bronze")
+        df_bq = read_bq_dataframe(cfg, cultivos_bronze_ref)
+        if df_bq is not None and not df_bq.empty:
+            print(f"🌾 [SILVER TRANSFORM] Cargados {len(df_bq)} cultivos desde BigQuery Bronze ({cultivos_bronze_ref})", flush=True)
+            col_anio = _find_column(df_bq, "anio", "Año", "Anio", "Ano")
+            col_mun_id = _find_column(df_bq, "id_municipio", "Id_municipio")
+            col_mun = _find_column(df_bq, "municipio", "Municipio")
+            col_cultivo_id = _find_column(df_bq, "id_cultivo", "Id_cultivo")
+            col_cultivo = _find_column(df_bq, "cultivo", "Cultivo")
+            col_sem = _find_column(df_bq, "hectareas_sembradas", "Hectareas_sembradas")
+            col_cos = _find_column(df_bq, "hectareas_cosechadas", "Hectareas_cosechadas")
+
+            rename = {
+                col_anio: "Año",
+                col_mun_id: "Id_municipio",
+                col_mun: "Municipio",
+                col_cultivo_id: "Id_cultivo",
+                col_cultivo: "Cultivo",
+                col_sem: "Hectareas_sembradas",
+                col_cos: "Hectareas_cosechadas",
+            }
+            df_bq = df_bq.rename(columns=rename)
+
+            try:
+                col_tipo = _find_column(df_bq, "tipo_cultivo", "Tipo_cultivo", "tipo")
+                df_bq["tipo_cultivo"] = df_bq[col_tipo].fillna("Permanente").astype(str)
+            except KeyError:
+                df_bq["tipo_cultivo"] = "Permanente"
+
+            df_bq["Año"] = df_bq["Año"].apply(parse_year)
+            df_bq["Hectareas_sembradas"] = df_bq["Hectareas_sembradas"].apply(parse_numeric)
+            df_bq["Hectareas_cosechadas"] = df_bq["Hectareas_cosechadas"].apply(parse_numeric)
+
+            try:
+                col_ciclo = _find_column(df_bq, "ciclo", "Ciclo", "semestre")
+                df_bq["semestre"] = df_bq.apply(
+                    lambda r: normalize_semestre(r.get(col_ciclo), str(r.get("tipo_cultivo", ""))), axis=1
+                )
+            except KeyError:
+                df_bq["semestre"] = df_bq["tipo_cultivo"].apply(lambda t: normalize_semestre("Anual", str(t)))
+
+            return df_bq
+    except Exception as exc:
+        print(f"ℹ️ [SILVER TRANSFORM] BQ Cultivos Bronze no disponible ({exc}); usando archivos CSV locales de respaldo...", flush=True)
+
+    perm_uri = storage_join(raw_root, require_config_value(cfg, "cultivos", "permanentes_filename"))
+    trans_uri = storage_join(raw_root, require_config_value(cfg, "cultivos", "transitorios_filename"))
+
+    if not storage_exists(perm_uri, cfg=cfg) or not storage_exists(trans_uri, cfg=cfg):
+        raise FileNotFoundError("Debe ejecutar primero la ingesta y carga Bronze de cultivos (src_ingest_crops / src_load_crops).")
+
+    perm_file = materialize_local(perm_uri, cfg=cfg)
+    trans_file = materialize_local(trans_uri, cfg=cfg)
+
+    print("🌾 Leyendo cultivos permanentes...", flush=True)
+    df_perm = _prepare_cultivos_frame(
+        pd.read_csv(perm_file, sep=";", encoding="latin1", low_memory=False),
+        "Permanente",
+    )
+    print("🌾 Leyendo cultivos transitorios (con semestre)...", flush=True)
+    df_trans = _prepare_cultivos_frame(
+        pd.read_csv(trans_file, sep=";", encoding="latin1", low_memory=False),
+        "Transitorio",
+    )
+    return pd.concat([df_perm, df_trans], ignore_index=True)
+
+
 def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
     """Consolida cultivos + SIPSA + ONI + Municipios en una sola tabla Silver."""
     cfg = config or load_config()
@@ -257,25 +354,8 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
     )
     output_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    perm_uri = storage_join(raw_root, require_config_value(cfg, "cultivos", "permanentes_filename"))
-    trans_uri = storage_join(raw_root, require_config_value(cfg, "cultivos", "transitorios_filename"))
-
-    if not storage_exists(perm_uri, cfg=cfg) or not storage_exists(trans_uri, cfg=cfg):
-        raise FileNotFoundError("Debe ejecutar primero ingest/load de cultivos.")
-
-    perm_file = materialize_local(perm_uri, cfg=cfg)
-    trans_file = materialize_local(trans_uri, cfg=cfg)
-
-    print("🌾 Leyendo cultivos permanentes...", flush=True)
-    df_perm = _prepare_cultivos_frame(
-        pd.read_csv(perm_file, sep=";", encoding="latin1", low_memory=False),
-        "permanente",
-    )
-    print("🌾 Leyendo cultivos transitorios (con semestre)...", flush=True)
-    df_trans = _prepare_cultivos_frame(
-        pd.read_csv(trans_file, sep=";", encoding="latin1", low_memory=False),
-        "transitorio",
-    )
+    # Medallion Architecture: Cargar datos Bronze de cultivos (BQ con fallback a CSV)
+    df_crops_raw = _load_cultivos_bronze(cfg, paths_cfg, raw_root)
 
     # Agrupar por año, municipio, cultivo y semestre (transitorios no se suman entre semestres)
     group_cols = [
@@ -287,14 +367,9 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
         "Id_cultivo",
         "Cultivo",
     ]
-    df_perm_g = df_perm.groupby(group_cols, as_index=False).agg(
+    df_crops = df_crops_raw.groupby(group_cols, as_index=False).agg(
         {"Hectareas_sembradas": "sum", "Hectareas_cosechadas": "sum"}
     )
-    df_trans_g = df_trans.groupby(group_cols, as_index=False).agg(
-        {"Hectareas_sembradas": "sum", "Hectareas_cosechadas": "sum"}
-    )
-
-    df_crops = pd.concat([df_perm_g, df_trans_g], ignore_index=True)
     df_crops.rename(
         columns={
             "Año": "anio",
@@ -306,8 +381,9 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
         },
         inplace=True,
     )
-    df_crops["anio"] = pd.to_numeric(df_crops["anio"], errors="coerce").fillna(0).astype(int)
-    df_crops["semestre"] = df_crops["semestre"].fillna("").astype(str)
+    df_crops["anio"] = df_crops["anio"].apply(parse_year)
+    df_crops["semestre"] = df_crops["semestre"].fillna("Anual").astype(str)
+    df_crops["tipo_cultivo"] = df_crops["tipo_cultivo"].fillna("Permanente").astype(str)
 
     df_mun = _load_municipios(cfg, paths_cfg)
     if df_mun is not None and not df_mun.empty:
@@ -355,7 +431,7 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
     df_oni = _load_oni(cfg, paths_cfg)
     if df_oni is not None and not df_oni.empty:
         df_oni = df_oni.copy()
-        df_oni["anio"] = pd.to_numeric(df_oni["anio"], errors="coerce").fillna(0).astype(int)
+        df_oni["anio"] = df_oni["anio"].apply(parse_year)
         oni_col = "promedio_oni" if "promedio_oni" in df_oni.columns else None
         if oni_col is None:
             for c in df_oni.columns:
@@ -398,8 +474,23 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
 
     df_final = df_crops[final_cols].copy()
 
-    for col in ("tipo_cultivo", "municipio", "nombre_cultivo"):
+    for col in ("municipio", "nombre_cultivo"):
         df_final[col] = df_final[col].apply(clean_str)
+
+    df_final["tipo_cultivo"] = (
+        df_final["tipo_cultivo"]
+        .fillna("Permanente")
+        .astype(str)
+        .str.strip()
+        .apply(lambda s: s.capitalize() if s else "Permanente")
+    )
+    df_final["semestre"] = (
+        df_final["semestre"]
+        .fillna("Anual")
+        .astype(str)
+        .str.strip()
+        .apply(lambda s: s if s else "Anual")
+    )
 
     df_final["hectareas_sembradas"] = df_final["hectareas_sembradas"].round(2)
     df_final["hectareas_cosechadas"] = df_final["hectareas_cosechadas"].round(2)
@@ -457,9 +548,57 @@ def consolidar_bronze_a_silver(config: Dict[str, Any] | None = None) -> Dict[str
         job.result()
         table = client.get_table(table_ref)
         status, nrows = "SUCCESS", table.num_rows
+
+        # Actualizar las tablas derivadas de la capa Silver en Medallón (panel, panel_enriquecido, modelo_base)
+        print("--> [SILVER MEDALLION] Actualizando silver_agri_panel, silver_agri_panel_enriquecido y silver_agri_modelo_base...", flush=True)
+        bq_proj = require_config_value(bq_cfg, "project_id")
+        bq_ds = require_config_value(bq_cfg, "datasets", "silver")
+
+        q_panel = f"""
+        CREATE OR REPLACE TABLE `{bq_proj}.{bq_ds}.silver_agri_panel` AS
+        SELECT
+          CAST(anio AS INT64) AS anio,
+          CASE WHEN UPPER(ciclo) LIKE '%1%' THEN 1 WHEN UPPER(ciclo) LIKE '%2%' THEN 2 ELSE 0 END AS semestre,
+          UPPER(COALESCE(ciclo, 'ANUAL')) AS ciclo,
+          CAST(id_municipio AS INT64) AS id_municipio,
+          UPPER(tipo_cultivo) AS tipo_cultivo,
+          CAST(id_cultivo AS INT64) AS id_cultivo,
+          UPPER(TRIM(cultivo)) AS cultivo,
+          CAST(hectareas_sembradas AS FLOAT64) AS hectareas_sembradas,
+          CAST(hectareas_cosechadas AS FLOAT64) AS hectareas_cosechadas,
+          CAST(produccion_toneladas AS FLOAT64) AS produccion_toneladas,
+          CAST(rendimiento_toneladas_ha AS FLOAT64) AS rendimiento_t_ha,
+          UPPER(tipo_cultivo) AS origen,
+          PARSE_DATE('%Y', CAST(anio AS STRING)) AS fecha
+        FROM `{bq_proj}.{bq_ds}.bronze_cultivos_valle`;
+        """
+        client.query(q_panel).result()
+
+        q_enriquecido = f"""
+        CREATE OR REPLACE TABLE `{bq_proj}.{bq_ds}.silver_agri_panel_enriquecido` AS
+        SELECT
+          p.*,
+          COALESCE(o.promedio_oni, 0.0) AS oni,
+          CASE 
+            WHEN COALESCE(o.promedio_oni, 0.0) >= 0.5 THEN 'NINO'
+            WHEN COALESCE(o.promedio_oni, 0.0) <= -0.5 THEN 'NINA'
+            ELSE 'NEUTRO'
+          END AS fase_enso
+        FROM `{bq_proj}.{bq_ds}.silver_agri_panel` p
+        LEFT JOIN (
+          SELECT anio, AVG(promedio_oni) AS promedio_oni
+          FROM `{bq_proj}.{bq_ds}.bronze_oni_climatico`
+          GROUP BY anio
+        ) o ON p.anio = o.anio;
+        """
+        client.query(q_enriquecido).result()
+        print("✨ [SILVER MEDALLION] Tablas Silver (consolidado, panel, enriquecido) actualizadas. (Nota: silver_agri_modelo_base se mantiene protegida para gestión/depuración manual del EDA).", flush=True)
+
+
     except Exception as exc:
         print(f"ℹ️ [Modo Simulación BQ Silver] {exc}", flush=True)
         status, nrows = "SIMULATED", len(df_final)
+
 
     return {
         "status": status,

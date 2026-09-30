@@ -1,8 +1,3 @@
-"""Compat: reexporta el único consolidado Silver y mantiene DAG histórico.
-
-La lógica vive en src_transform_consolidado.py.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,11 +7,20 @@ CURRENT_DIR = str(Path(__file__).resolve().parent)
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
-from src_transform_consolidado import (  # noqa: E402
-    consolidar_bronze_a_silver,
-    run_transform_consolidado,
-    run_transform_crops,
-)
+
+def consolidar_bronze_a_silver(config=None):
+    from src_transform_consolidado import consolidar_bronze_a_silver as _cbs
+    return _cbs(config)
+
+
+def run_transform_consolidado(config=None):
+    from src_transform_consolidado import run_transform_consolidado as _rtc
+    return _rtc(config)
+
+
+def run_transform_crops(config=None):
+    return run_transform_consolidado(config)
+
 
 __all__ = [
     "consolidar_bronze_a_silver",
@@ -45,10 +49,11 @@ try:
     def transform_crops_dag():
         @task(task_id="run_transform_crops")
         def execute_transform() -> dict[str, object]:
-            return run_with_airflow_alarm(run_transform_consolidado)
+            return run_with_airflow_alarm(run_transform_crops)
 
         execute_transform()
 
     dag = transform_crops_dag()
 except ImportError:
     pass
+

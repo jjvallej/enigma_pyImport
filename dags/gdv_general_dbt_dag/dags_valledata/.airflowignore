@@ -1,7 +1,0 @@
-# Archivo .airflowignore para ignorar la carpeta de análisis exploratorio (EDA)
-# y archivos de documentación/reportes en el DAG processor de Airflow.
-EDA/
-.*\.ipynb
-.*\.html
-.*\.pdf
-.*\.png
