@@ -1,0 +1,308 @@
+version: 2
+
+models:
+  
+  - name: evaplan_api_processed_data_fact_sector
+    description: |
+      Tabla FACT_SECTOR en la capa gold que contiene métricas agregadas de avance por sector.
+      Este modelo transforma y agrega datos del endpoint SectorMP, incluyendo rangos de avance (mayores o iguales a 80%, entre 25% y 80%, menores a 25%),
+      porcentajes calculados y calificaciones por meta programada. Los campos de identificación y periodos se presentan en MAYÚSCULAS para consistencia.
+      Esta tabla está diseñada para análisis y reportes de avance por sector, permitiendo identificar qué sectores tienen mejor o peor desempeño
+      en el cumplimiento de sus metas. Los porcentajes se calculan usando SAFE_DIVIDE para evitar errores de división por cero.
+    columns:
+      - name: ANIO
+        description: Identificador del periodo (peri_idp) que representa el año de seguimiento
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre del periodo de seguimiento en mayúsculas
+        data_type: STRING
+      - name: FECHA_CIERRE
+        description: Fecha de cierre del periodo en formato string en mayúsculas
+        data_type: STRING
+      - name: FECHA_APERTURA
+        description: Fecha de apertura del periodo en formato string en mayúsculas
+        data_type: STRING
+      - name: PERI_DATOSAPIS
+        description: Identificador del periodo en el sistema de datos APIs en mayúsculas
+        data_type: STRING
+      - name: ANO_SEGUIMIENTO
+        description: Año de seguimiento del periodo en mayúsculas
+        data_type: STRING
+      - name: PERI_IDPERIODOGOBIERNOACTIVO
+        description: Identificador del periodo de gobierno activo en mayúsculas
+        data_type: STRING
+      - name: FECHA_LECTURA
+        description: Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan
+        data_type: TIMESTAMP
+      - name: COD_MGA
+        description: Código MGA (Marco General de Asignación) del sector, convertido a FLOAT64
+        data_type: FLOAT64
+      - name: COD_SAP
+        description: Código SAP del sector, convertido a FLOAT64
+        data_type: FLOAT64
+      - name: SECTOR
+        description: Nombre del sector según la clasificación SAP en mayúsculas
+        data_type: STRING
+      - name: CAN_MP
+        description: Cantidad total de Metas de Producto en el sector
+        data_type: FLOAT64
+      - name: CANTIDAD_NP
+        description: Cantidad de metas no programadas en el sector
+        data_type: FLOAT64
+      - name: MP_PROGRAMADAS
+        description: Cantidad de metas programadas en el sector
+        data_type: FLOAT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de metas con avance mayor o igual a 80% en el sector
+        data_type: FLOAT64
+      - name: AVANCE_>=25_<80_CANT
+        description: Cantidad de metas con avance entre 25% y 80% en el sector
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de metas con avance menor a 25% en el sector
+        data_type: FLOAT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de metas con avance mayor o igual a 80% en el sector (calculado como (mayores_iguales_80 / cant_mp) * 100)
+        data_type: FLOAT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de metas con avance entre 25% y 80% en el sector (calculado como (menores_80_mayores_25 / cant_mp) * 100)
+        data_type: FLOAT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de metas con avance menor a 25% en el sector (calculado como (menores_25 / cant_mp) * 100)
+        data_type: FLOAT64
+      - name: CALIFICACIÓN_x_MP_x_CORTE
+        description: Calificación promedio por Meta de Producto por corte en el sector
+        data_type: FLOAT64
+
+  - name: evaplan_api_processed_data_fact_entidad
+    description: |
+      Tabla FACT_ENTIDAD en la capa gold que agrega datos de Metas de Producto (MP) y Metas de Resultado (MR) por entidad y año.
+      Este modelo consolida información de ambas clasificaciones de metas, calcula métricas de avance por rangos (>=80%, >=25% y <80%, <25%),
+      y enriquece los datos con índices de eficacia, eficiencia y efectividad para el año 2024. Las métricas se agrupan por entidad o dependencia,
+      permitiendo comparar el desempeño entre diferentes entidades del sector público. Incluye campos para proyectos y actividades por dependencia
+      que actualmente están en NULL pero están preparados para futuras implementaciones.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento del periodo
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo de seguimiento en Evaplan
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre descriptivo del periodo de seguimiento
+        data_type: STRING
+      - name: FECHA_CIERRE
+        description: Fecha de cierre del periodo de seguimiento
+        data_type: DATE
+      - name: FECHA_APERTURA
+        description: Fecha de apertura del periodo de seguimiento
+        data_type: DATE
+      - name: PERI_DATOSAPIS
+        description: Identificador del periodo en el sistema de datos APIs
+        data_type: STRING
+      - name: PERI_IDPERIODO_GOB_ACTIVO
+        description: Identificador del periodo de gobierno activo
+        data_type: INT64
+      - name: FECHA_LECTURA
+        description: Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan
+        data_type: TIMESTAMP
+      - name: CLASIFICACION
+        description: "Clasificación de la meta: META DE PRODUCTO o META DE RESULTADO"
+        data_type: STRING
+      - name: ENTIDAD O DEPENDENCIA
+        description: Nombre de la entidad o dependencia en formato "CODIGO - NOMBRE" en mayúsculas
+        data_type: STRING
+      - name: CANTIDAD_METAS
+        description: Cantidad total de metas asignadas a la entidad
+        data_type: INT64
+      - name: CANTIDAD_PROGRAMADAS
+        description: Cantidad de metas programadas (con valores esperados o alcanzados definidos) en la entidad
+        data_type: INT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de metas con avance mayor o igual a 80% en la entidad
+        data_type: INT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de metas con avance mayor o igual a 80% en la entidad (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: AVANCE_>=25_< 80_CANT
+        description: Cantidad de metas con avance entre 25% y 80% en la entidad
+        data_type: INT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de metas con avance entre 25% y 80% en la entidad (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de metas con avance menor a 25% en la entidad
+        data_type: INT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de metas con avance menor a 25% en la entidad (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: CALIFICACION_X_CORTE
+        description: Calificación promedio de las metas por corte en la entidad (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: EFICACIA
+        description: Índice de eficacia de la entidad (solo disponible para año 2024, 0 para otros años)
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFICACIA
+        description: Clasificación de eficacia de la entidad (solo disponible para año 2024, NULL para otros años)
+        data_type: STRING
+      - name: EFICIENCIA
+        description: Índice de eficiencia de la entidad (solo disponible para año 2024, 0 para otros años)
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFICIENCIA
+        description: Clasificación de eficiencia de la entidad (solo disponible para año 2024, NULL para otros años)
+        data_type: STRING
+      - name: EFECTIVIDA
+        description: "Índice de efectividad de la entidad (solo disponible para año 2024, 0 para otros años). Nota: el nombre tiene un typo (debería ser EFECTIVIDAD)"
+        data_type: FLOAT64
+      - name: CLASIFICACION_EFECTIVIDAD
+        description: Clasificación de efectividad de la entidad (solo disponible para año 2024, NULL para otros años)
+        data_type: STRING
+      - name: PROYECTOS_X_DEPENDENCIA
+        description: Cantidad de proyectos por dependencia (actualmente NULL, preparado para futuras implementaciones)
+        data_type: INT64
+      - name: ACTIVIDADES_X_PROYECTO
+        description: Cantidad de actividades por proyecto (actualmente NULL, preparado para futuras implementaciones)
+        data_type: INT64
+
+  - name: evaplan_api_processed_data_fact_programa
+    description: |
+      Tabla FACT_PROGRAMA en la capa gold que agrega datos de programas y subprogramas con métricas de avance y ponderación.
+      Este modelo consolida información del modelo evaplan_api_avance_general_processed_data, presentando los programas y subprogramas
+      con sus respectivas métricas de avance. El campo SUBPROGRAMA se construye concatenando el código del subprograma (con padding a 2 dígitos)
+      con su nombre en mayúsculas. Incluye información de periodos, programas, subprogramas, cantidad de metas, promedios de avance,
+      cantidad de metas programadas, ponderaciones y avances ponderados. Esta tabla está diseñada para análisis de cumplimiento
+      a nivel de programas y subprogramas.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento del periodo (convertido de ano_seguimiento a INT64)
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo de seguimiento en Evaplan
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre descriptivo del periodo de seguimiento
+        data_type: STRING
+      - name: FECHA_CIERRE
+        description: Fecha de cierre del periodo de seguimiento
+        data_type: DATE
+      - name: FECHA_APERTURA
+        description: Fecha de apertura del periodo de seguimiento
+        data_type: DATE
+      - name: PERI_DATOSAPIS
+        description: Identificador del periodo en el sistema de datos APIs
+        data_type: STRING
+      - name: PERI_IDPERIODO_GOB_ACTIVO
+        description: Identificador del periodo de gobierno activo
+        data_type: INT64
+      - name: FECHA_LECTURA
+        description: Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan
+        data_type: TIMESTAMP
+      - name: PROGRAMA
+        description: Nombre del programa en mayúsculas (popr_nombre)
+        data_type: STRING
+      - name: SUBPROGRAMA
+        description: Código y nombre del subprograma en formato "CODIGO - NOMBRE" en mayúsculas (código con padding a 2 dígitos)
+        data_type: STRING
+      - name: MP_X_SUBPROG
+        description: Cantidad de Metas de Producto por subprograma (convertido de mpxsubp a INT64)
+        data_type: INT64
+      - name: PROM_AVANCE_SUBPROGRAMA_X_MP
+        description: Promedio de avance del subprograma por Meta de Producto (convertido a FLOAT64)
+        data_type: FLOAT64
+      - name: MP_PROGRAMADA_X_SUBPROGRAMA
+        description: Cantidad de Metas de Producto programadas por subprograma (convertido a INT64)
+        data_type: INT64
+      - name: PONDERACION_SUBPROGRAMA
+        description: Ponderación del subprograma (convertido a FLOAT64)
+        data_type: FLOAT64
+      - name: AVANCE_PONDERADO_SUBPROGRAMA
+        description: Avance ponderado del subprograma (convertido de avance_ponderado_sub a FLOAT64)
+        data_type: FLOAT64
+
+  - name: evaplan_api_processed_data_fact_resumen
+    description: |
+      Tabla FACT_RESUMEN en la capa gold que consolida y resume métricas clave de Evaplan a nivel agregado.
+      Este modelo deduplica y agrega información de Metas de Producto (MP), Metas de Resultado (MR), Subprogramas, Programas y Líneas Estratégicas.
+      Genera dos filas por cada ítem: una para PLAN DE ACCIÓN (PA) y otra para PERÍODO DE GOBIERNO (PG), permitiendo comparar el avance
+      en ambos contextos temporales. Incluye métricas de avance por rangos, promedios de avance, y para el año 2024, índices de eficacia,
+      eficiencia y efectividad con sus respectivas clasificaciones. Esta tabla está diseñada para análisis ejecutivos y reportes de alto nivel
+      que requieren una visión consolidada del cumplimiento de metas en el sistema Evaplan.
+    columns:
+      - name: ANIO
+        description: Año de seguimiento del periodo
+        data_type: INT64
+      - name: PERI_IDP
+        description: Identificador único del periodo de seguimiento en Evaplan
+        data_type: INT64
+      - name: PERI_NOMBRE
+        description: Nombre descriptivo del periodo de seguimiento
+        data_type: STRING
+      - name: FECHA_CIERRE
+        description: Fecha de cierre del periodo de seguimiento
+        data_type: DATE
+      - name: FECHA_APERTURA
+        description: Fecha de apertura del periodo de seguimiento
+        data_type: DATE
+      - name: PERI_DATOSAPIS
+        description: Identificador del periodo en el sistema de datos APIs
+        data_type: STRING
+      - name: PERI_IDPERIODO_GOB_ACTIVO
+        description: Identificador del periodo de gobierno activo
+        data_type: INT64
+      - name: FECHA_LECTURA
+        description: Fecha y hora en que se realizó la lectura de los datos desde la API de Evaplan
+        data_type: TIMESTAMP
+      - name: CLASIFICACION
+        description: "Clasificación temporal: PLAN DE ACCIÓN (PA) o PERÍODO DE GOBIERNO (PG)"
+        data_type: STRING
+      - name: ITEM
+        description: "Tipo de ítem agregado: METAS DE PRODUCTO, METAS DE RESULTADO, SUBPROGRAMAS, PROGRAMAS, o LÍNEAS ESTRATÉGICAS"
+        data_type: STRING
+      - name: TOTAL
+        description: Total de ítems del tipo especificado
+        data_type: INT64
+      - name: PROGRAMADAS
+        description: Cantidad de ítems programados (para PA) o total de ítems (para PG)
+        data_type: INT64
+      - name: NO_PROGRAMADAS
+        description: Cantidad de ítems no programados (solo para PA, siempre 0 para PG)
+        data_type: INT64
+      - name: AVANCE_>=_80_CANT
+        description: Cantidad de ítems con avance mayor o igual a 80%
+        data_type: INT64
+      - name: AVANCE_>=_80_PORC
+        description: Porcentaje de ítems con avance mayor o igual a 80% (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: AVANCE_>=25_< 80_CANT
+        description: Cantidad de ítems con avance entre 25% y 80%
+        data_type: INT64
+      - name: AVANCE_>=25_<80_PORC
+        description: Porcentaje de ítems con avance entre 25% y 80% (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: AVANCE_<25_CANT
+        description: Cantidad de ítems con avance menor a 25%
+        data_type: INT64
+      - name: AVANCE_< 25_PORC
+        description: Porcentaje de ítems con avance menor a 25% (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: PROMEDIO_AVANCE_PORC
+        description: Promedio de avance porcentual de todos los ítems (redondeado a 2 decimales)
+        data_type: FLOAT64
+      - name: EFICACIA
+        description: Índice de eficacia (solo disponible para año 2024, 0 para otros años y para PG)
+        data_type: FLOAT64
+      - name: CLASIF_EFICACIA
+        description: Clasificación de eficacia (solo disponible para año 2024 y PA, NULL para otros casos)
+        data_type: STRING
+      - name: EFICIENCIA
+        description: Índice de eficiencia (solo disponible para año 2024, 0 para otros años y para PG)
+        data_type: FLOAT64
+      - name: CLASIF_EFICIENCIA
+        description: Clasificación de eficiencia (solo disponible para año 2024 y PA, NULL para otros casos)
+        data_type: STRING
+      - name: EFECTIVIDAD
+        description: Índice de efectividad (solo disponible para año 2024, 0 para otros años y para PG)
+        data_type: FLOAT64
+      - name: CLASIF_EFECTIVIDAD
+        description: Clasificación de efectividad (solo disponible para año 2024 y PA, NULL para otros casos)
+        data_type: STRING

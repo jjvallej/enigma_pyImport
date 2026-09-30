@@ -1,0 +1,75 @@
+name: 'gdv_general_dbt_dag'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'gdv_general_dbt_dag'
+
+# These configurations specify where dbt should look for different types of files.
+# The `model-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+model-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+# External tables configuration removed - not valid in dbt_project.yml
+
+clean-targets:         # directories to be removed by `dbt clean`
+  - "target"
+  - "dbt_packages"
+
+# Variables para configuración portátil
+# NOTA: Estas variables se configuran automáticamente desde config.yaml mediante --vars en el comando dbt
+# Los valores por defecto aquí son solo para desarrollo local. Se sobrescriben con --vars desde los DAGs.
+vars:
+  project_id: "datagov-473122"
+  bronze_dataset: "bronze_dpt_planeacion_municipal_dev"
+  bronze_seguridad_dataset: "bronze_dpt_seguridad"
+  silver_dataset: "silver_dpt_planeacion_municipal_dev"
+  gold_dataset: "gold_dpt_planeacion_municipal_dev"
+  evaplan_gold_avance_mr_table_name: "evaplan_api_avance_mr_processed_data"
+  evaplan_gold_avance_mp_table_name: "evaplan_api_avance_mp_processed_data"
+  evaplan_gold_avance_x_subprograma_table_name: "evaplan_api_avance_x_subprograma_processed_data"
+  evaplan_gold_avance_general_table_name: "evaplan_api_avance_general_processed_data"
+  evaplan_gold_avance_subprogramas_table_name: "evaplan_api_avance_subprogramas_processed_data"
+  evaplan_gold_avance_programas_table_name: "evaplan_api_avance_programas_processed_data"
+  evaplan_gold_fact_entidad_table_name: "FACT_ENTIDAD"
+  evaplan_gold_fact_programa_table_name: "FACT_PROGRAMA"
+  evaplan_gold_fact_resumen_table_name: "FACT_RESUMEN"
+
+# Configuring models
+models:
+  gdv_general_dbt_dag:
+    silver:
+      +materialized: view
+      +database: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+      +schema: "{{ env_var('DBT_DATASET_SILVER', 'silver_dpt_planeacion_municipal_dev') }}"
+    gold:
+      +materialized: table
+      +database: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+      +schema: "{{ env_var('DBT_DATASET_GOLD', 'gold_dpt_planeacion_municipal_dev') }}"
+      evaplan:
+        evaplan_api_avance_general_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_mp_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_mr_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_programas_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_subprogramas_processed_data:
+          +docs:
+            show: false
+        evaplan_api_avance_x_subprograma_processed_data:
+          +docs:
+            show: false
+        evaplan_api_sector_mp_processed_data:
+          +docs:
+            show: false

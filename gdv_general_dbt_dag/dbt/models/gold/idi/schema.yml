@@ -1,0 +1,347 @@
+version: 2
+
+models:
+  - name: idi_processed_data
+    description: |
+      Vista IDI_PROCESSED_DATA en la capa gold que apunta directamente a la tabla consolidada de Silver (idi_transformed_data_consolidated).
+      Contiene datos consolidados del Índice de Desarrollo e Innovación (IDI) para análisis final, uniendo información de los años 2023 y 2024
+      con normalización de nombres de departamentos (eliminación de acentos y caracteres especiales).
+      El IDI mide el desempeño institucional de las entidades públicas a través de 7 dimensiones principales y 19 políticas públicas,
+      con más de 70 indicadores específicos. Esta vista proporciona acceso directo a todos los datos transformados y consolidados
+      del IDI, incluyendo índices de dimensiones, políticas e indicadores individuales, así como información de clasificación
+      de las entidades (código SIGEP, entidad, orden, clasificación orgánica, naturaleza jurídica, sector, departamento, municipio, etc.).
+      Los valores numéricos han sido normalizados con COALESCE para convertir NULL a 0, facilitando los cálculos y análisis.
+    columns:
+      - name: anio
+        description: Año del indicador IDI (2023 o 2024)
+        data_type: INT64
+      - name: territorio
+        description: Nombre del territorio (departamento) normalizado en mayúsculas sin acentos ni caracteres especiales
+        data_type: STRING
+      - name: codigo_sigep
+        description: Código SIGEP de la entidad (Sistema de Información para la Gestión Pública)
+        data_type: STRING
+      - name: entidad
+        description: Nombre de la entidad pública evaluada
+        data_type: STRING
+      - name: orden
+        description: Orden de la entidad en la clasificación
+        data_type: STRING
+      - name: clasificacion_organica
+        description: Clasificación orgánica de la entidad
+        data_type: STRING
+      - name: naturaleza_juridica
+        description: Naturaleza jurídica de la entidad
+        data_type: STRING
+      - name: sector
+        description: Sector al que pertenece la entidad
+        data_type: STRING
+      - name: departamento
+        description: Nombre del departamento donde opera la entidad
+        data_type: STRING
+      - name: municipio
+        description: Nombre del municipio donde opera la entidad
+        data_type: STRING
+      - name: pdet
+        description: Indicador si la entidad está en un territorio PDET (Programas de Desarrollo con Enfoque Territorial)
+        data_type: STRING
+      - name: capital
+        description: Indicador si la entidad está en la capital del departamento
+        data_type: INT64
+      - name: id_grupo_par
+        description: Identificador del grupo PAR (Plan Anticorrupción y de Atención al Ciudadano)
+        data_type: INT64
+      - name: grupo_par
+        description: Nombre del grupo PAR
+        data_type: STRING
+      - name: tipo_formulario
+        description: Tipo de formulario utilizado para la evaluación
+        data_type: STRING
+      - name: indice_de_desempeno_institucional
+        description: Índice general de desempeño institucional (valor principal del IDI)
+        data_type: FLOAT64
+      - name: d1_talento_humano
+        description: "Dimensión 1 - Talento Humano: índice de gestión del talento humano en la entidad"
+        data_type: FLOAT64
+      - name: d2_direcciona_miento_estrategico_y_planeacion
+        description: "Dimensión 2 - Direccionamiento Estratégico y Planeación: índice de planeación estratégica"
+        data_type: FLOAT64
+      - name: d3_gestion_para_resultados_con_valores
+        description: "Dimensión 3 - Gestión para Resultados con Valores: índice de gestión orientada a resultados"
+        data_type: FLOAT64
+      - name: d4_evaluacion_de_resultados
+        description: "Dimensión 4 - Evaluación de Resultados: índice de evaluación y seguimiento de resultados"
+        data_type: FLOAT64
+      - name: d5_informacion_y_comunicacion
+        description: "Dimensión 5 - Información y Comunicación: índice de gestión de información y comunicación"
+        data_type: FLOAT64
+      - name: d6_gestion_del_conocimiento
+        description: "Dimensión 6 - Gestión del Conocimiento: índice de gestión y aprovechamiento del conocimiento"
+        data_type: FLOAT64
+      - name: d7_control_interno
+        description: "Dimensión 7 - Control Interno: índice de efectividad del sistema de control interno"
+        data_type: FLOAT64
+      - name: pol01_indice_de_gestion_estrategica_del_talento_humano
+        description: Política 01 - Índice de Gestión Estratégica del Talento Humano
+        data_type: FLOAT64
+      - name: i01_calidad_de_la_planeacion_estrategica_del_talento_humano
+        description: Indicador 01 - Calidad de la Planeación Estratégica del Talento Humano
+        data_type: FLOAT64
+      - name: i02_eficiencia_y_eficacia_de_la_seleccion_meritocratica_del_talento_humano
+        description: Indicador 02 - Eficiencia y Eficacia de la Selección Meritocrática del Talento Humano
+        data_type: FLOAT64
+      - name: i03_desarrollo_del_talento_humano_en_la_entidad
+        description: Indicador 03 - Desarrollo del Talento Humano en la Entidad
+        data_type: FLOAT64
+      - name: i04_desvinculacion_asistida_y_retencion_del_conocimiento_generado_por_el_talento_humano
+        description: Indicador 04 - Desvinculación Asistida y Retención del Conocimiento Generado por el Talento Humano
+        data_type: FLOAT64
+      - name: pol02_indice_de_integridad
+        description: Política 02 - Índice de Integridad
+        data_type: FLOAT64
+      - name: i05_cambio_cultural_basado_en_la_implementacion_del_codigo_de_integridad_del_servicio_publico
+        description: Indicador 05 - Cambio Cultural basado en la Implementación del Código de Integridad del Servicio Público
+        data_type: FLOAT64
+      - name: i06_gestion_adecuada_de_acciones_preventivas_en_conflicto_de_interes
+        description: Indicador 06 - Gestión Adecuada de Acciones Preventivas en Conflicto de Interés
+        data_type: FLOAT64
+      - name: i07_coherencia_entre_los_elementos_que_materializan_la_integridad_en_el_servicio_publico_y_la_gestion_del_riesgo_y_control
+        description: Indicador 07 - Coherencia entre los Elementos que Materializan la Integridad en el Servicio Público y la Gestión del Riesgo y Control
+        data_type: FLOAT64
+      - name: pol03_indice_de_planeacion_institucional
+        description: Política 03 - Índice de Planeación Institucional
+        data_type: FLOAT64
+      - name: pol04_indice_de_gestion_presupuestal_y_eficiencia_del_gasto_publico
+        description: Política 04 - Índice de Gestión Presupuestal y Eficiencia del Gasto Público
+        data_type: FLOAT64
+      - name: pol05_indice_de_compras_y_contratacion_publica
+        description: Política 05 - Índice de Compras y Contratación Pública
+        data_type: FLOAT64
+      - name: i08_planeacion_efectiva_y_tecnica_de_la_contratacion_publica
+        description: Indicador 08 - Planeación Efectiva y Técnica de la Contratación Pública
+        data_type: FLOAT64
+      - name: i09_registro_y_publicacion_contractual_en_las_plataformas
+        description: Indicador 09 - Registro y Publicación Contractual en las Plataformas
+        data_type: FLOAT64
+      - name: i10_aplicacion_de_lineamientos_normativos_documentos_estandar_e_instrumentos
+        description: Indicador 10 - Aplicación de Lineamientos Normativos, Documentos Estándar e Instrumentos
+        data_type: FLOAT64
+      - name: pol06_indice_de_fortalecimiento_organizacional_y_simplificacion_de_procesos
+        description: Política 06 - Índice de Fortalecimiento Organizacional y Simplificación de Procesos
+        data_type: FLOAT64
+      - name: pol07_indice_de_gobierno_digital
+        description: Política 07 - Índice de Gobierno Digital
+        data_type: FLOAT64
+      - name: i11_gobernanza
+        description: Indicador 11 - Gobernanza
+        data_type: FLOAT64
+      - name: i12_innovacion_publica_digital
+        description: Indicador 12 - Innovación Pública Digital
+        data_type: FLOAT64
+      - name: i13_arquitectura
+        description: Indicador 13 - Arquitectura
+        data_type: FLOAT64
+      - name: i14_seguridad_y_privacidad_de_la_informacion
+        description: Indicador 14 - Seguridad y Privacidad de la Información
+        data_type: FLOAT64
+      - name: i15_servicios_ciudadanos_digitales
+        description: Indicador 15 - Servicios Ciudadanos Digitales
+        data_type: FLOAT64
+      - name: i16_cultura_y_apropiacion
+        description: Indicador 16 - Cultura y Apropiación
+        data_type: FLOAT64
+      - name: i17_servicios_y_procesos_inteligentes
+        description: Indicador 17 - Servicios y Procesos Inteligentes
+        data_type: FLOAT64
+      - name: i18_estado_abierto
+        description: Indicador 18 - Estado Abierto
+        data_type: FLOAT64
+      - name: i19_decisiones_basadas_en_datos
+        description: Indicador 19 - Decisiones Basadas en Datos
+        data_type: FLOAT64
+      - name: i20_proyectos_de_transformacion_digital
+        description: Indicador 20 - Proyectos de Transformación Digital
+        data_type: FLOAT64
+      - name: i21_estrategias_de_ciudades_y_territorios_inteligentes
+        description: Indicador 21 - Estrategias de Ciudades y Territorios Inteligentes
+        data_type: FLOAT64
+      - name: pol08_indice_de_seguridad_digital
+        description: Política 08 - Índice de Seguridad Digital
+        data_type: FLOAT64
+      - name: i22_asigancion_de_recursos
+        description: Indicador 22 - Asignación de Recursos
+        data_type: FLOAT64
+      - name: i23_implementacion_lineamientos_de_politica
+        description: Indicador 23 - Implementación de Lineamientos de Política
+        data_type: FLOAT64
+      - name: i24_despliegue_de_controles
+        description: Indicador 24 - Despliegue de Controles
+        data_type: FLOAT64
+      - name: pol09_indice_defensa_juridica
+        description: Política 09 - Índice de Defensa Jurídica
+        data_type: FLOAT64
+      - name: i70_prevencion_del_dano_antijuridico
+        description: Indicador 70 - Prevención del Daño Antijurídico
+        data_type: FLOAT64
+      - name: i25_gestion_de_las_actuaciones_prejudiciales
+        description: Indicador 25 - Gestión de las Actuaciones Prejudiciales
+        data_type: FLOAT64
+      - name: i26_gestion_de_la_defensa_judicial
+        description: Indicador 26 - Gestión de la Defensa Judicial
+        data_type: FLOAT64
+      - name: i27_gestion_del_cumplimento_de_sentencias_y_conciliaciones
+        description: Indicador 27 - Gestión del Cumplimiento de Sentencias y Conciliaciones
+        data_type: FLOAT64
+      - name: i28_gestion_de_la_accion_de_repeticion
+        description: Indicador 28 - Gestión de la Acción de Repetición
+        data_type: FLOAT64
+      - name: i29_gestion_del_conocimiento_juridico
+        description: Indicador 29 - Gestión del Conocimiento Jurídico
+        data_type: FLOAT64
+      - name: pol10_indice_mejora_normativa
+        description: Política 10 - Índice de Mejora Normativa
+        data_type: FLOAT64
+      - name: i30_planeacion_y_diseno_de_los_actos_administrativos_de_caracter_general
+        description: Indicador 30 - Planeación y Diseño de los Actos Administrativos de Carácter General
+        data_type: FLOAT64
+      - name: i31_redaccion_consulta_publica_y_revision_de_los_actos_administrativos_de_caracter_general
+        description: Indicador 31 - Redacción, Consulta Pública y Revisión de los Actos Administrativos de Carácter General
+        data_type: FLOAT64
+      - name: i32_publicacion_y_evaluacion_de_los_actos_administrativos
+        description: Indicador 32 - Publicación y Evaluación de los Actos Administrativos
+        data_type: FLOAT64
+      - name: pol11_indice_de_servicio_a_las_ciudadanias
+        description: Política 11 - Índice de Servicio a las Ciudadanías
+        data_type: FLOAT64
+      - name: i33_diagnostico_y_planeacion_del_servicio_y_relacionamiento_con_la_ciudadania
+        description: Indicador 33 - Diagnóstico y Planeación del Servicio y Relacionamiento con la Ciudadanía
+        data_type: FLOAT64
+      - name: i34_talento_humano_idoneo_y_suficiente_al_servicio_y_relacionamiento_con_la_ciudadania
+        description: Indicador 34 - Talento Humano Idóneo y Suficiente al Servicio y Relacionamiento con la Ciudadanía
+        data_type: FLOAT64
+      - name: i35_oferta_institucional_de_facil_acceso_comprension_y_uso_para_la_ciudadania
+        description: Indicador 35 - Oferta Institucional de Fácil Acceso, Comprensión y Uso para la Ciudadanía
+        data_type: FLOAT64
+      - name: i36_evaluacion_de_la_gestion_del_servicio_y_medicion_de_la_experiencia_ciudadana
+        description: Indicador 36 - Evaluación de la Gestión del Servicio y Medición de la Experiencia Ciudadana
+        data_type: FLOAT64
+      - name: i37_accesibilidad_para_personas_con_discapacidad
+        description: Indicador 37 - Accesibilidad para Personas con Discapacidad
+        data_type: FLOAT64
+      - name: pol12_indice_de_racionalizacion_de_tramites
+        description: Política 12 - Índice de Racionalización de Trámites
+        data_type: FLOAT64
+      - name: i39_priorizacion_de_tramites_con_base_en_las_necesidades_y_expectativas_de_los_ciudadanos
+        description: Indicador 39 - Priorización de Trámites con Base en las Necesidades y Expectativas de los Ciudadanos
+        data_type: FLOAT64
+      - name: i40_tramites_racionalizados_y_recursos_tenidos_en_cuenta_para_mejorarlos
+        description: Indicador 40 - Trámites Racionalizados y Recursos Tenidos en Cuenta para Mejorarlos
+        data_type: FLOAT64
+      - name: i41_beneficios_de_las_acciones_de_racionalizacion_adelantadas
+        description: Indicador 41 - Beneficios de las Acciones de Racionalización Adelantadas
+        data_type: FLOAT64
+      - name: pol13_indice_de_participacion_ciudadana_en_la_gestion_publica
+        description: Política 13 - Índice de Participación Ciudadana en la Gestión Pública
+        data_type: FLOAT64
+      - name: i42_capacidades_institucionales_instaladas_para_la_promocion_de_la_participacion
+        description: Indicador 42 - Capacidades Institucionales Instaladas para la Promoción de la Participación
+        data_type: FLOAT64
+      - name: i43_planeacion_anual_de_la_estrategia_de_participacion_ciudadana_en_la_geston_publica
+        description: Indicador 43 - Planeación Anual de la Estrategia de Participación Ciudadana en la Gestión Pública
+        data_type: FLOAT64
+      - name: i44_implementacion_de_acciones_de_participacion_ciudadana_en_las_diferentes_fases_del_ciclo_de_gestion
+        description: Indicador 44 - Implementación de Acciones de Participación Ciudadana en las Diferentes Fases del Ciclo de Gestión
+        data_type: FLOAT64
+      - name: i45_capacidad_de_involucrar_efectivamente_a_los_diferentes_grupos_poblacionales_en_las_acciones_de_participacion_garantizando_el
+        description: Indicador 45 - Capacidad de Involucrar Efectivamente a los Diferentes Grupos Poblacionales en las Acciones de Participación Garantizando el
+        data_type: FLOAT64
+      - name: i46_evaluacion_de_los_resultados_de_la_estrategia_anual_de_participacion_ciudadana_y_su_aprovechamiento_en_acciones_de_mejora_in
+        description: Indicador 46 - Evaluación de los Resultados de la Estrategia Anual de Participación Ciudadana y su Aprovechamiento en Acciones de Mejora Institucional
+        data_type: FLOAT64
+      - name: i47_rendicion_de_cuentas_en_la_gestion_publica
+        description: Indicador 47 - Rendición de Cuentas en la Gestión Pública
+        data_type: FLOAT64
+      - name: pol14_indice_de_seguimiento_y_evaluacion_del_desempeno_institucional
+        description: Política 14 - Índice de Seguimiento y Evaluación del Desempeño Institucional
+        data_type: FLOAT64
+      - name: pol15_indice_transparencia_acceso_a_la_informacion_y_lucha_contra_la_corrupcion
+        description: Política 15 - Índice de Transparencia, Acceso a la Información y Lucha contra la Corrupción
+        data_type: FLOAT64
+      - name: i48_gestion_de_riesgos_de_corrupcion
+        description: Indicador 48 - Gestión de Riesgos de Corrupción
+        data_type: FLOAT64
+      - name: i49_indice_de_transparencia_y_acceso_a_la_informacion_publica
+        description: Indicador 49 - Índice de Transparencia y Acceso a la Información Pública
+        data_type: FLOAT64
+      - name: pol16_indice_de_gestion_documental
+        description: Política 16 - Índice de Gestión Documental
+        data_type: FLOAT64
+      - name: i50_calidad_del_componente_estrategico
+        description: Indicador 50 - Calidad del Componente Estratégico
+        data_type: FLOAT64
+      - name: i51_calidad_del_componente_administracion_de_archivos
+        description: Indicador 51 - Calidad del Componente Administración de Archivos
+        data_type: FLOAT64
+      - name: i52_calidad_del_componente_documental
+        description: Indicador 52 - Calidad del Componente Documental
+        data_type: FLOAT64
+      - name: i53_calidad_del_componente_tecnologico
+        description: Indicador 53 - Calidad del Componente Tecnológico
+        data_type: FLOAT64
+      - name: i54_calidad_del_componente_cultural
+        description: Indicador 54 - Calidad del Componente Cultural
+        data_type: FLOAT64
+      - name: pol17_indice_de_gestion_informacion_estadistica
+        description: Política 17 - Índice de Gestión de Información Estadística
+        data_type: FLOAT64
+      - name: i55_indice_planeacion_estadistica
+        description: Indicador 55 - Índice de Planeación Estadística
+        data_type: FLOAT64
+      - name: i56_indice_fortalecimiento_de_registros_administrativos
+        description: Indicador 56 - Índice de Fortalecimiento de Registros Administrativos
+        data_type: FLOAT64
+      - name: i57_indice_calidad_estadistica
+        description: Indicador 57 - Índice de Calidad Estadística
+        data_type: FLOAT64
+      - name: pol18_indice_de_gestion_del_conocimiento
+        description: Política 18 - Índice de Gestión del Conocimiento
+        data_type: FLOAT64
+      - name: i58_planeacion_de_la_gestion_del_conocimiento_y_la_innovacion
+        description: Indicador 58 - Planeación de la Gestión del Conocimiento y la Innovación
+        data_type: FLOAT64
+      - name: i59_generacion_y_produccion_del_conocimiento
+        description: Indicador 59 - Generación y Producción del Conocimiento
+        data_type: FLOAT64
+      - name: i60_generacion_de_herramientas_de_uso_y_apropiacion_del_conocimiento
+        description: Indicador 60 - Generación de Herramientas de Uso y Apropiación del Conocimiento
+        data_type: FLOAT64
+      - name: i61_generacion_de_una_cultura_de_propicia_para_la_gestion_del_conocimiento_y_la_innovacion
+        description: Indicador 61 - Generación de una Cultura Propicia para la Gestión del Conocimiento y la Innovación
+        data_type: FLOAT64
+      - name: i62_analitica_institucional_para_la_toma_de_decisiones
+        description: Indicador 62 - Analítica Institucional para la Toma de Decisiones
+        data_type: FLOAT64
+      - name: pol19_indice_de_control_interno
+        description: Política 19 - Índice de Control Interno
+        data_type: FLOAT64
+      - name: i63_ambiente_propicio_para_el_ejercicio_del_control
+        description: Indicador 63 - Ambiente Propicio para el Ejercicio del Control
+        data_type: FLOAT64
+      - name: i64_evaluacion_estrategica_del_riesgo
+        description: Indicador 64 - Evaluación Estratégica del Riesgo
+        data_type: FLOAT64
+      - name: i65_actividades_de_control_efectivas
+        description: Indicador 65 - Actividades de Control Efectivas
+        data_type: FLOAT64
+      - name: i66_informacion_y_comunicacion_relevante_y_oportuna_para_el_control
+        description: Indicador 66 - Información y Comunicación Relevante y Oportuna para el Control
+        data_type: FLOAT64
+      - name: i67_actividades_de_monitoreo_sistematicas_y_orientadas_a_la_mejora
+        description: Indicador 67 - Actividades de Monitoreo Sistemáticas y Orientadas a la Mejora
+        data_type: FLOAT64
+      - name: i68_evaluacion_independiente_al_sistema_de_control_interno
+        description: Indicador 68 - Evaluación Independiente al Sistema de Control Interno
+        data_type: FLOAT64
+      - name: fecha_lectura
+        description: Fecha y hora en que se realizó la lectura de los datos desde la fuente
+        data_type: TIMESTAMP

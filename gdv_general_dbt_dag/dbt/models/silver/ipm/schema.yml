@@ -1,0 +1,771 @@
+version: 2
+
+models:
+  - name: ipm_sisben_stg
+    description: "Modelo de staging que enriquece los datos del SISBEN agregando columnas de descripción legible para todos los códigos numéricos de la encuesta. Utiliza la nomenclatura prefijada original de BigQuery y mantiene todas las columnas originales junto con sus respectivas columnas de descripción en texto legible. Este modelo transforma códigos numéricos como tipos de vivienda, materiales de construcción, servicios públicos, discapacidades, niveles educativos, tipos de empleo e indicadores de ingresos en descripciones comprensibles. También incluye los indicadores de pobreza multidimensional (IPM) con sus descripciones correspondientes. El modelo se materializa como una vista en BigQuery con el alias 'ipm_sisben_transformed_data' y sirve como base para análisis detallados de condiciones de vida, acceso a servicios y situación socioeconómica de los hogares encuestados."
+    columns:
+      # 1. Columnas originales
+      - name: _2_num_ficha
+        description: "Número de ficha de la encuesta"
+      - name: _3_cod_departamento
+        description: "Código del departamento"
+      - name: departamento
+        description: "Nombre del departamento"
+      - name: _4_cod_municipio
+        description: "Código del municipio"
+      - name: municipio
+        description: "Nombre del municipio"
+
+      # 2. Transformaciones con descripciones
+      - name: _6_cod_clase
+        description: "Código de la clase (1: Cabecera, 2: CP, 3: Rural)"
+      - name: _6_cod_clase_DESCRIPCION
+        description: "Descripción de la clase (CABECERA, CENTRO POBLADO, RURAL DISPERSO)"
+
+      - name: _25_tipo_vivienda
+        description: "Código tipo de vivienda"
+      - name: _25_tipo_vivienda_DESCRIPCION
+        description: "Descripción: CASA, APARTAMENTO, CUARTO, etc."
+
+      - name: _26_tipo_material_paredes
+        description: "Código material de paredes"
+      - name: _26_tipo_material_paredes_DESCRIPCION
+        description: "Descripción detallada del material de construcción de las paredes"
+
+      - name: _28_energia
+        description: "Disponibilidad de energía eléctrica"
+      - name: _28_energia_DESCRIPCION
+        description: "SI / NO / OTRO"
+
+      - name: _29_estrato_energia
+        description: "Estrato de energía"
+      - name: _29_estrato_energia_DESCRIPCION
+        description: "Estrato del 1 al 6 o etiquetas de excepción"
+
+      - name: _30_alcantarillado
+        description: "Código servicio alcantarillado"
+      - name: _30_alcantarillado_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _31_gas
+        description: "Código servicio gas"
+      - name: _31_gas_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _32_recoleccion_basura
+        description: "Código recolección basura"
+      - name: _32_recoleccion_basura_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _33_acueducto
+        description: "Código servicio acueducto"
+      - name: _33_acueducto_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _34_estrato_energia
+        description: "Estrato de acueducto (campo 34)"
+      - name: _34_estrato_energia_ACUEDUCTO_DESCRIPCION
+        description: "Descripción del estrato de acueducto para evitar confusión con campo 29"
+
+      - name: _38_tip_ocupacion
+        description: "Código tipo de ocupación"
+      - name: _38_tip_ocupacion_DESCRIPCION
+        description: "Arriendo, Propia, Posesión, etc."
+
+      - name: _45_orig_agua
+        description: "Código origen del agua"
+      - name: _45_orig_agua_DESCRIPCION
+        description: "Acueducto, Pozo, Lluvia, etc."
+
+      - name: _46_agua_7_dias
+        description: "Código disponibilidad 7 días"
+      - name: _46_agua_7_dias_DESCRIPCION
+        description: "SI / NO / NO APLICA"
+
+      - name: _50_agua_beber
+        description: "Código tratamiento agua"
+      - name: _50_agua_beber_DESCRIPCION
+        description: "Tal cual, Hervida, Cloro, Filtro, etc."
+
+      - name: _51_elimina_basura
+        description: "Código eliminación basura"
+      - name: _51_elimina_basura_DESCRIPCION
+        description: "Recolección, Enterrada, Quemada, etc."
+
+      - name: _80_num_hab
+        description: "Código tiempo de habitación"
+      - name: _80_num_hab_DESCRIPCION
+        description: "Rangos de tiempo (Menos de 1 año, 1-5, etc.)"
+
+      - name: _101_sexo
+        description: "Código sexo"
+      - name: _101_sexo_DESCRIPCION
+        description: "HOMBRE / MUJER"
+
+      - name: _102_tip_doc
+        description: "Código tipo documento"
+      - name: _102_tip_doc_DESCRIPCION
+        description: "RC, TI, CC, CE, PEP, etc."
+
+      # Discapacidades
+      - name: _117_disca_ver
+        description: "Discapacidad ver"
+      - name: _117_disca_ver_DESCRIPCION
+        description: "SI / NO"
+      - name: _118_disca_oir
+        description: "Discapacidad oír"
+      - name: _118_disca_oir_DESCRIPCION
+        description: "SI / NO"
+      - name: _119_disca_hablar
+        description: "Discapacidad hablar"
+      - name: _119_disca_hablar_DESCRIPCION
+        description: "SI / NO"
+      - name: _120_disca_moverse
+        description: "Discapacidad moverse"
+      - name: _120_disca_moverse_DESCRIPCION
+        description: "SI / NO"
+      - name: _121_disca_banarse
+        description: "Discapacidad bañarse"
+      - name: _121_disca_banarse_DESCRIPCION
+        description: "SI / NO"
+      - name: _122_disca_salir
+        description: "Discapacidad salir solo"
+      - name: _122_disca_salir_DESCRIPCION
+        description: "SI / NO"
+      - name: _123_disca_entender
+        description: "Discapacidad entender"
+      - name: _123_disca_entender_DESCRIPCION
+        description: "SI / NO"
+      - name: _124_disca_ninguna
+        description: "Sin discapacidades"
+      - name: _124_disca_ninguna_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _125_seg_social
+        description: "Código seguridad social"
+      - name: _125_seg_social_DESCRIPCION
+        description: "Contributivo, Subsidiado, Especial, etc."
+
+      - name: _126_enfermo
+        description: "Código estuvo enfermo"
+      - name: _126_enfermo_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _127_acudio_salud
+        description: "Código acudió a salud"
+      - name: _127_acudio_salud_DESCRIPCION
+        description: "SI / NO / NO APLICA"
+
+      - name: _128_fue_atendido
+        description: "Código fue atendido"
+      - name: _128_fue_atendido_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _129_estaba_embarazada
+        description: "Código embarazo"
+      - name: _129_estaba_embarazada_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _130_tuvo_hijos
+        description: "Código tuvo hijos"
+      - name: _130_tuvo_hijos_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _131_cuidado_hijos
+        description: "Código lugar de cuidado"
+      - name: _131_cuidado_hijos_DESCRIPCION
+        description: "Hogar, Jardín, Solo, etc."
+
+      - name: _132_recibe_comida
+        description: "Código recibe comida"
+      - name: _132_recibe_comida_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _133_sabe_leer
+        description: "Código sabe leer"
+      - name: _133_sabe_leer_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _134_estudia
+        description: "Código asiste estudio"
+      - name: _134_estudia_DESCRIPCION
+        description: "SI / NO"
+
+      - name: _135_nivel_educativo
+        description: "Código nivel educativo"
+      - name: _135_nivel_educativo_DESCRIPCION
+        description: "Primaria, Secundaria, Superior, etc."
+
+      - name: _137_fondo_pensiones
+        description: "Código fondo pensiones"
+      - name: _137_fondo_pensiones_DESCRIPCION
+        description: "SI / NO / PENSIONADO"
+
+      - name: _138_actividad_mes
+        description: "Código actividad económica"
+      - name: _138_actividad_mes_DESCRIPCION
+        description: "Trabajando, Buscando, Estudiando, etc."
+
+      - name: _140_empleado
+        description: "Código tipo de empleo"
+      - name: _140_empleado_DESCRIPCION
+        description: "Particular, Gobierno, Independiente, etc."
+
+      - name: _141_ingreso
+        description: "Código ingreso salario"
+      - name: _141_ingreso_SALARIO_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _143_ind_honorarios_mes
+        description: "Código ingreso honorarios"
+      - name: _143_ind_honorarios_mes_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _145_ind_ingre_cosecha
+        description: "Código ingreso cosecha"
+      - name: _145_ind_ingre_cosecha_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _148_ind_pension
+        description: "Código ingreso pensión"
+      - name: _148_ind_pension_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _150_ind_ingreso_remesa
+        description: "Código ingreso remesa país"
+      - name: _150_ind_ingreso_remesa_PAIS_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _152_ind_ingreso_remesa_ext
+        description: "Código ingreso remesa exterior"
+      - name: _152_ind_ingreso_remesa_ext_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _154_ind_ingreso_arrendo
+        description: "Código ingreso arriendo"
+      - name: _154_ind_ingreso_arrendo_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _156_ind_otros_ingresos
+        description: "Código otros ingresos"
+      - name: _156_ind_otros_ingresos_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      - name: _158_ind_subsidios
+        description: "Código ingreso subsidios"
+      - name: _158_ind_subsidios_DESCRIPCION
+        description: "RECIBE / NO RECIBE / NO SABE"
+
+      # Indicadores IPM (Nombres Aliased)
+      - name: IPM_H5
+        description: "Indicador Pobreza Multidimensional"
+      - name: _175_IPM_H5_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I1
+        description: "IPM I_1: Bajo logro educativo"
+      - name: _176_IMP_I1_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I2
+        description: "IPM I_2: Analfabetismo"
+      - name: _177_IMP_I2_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I3
+        description: "IPM I_3: Inasistencia escolar"
+      - name: _178_IMP_I3_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I4
+        description: "IPM I_4: Rezago escolar"
+      - name: _179_IMP_I4_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I5
+        description: "IPM I_5: Barreras a servicios p. infancia"
+      - name: _180_IMP_I5_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I6
+        description: "IPM I_6: Trabajo infantil"
+      - name: _181_IMP_I6_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I7
+        description: "IPM I_7: Desempleo de larga duración"
+      - name: _182_IMP_I7_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I8
+        description: "IPM I_8: Trabajo informal"
+      - name: _183_IMP_I8_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I9
+        description: "IPM I_9: Sin aseguramiento en salud"
+      - name: _184_IMP_I9_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I10
+        description: "IPM I_10: Barreras de acceso a servicios de salud"
+      - name: _185_IMP_I10_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I11
+        description: "IPM I_11: Sin acceso a fuentes de agua mejorada"
+      - name: _186_IMP_I11_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I12
+        description: "IPM I_12: Inadecuada eliminación de excretas"
+      - name: _187_IMP_I12_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I13
+        description: "IPM I_13: Material inadecuado de pisos"
+      - name: _188_IMP_I13_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I14
+        description: "IPM I_14: Material inadecuado de paredes exteriores"
+      - name: _189_IMP_I14_DESCRIPCION
+        description: "SI / NO"
+      - name: IMP_I15
+        description: "IPM I_15: Hacinamiento crítico"
+      - name: _190_IMP_I15_DESCRIPCION
+        description: "SI / NO"
+
+      # Columnas Sisbén IV y resto
+      - name: _192_grupo
+        description: "Grupo Sisbén IV"
+      - name: _193_nivel
+        description: "Nivel Sisbén IV"
+      - name: _35_cuartos
+        description: "Número de cuartos"
+      - name: _36_hogares
+        description: "Cantidad de hogares"
+      - name: _37_ide_hogar
+        description: "ID del hogar"
+      - name: _39_cuartos_excl
+        description: "Cuartos exclusivos"
+      - name: _40_cuartos_dorm
+        description: "Dormitorios"
+      - name: _41_cuartos_dorm_uni
+        description: "Uso de dormitorios"
+      - name: _42_sanitario
+        description: "Tiene sanitario"
+      - name: _43_tip_sanitario
+        description: "Tipo de sanitario"
+      - name: _44_uso_sanitario
+        description: "Uso del sanitario"
+      - name: _47_num_dias_agua
+        description: "Días con agua"
+      - name: _48_agua_llega
+        description: "Frecuencia agua"
+      - name: _49_horas_agua
+        description: "Horas con agua"
+      - name: _52_tiene_cocina
+        description: "Tiene cocina"
+      - name: _53_prepara_alimentos
+        description: "Lugar preparación"
+      - name: _54_tipo_cocina
+        description: "Tipo de cocina"
+      - name: _55_tip_ener_coc
+        description: "Energía cocinar"
+      - name: _56_nevera
+        description: "Tiene nevera"
+      - name: _57_lavadora
+        description: "Tiene lavadora"
+      - name: _58_pc
+        description: "Tiene PC"
+      - name: _59_internet
+        description: "Tiene internet"
+      - name: _60_moto
+        description: "Tiene moto"
+      - name: _61_tractor
+        description: "Tiene tractor"
+      - name: _62_carro
+        description: "Tiene carro"
+      - name: _63_bien_raiz
+        description: "Tiene bien raíz"
+      - name: _64_tiene_gasto_ali
+        description: "Indicador gasto alimentación"
+      - name: _65_gasto
+        description: "Gasto Alimentación"
+      - name: _66_tiene_gasto_trans
+        description: "Indicador gasto transporte"
+      - name: _67_gasto_transporte
+        description: "Gasto transporte"
+      - name: _68_tiene_gasto_educ
+        description: "Indicador gasto educación"
+      - name: _69_gasto_educ
+        description: "Gasto educación"
+      - name: _70_tiene_gasto_salud
+        description: "Indicador gasto salud"
+      - name: _71_gasto_salud
+        description: "Gasto salud"
+      - name: _72_tiene_gasto_servpub
+        description: "Indicador gasto servicios"
+      - name: _73_gasto_servpub
+        description: "Gasto servicios"
+      - name: _74_tiene_gasto_cel
+        description: "Indicador gasto celular"
+      - name: _75_gasto_cel
+        description: "Gasto celular"
+      - name: _76_tiene_gasto_arren
+        description: "Indicador gasto arriendo"
+      - name: _77_gasto_arrendo
+        description: "Gasto arriendo"
+      - name: _78_tiene_gastos_otros
+        description: "Indicador otros gastos"
+      - name: _79_gastos_otros
+        description: "Otros gastos"
+      - name: _79_gastos_otros_1
+        description: "Otros gastos 1"
+      - name: _81_inundacion
+        description: "Inundación"
+      - name: _82_num_inundacion
+        description: "Cantidad inundaciones"
+      - name: _83_avalancha
+        description: "Avalancha"
+      - name: _84_num_avalancha
+        description: "Cantidad avalanchas"
+      - name: _85_terremoto
+        description: "Terremoto"
+      - name: _86_num_terremoto
+        description: "Cantidad terremotos"
+      - name: _87_incendio
+        description: "Incendio"
+      - name: _88_num_incendio
+        description: "Cantidad incendios"
+      - name: _89_vendaval
+        description: "Vendaval"
+      - name: _90_num_vendaval
+        description: "Cantidad vendavales"
+      - name: _91_hundimiento
+        description: "Hundimiento"
+      - name: _92_num_hundimiento
+        description: "Cantidad hundimientos"
+      - name: _93_num_pers_hogar
+        description: "Personas por hogar"
+      - name: _95_ord_persona
+        description: "Orden persona"
+      - name: xxx
+        description: "Columna intermedia sin mapeo"
+      - name: _105_edad
+        description: "Edad"
+      - name: _109_tip_parentesci
+        description: "Parentesco"
+      - name: _110_estado_civil
+        description: "Estado civil"
+      - name: _111_conyuge_vive_hogar
+        description: "Cónyuge vive"
+      - name: _112_ide_conyuge
+        description: "ID Cónyuge"
+      - name: _113_padre_vive_hogar
+        description: "Padre vive"
+      - name: _114_ide_padre
+        description: "ID Padre"
+      - name: _115_pariente
+        description: "Pariente"
+      - name: _116_serv_domestico
+        description: "Servicio doméstico"
+      - name: _136_grado
+        description: "Último grado"
+      - name: _139_sem_buscando
+        description: "Semanas buscando"
+      - name: _142_salario
+        description: "Monto salario"
+      - name: _144_honorarios_mes
+        description: "Monto honorarios"
+      - name: _146_ingre_cosecha
+        description: "Recibe cosecha"
+      - name: _147_valor_cosecha
+        description: "Monto cosecha"
+      - name: _149_ingre_pension
+        description: "Monto pensión"
+      - name: _151_ingreso_remesa
+        description: "Monto remesa nacional"
+      - name: _153_ingreso_remesa_ext
+        description: "Monto remesa exterior"
+      - name: _155_ingreso_arrendo
+        description: "Monto arriendo"
+      - name: _157_otros_ingresos
+        description: "Monto otros ingresos"
+      - name: _159_fam_accion
+        description: "Familias en acción"
+      - name: _160_col_mayor
+        description: "Colombia mayor"
+      - name: _161_otro_subsidio
+        description: "Otro subsidio"
+
+  - name: ipm_transform_transform_types
+    description: "Modelo intermedio encargado de la tipificación de datos (Data Typing) en el pipeline de transformación del IPM. Este modelo realiza la conversión de tipos de datos asegurando que las métricas absolutas se conviertan a enteros (INT64) y que los porcentajes se conviertan a números de punto flotante (FLOAT64) con redondeo a 2 decimales para mantener precisión en los cálculos. Utiliza SAFE_CAST para manejar de forma segura strings que no son numéricos, convirtiéndolos en NULL para su posterior limpieza en etapas siguientes del pipeline. Este paso es fundamental para garantizar la calidad y consistencia de los datos antes de aplicar validaciones y generar la tabla final de IPM por municipio."
+    columns:
+      - name: cod_mpio
+        description: "Código DANE del municipio (String)."
+      - name: municipio
+        description: "Nombre del municipio (Texto normalizado)."
+      - name: total
+        description: "Población total convertida a entero."
+      
+      # Métricas Generales IPM
+      - name: ipm_pobre_abs
+        description: "Valor absoluto de personas en situación de pobreza (INT64)."
+      - name: ipm_pobre_porc
+        description: "Porcentaje de pobreza redondeado a 2 decimales (FLOAT64)."
+      - name: ipm_no_pobre_abs
+        description: "Valor absoluto de personas no pobres (INT64)."
+      - name: ipm_no_pobre_porc
+        description: "Porcentaje de personas no pobres redondeado a 2 decimales (FLOAT64)."
+
+      # --- INDICADORES DE PRIVACIÓN I1 - I15 ---
+      
+      # I1: Bajo logro educativo
+      - name: i1_con_privacion_abs
+        description: "I1 (Bajo logro educativo): Cantidad de personas con privación."
+      - name: i1_con_privacion_porc
+        description: "I1 (Bajo logro educativo): Porcentaje con privación."
+      - name: i1_sin_privacion_abs
+        description: "I1 (Bajo logro educativo): Cantidad de personas sin privación."
+      - name: i1_sin_privacion_porc
+        description: "I1 (Bajo logro educativo): Porcentaje sin privación."
+
+      # I2: Analfabetismo
+      - name: i2_con_privacion_abs
+        description: "I2 (Analfabetismo): Cantidad de personas con privación."
+      - name: i2_con_privacion_porc
+        description: "I2 (Analfabetismo): Porcentaje con privación."
+      - name: i2_sin_privacion_abs
+        description: "I2 (Analfabetismo): Cantidad de personas sin privación."
+      - name: i2_sin_privacion_porc
+        description: "I2 (Analfabetismo): Porcentaje sin privación."
+
+      # I3: Inasistencia escolar
+      - name: i3_con_privacion_abs
+        description: "I3 (Inasistencia escolar): Cantidad de personas con privación."
+      - name: i3_con_privacion_porc
+        description: "I3 (Inasistencia escolar): Porcentaje con privación."
+      - name: i3_sin_privacion_abs
+        description: "I3 (Inasistencia escolar): Cantidad de personas sin privación."
+      - name: i3_sin_privacion_porc
+        description: "I3 (Inasistencia escolar): Porcentaje sin privación."
+
+      # I4: Rezago escolar
+      - name: i4_con_privacion_abs
+        description: "I4 (Rezago escolar): Cantidad de personas con privación."
+      - name: i4_con_privacion_porc
+        description: "I4 (Rezago escolar): Porcentaje con privación."
+      - name: i4_sin_privacion_abs
+        description: "I4 (Rezago escolar): Cantidad de personas sin privación."
+      - name: i4_sin_privacion_porc
+        description: "I4 (Rezago escolar): Porcentaje sin privación."
+
+      # I5: Barreras de acceso a servicios para cuidado de la primera infancia
+      - name: i5_con_privacion_abs
+        description: "I5 (Barreras cuidado primera infancia): Cantidad con privación."
+      - name: i5_con_privacion_porc
+        description: "I5 (Barreras cuidado primera infancia): Porcentaje con privación."
+      - name: i5_sin_privacion_abs
+        description: "I5 (Barreras cuidado primera infancia): Cantidad sin privación."
+      - name: i5_sin_privacion_porc
+        description: "I5 (Barreras cuidado primera infancia): Porcentaje sin privación."
+
+      # I6: Trabajo infantil
+      - name: i6_con_privacion_abs
+        description: "I6 (Trabajo infantil): Cantidad de personas con privación."
+      - name: i6_con_privacion_porc
+        description: "I6 (Trabajo infantil): Porcentaje con privación."
+      - name: i6_sin_privacion_abs
+        description: "I6 (Trabajo infantil): Cantidad de personas sin privación."
+      - name: i6_sin_privacion_porc
+        description: "I6 (Trabajo infantil): Porcentaje sin privación."
+
+      # I7: Desempleo de larga duración
+      - name: i7_con_privacion_abs
+        description: "I7 (Desempleo larga duración): Cantidad de personas con privación."
+      - name: i7_con_privacion_porc
+        description: "I7 (Desempleo larga duración): Porcentaje con privación."
+      - name: i7_sin_privacion_abs
+        description: "I7 (Desempleo larga duración): Cantidad de personas sin privación."
+      - name: i7_sin_privacion_porc
+        description: "I7 (Desempleo larga duración): Porcentaje sin privación."
+
+      # I8: Trabajo informal
+      - name: i8_con_privacion_abs
+        description: "I8 (Trabajo informal): Cantidad de personas con privación."
+      - name: i8_con_privacion_porc
+        description: "I8 (Trabajo informal): Porcentaje con privación."
+      - name: i8_sin_privacion_abs
+        description: "I8 (Trabajo informal): Cantidad de personas sin privación."
+      - name: i8_sin_privacion_porc
+        description: "I8 (Trabajo informal): Porcentaje sin privación."
+
+      # I9: Sin aseguramiento en salud
+      - name: i9_con_privacion_abs
+        description: "I9 (Sin aseguramiento salud): Cantidad de personas con privación."
+      - name: i9_con_privacion_porc
+        description: "I9 (Sin aseguramiento salud): Porcentaje con privación."
+      - name: i9_sin_privacion_abs
+        description: "I9 (Sin aseguramiento salud): Cantidad de personas sin privación."
+      - name: i9_sin_privacion_porc
+        description: "I9 (Sin aseguramiento salud): Porcentaje sin privación."
+
+      # I10: Barreras de acceso a servicios de salud
+      - name: i10_con_privacion_abs
+        description: "I10 (Barreras acceso salud): Cantidad de personas con privación."
+      - name: i10_con_privacion_porc
+        description: "I10 (Barreras acceso salud): Porcentaje con privación."
+      - name: i10_sin_privacion_abs
+        description: "I10 (Barreras acceso salud): Cantidad de personas sin privación."
+      - name: i10_sin_privacion_porc
+        description: "I10 (Barreras acceso salud): Porcentaje sin privación."
+
+      # I11: Sin acceso a fuente de agua mejorada
+      - name: i11_con_privacion_abs
+        description: "I11 (Sin fuente agua mejorada): Cantidad de personas con privación."
+      - name: i11_con_privacion_porc
+        description: "I11 (Sin fuente agua mejorada): Porcentaje con privación."
+      - name: i11_sin_privacion_abs
+        description: "I11 (Sin fuente agua mejorada): Cantidad de personas sin privación."
+      - name: i11_sin_privacion_porc
+        description: "I11 (Sin fuente agua mejorada): Porcentaje sin privación."
+
+      # I12: Inadecuada eliminación de excretas
+      - name: i12_con_privacion_abs
+        description: "I12 (Inadecuada eliminación excretas): Cantidad con privación."
+      - name: i12_con_privacion_porc
+        description: "I12 (Inadecuada eliminación excretas): Porcentaje con privación."
+      - name: i12_sin_privacion_abs
+        description: "I12 (Inadecuada eliminación excretas): Cantidad sin privación."
+      - name: i12_sin_privacion_porc
+        description: "I12 (Inadecuada eliminación excretas): Porcentaje sin privación."
+
+      # I13: Material inadecuado de pisos
+      - name: i13_con_privacion_abs
+        description: "I13 (Material inadecuado pisos): Cantidad de personas con privación."
+      - name: i13_con_privacion_porc
+        description: "I13 (Material inadecuado pisos): Porcentaje con privación."
+      - name: i13_sin_privacion_abs
+        description: "I13 (Material inadecuado pisos): Cantidad de personas sin privación."
+      - name: i13_sin_privacion_porc
+        description: "I13 (Material inadecuado pisos): Porcentaje sin privación."
+
+      # I14: Material inadecuado de paredes exteriores
+      - name: i14_con_privacion_abs
+        description: "I14 (Material inadecuado paredes): Cantidad de personas con privación."
+      - name: i14_con_privacion_porc
+        description: "I14 (Material inadecuado paredes): Porcentaje con privación."
+      - name: i14_sin_privacion_abs
+        description: "I14 (Material inadecuado paredes): Cantidad de personas sin privación."
+      - name: i14_sin_privacion_porc
+        description: "I14 (Material inadecuado paredes): Porcentaje sin privación."
+
+      # I15: Hacinamiento crítico
+      - name: i15_con_privacion_abs
+        description: "I15 (Hacinamiento crítico): Cantidad de personas con privación."
+      - name: i15_con_privacion_porc
+        description: "I15 (Hacinamiento crítico): Porcentaje con privación."
+      - name: i15_sin_privacion_abs
+        description: "I15 (Hacinamiento crítico): Cantidad de personas sin privación."
+      - name: i15_sin_privacion_porc
+        description: "I15 (Hacinamiento crítico): Porcentaje sin privación."
+      - name: fecha_lectura
+        description: "Timestamp original de la captura de datos."
+
+  - name: ipm_transform_clean
+    description: "Tabla maestra final del Índice de Pobreza Multidimensional (IPM) por municipio en la capa silver. Esta tabla se materializa como una tabla física en BigQuery con el alias 'ipm_transformed_data' y contiene los datos agregados y validados del IPM. El modelo procesa datos que han pasado por las etapas de staging, tipificación de tipos, limpieza de números, normalización de texto, detección de negativos y validaciones finales. La transformación final convierte la columna fecha_lectura de TIMESTAMP a DATE para facilitar el análisis temporal. La tabla incluye métricas generales de pobreza multidimensional (absolutas y porcentajes) así como los 15 indicadores específicos de privación (I1 a I15) con sus respectivos conteos absolutos y porcentajes de personas con y sin privación. Esta tabla es la fuente principal para reportes ejecutivos, tableros de control, análisis de políticas públicas y toma de decisiones relacionadas con la reducción de la pobreza multidimensional a nivel municipal."
+    columns:
+      - name: cod_mpio
+        description: "Código DANE del municipio (Primary Key lógica)."
+        tests:
+          - not_null
+          - unique
+      - name: municipio
+        description: "Nombre normalizado del municipio."
+        tests:
+          - not_null
+      - name: total
+        description: "Población total del municipio validada."
+        tests:
+          - not_null
+
+      # Métricas Generales IPM
+      - name: ipm_pobre_abs
+        description: "Cantidad total de personas en situación de pobreza multidimensional."
+      - name: ipm_pobre_porc
+        description: "Incidencia de la pobreza multidimensional (H)."
+      - name: ipm_no_pobre_abs
+        description: "Cantidad total de personas no pobres."
+      - name: ipm_no_pobre_porc
+        description: "Porcentaje de personas no pobres."
+
+      # --- INDICADORES DE PRIVACIÓN (I1 - I15) ---
+      # Se documentan las 15 dimensiones oficiales del IPM en Colombia
+      
+      - name: i1_con_privacion_abs
+        description: "I1 (Bajo logro educativo): Personas con privación."
+      - name: i1_con_privacion_porc
+        description: "I1 (Bajo logro educativo): Porcentaje de incidencia."
+      
+      - name: i2_con_privacion_abs
+        description: "I2 (Analfabetismo): Personas con privación."
+      - name: i2_con_privacion_porc
+        description: "I2 (Analfabetismo): Porcentaje de incidencia."
+
+      - name: i3_con_privacion_abs
+        description: "I3 (Inasistencia escolar): Personas con privación."
+      - name: i3_con_privacion_porc
+        description: "I3 (Inasistencia escolar): Porcentaje de incidencia."
+
+      - name: i4_con_privacion_abs
+        description: "I4 (Rezago escolar): Personas con privación."
+      - name: i4_con_privacion_porc
+        description: "I4 (Rezago escolar): Porcentaje de incidencia."
+
+      - name: i5_con_privacion_abs
+        description: "I5 (Barreras cuidado primera infancia): Personas con privación."
+      - name: i5_con_privacion_porc
+        description: "I5 (Barreras cuidado primera infancia): Porcentaje de incidencia."
+
+      - name: i6_con_privacion_abs
+        description: "I6 (Trabajo infantil): Personas con privación."
+      - name: i6_con_privacion_porc
+        description: "I6 (Trabajo infantil): Porcentaje de incidencia."
+
+      - name: i7_con_privacion_abs
+        description: "I7 (Desempleo de larga duración): Personas con privación."
+      - name: i7_con_privacion_porc
+        description: "I7 (Desempleo de larga duración): Porcentaje de incidencia."
+
+      - name: i8_con_privacion_abs
+        description: "I8 (Trabajo informal): Personas con privación."
+      - name: i8_con_privacion_porc
+        description: "I8 (Trabajo informal): Porcentaje de incidencia."
+
+      - name: i9_con_privacion_abs
+        description: "I9 (Sin aseguramiento en salud): Personas con privación."
+      - name: i9_con_privacion_porc
+        description: "I9 (Sin aseguramiento en salud): Porcentaje de incidencia."
+
+      - name: i10_con_privacion_abs
+        description: "I10 (Barreras de acceso a servicios de salud): Personas con privación."
+      - name: i10_con_privacion_porc
+        description: "I10 (Barreras de acceso a servicios de salud): Porcentaje de incidencia."
+
+      - name: i11_con_privacion_abs
+        description: "I11 (Sin acceso a fuente de agua mejorada): Personas con privación."
+      - name: i11_con_privacion_porc
+        description: "I11 (Sin acceso a fuente de agua mejorada): Porcentaje de incidencia."
+
+      - name: i12_con_privacion_abs
+        description: "I12 (Inadecuada eliminación de excretas): Personas con privación."
+      - name: i12_con_privacion_porc
+        description: "I12 (Inadecuada eliminación de excretas): Porcentaje de incidencia."
+
+      - name: i13_con_privacion_abs
+        description: "I13 (Material inadecuado de pisos): Personas con privación."
+      - name: i13_con_privacion_porc
+        description: "I13 (Material inadecuado de pisos): Porcentaje de incidencia."
+
+      - name: i14_con_privacion_abs
+        description: "I14 (Material inadecuado de paredes exteriores): Personas con privación."
+      - name: i14_con_privacion_porc
+        description: "I14 (Material inadecuado de paredes exteriores): Porcentaje de incidencia."
+
+      - name: i15_con_privacion_abs
+        description: "I15 (Hacinamiento crítico): Personas con privación."
+      - name: i15_con_privacion_porc
+        description: "I15 (Hacinamiento crítico): Porcentaje de incidencia."
+
+      - name: fecha_lectura
+        description: "Fecha de la toma de datos (Formato DATE: YYYY-MM-DD)."
+        tests:
+          - not_null

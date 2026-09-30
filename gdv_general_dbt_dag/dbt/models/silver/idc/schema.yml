@@ -1,0 +1,3383 @@
+version: 2
+
+models:
+  - name: idc_fill_nulls_dato_original
+    description: |
+      Modelo de la capa Silver que realiza la limpieza de datos numéricos. 
+      Convierte valores NULL y NaN a 0.0 mediante SAFE_CAST para asegurar la integridad 
+      en cálculos posteriores del Índice de Capacidades (IDC).
+    columns:
+      # --- COLUMNAS DE IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento (Normalizado en mayúsculas)."
+        tests:
+          - not_null
+      - name: ano_idc
+        description: "Año de vigencia del índice."
+        tests:
+          - not_null
+      - name: fecha_lectura
+        description: "Fecha y hora en la que se procesó el dato original."
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "INS 1.1: Componente de condiciones de vida."
+      - name: ins_1_2
+        description: "INS 1.2: Componente de condiciones de vida."
+      - name: ins_1_3
+        description: "INS 1.3: Componente de condiciones de vida."
+      - name: ins_2_1
+        description: "INS 2.1: Servicios públicos."
+      - name: ins_2_2
+        description: "INS 2.2: Servicios públicos."
+      - name: ins_2_3
+        description: "INS 2.3: Servicios públicos."
+      - name: ins_3_1
+        description: "INS 3.1: Vivienda y entorno."
+      - name: ins_3_2
+        description: "INS 3.2: Vivienda y entorno."
+      - name: ins_3_3
+        description: "INS 3.3: Vivienda y entorno."
+      - name: ins_4_1
+        description: "INS 4.1: Otros factores de insuficiencia."
+      - name: ins_4_2
+        description: "INS 4.2: Otros factores de insuficiencia."
+      - name: ins_4_3
+        description: "INS 4.3: Otros factores de insuficiencia."
+      - name: ins_4_4
+        description: "INS 4.4: Otros factores de insuficiencia."
+      - name: ins_4_5
+        description: "INS 4.5: Otros factores de insuficiencia."
+      - name: ins_4_6
+        description: "INS 4.6: Otros factores de insuficiencia."
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "INF 1.1: Funcionamiento institucional."
+      - name: inf_1_2
+        description: "INF 1.2: Funcionamiento institucional."
+      - name: inf_1_3
+        description: "INF 1.3: Funcionamiento institucional."
+      - name: inf_1_4
+        description: "INF 1.4: Funcionamiento institucional."
+      - name: inf_1_5
+        description: "INF 1.5: Funcionamiento institucional."
+      - name: inf_2_1
+        description: "INF 2.1: Gestión interna."
+      - name: inf_2_2
+        description: "INF 2.2: Gestión interna."
+      - name: inf_2_3
+        description: "INF 2.3: Gestión interna."
+      - name: inf_2_4
+        description: "INF 2.4: Gestión interna."
+      - name: inf_2_5
+        description: "INF 2.5: Gestión interna."
+      - name: inf_2_6
+        description: "INF 2.6: Gestión interna."
+      - name: inf_3_1
+        description: "INF 3.1: Recursos y procesos."
+      - name: inf_3_2
+        description: "INF 3.2: Recursos y procesos."
+      - name: inf_3_3
+        description: "INF 3.3: Recursos y procesos."
+      - name: inf_3_4
+        description: "INF 3.4: Recursos y procesos."
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "TIC 1.1: Acceso a tecnologías."
+      - name: tic_1_2
+        description: "TIC 1.2: Acceso a tecnologías."
+      - name: tic_1_3
+        description: "TIC 1.3: Acceso a tecnologías."
+      - name: tic_1_4
+        description: "TIC 1.4: Acceso a tecnologías."
+      - name: tic_2_1
+        description: "TIC 2.1: Uso de herramientas digitales."
+      - name: tic_2_2
+        description: "TIC 2.2: Uso de herramientas digitales."
+      - name: tic_2_3
+        description: "TIC 2.3: Uso de herramientas digitales."
+
+      # --- DIMENSIÓN: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "AMB 1.1: Gestión ambiental."
+      - name: amb_1_2
+        description: "AMB 1.2: Gestión ambiental."
+      - name: amb_1_3
+        description: "AMB 1.3: Gestión ambiental."
+      - name: amb_2_1
+        description: "AMB 2.1: Sostenibilidad."
+      - name: amb_2_2
+        description: "AMB 2.2: Sostenibilidad."
+
+      # --- DIMENSIÓN: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "SAL 1.1: Cobertura de salud."
+      - name: sal_1_2
+        description: "SAL 1.2: Cobertura de salud."
+      - name: sal_1_3
+        description: "SAL 1.3: Cobertura de salud."
+      - name: sal_2_1
+        description: "SAL 2.1: Infraestructura de salud."
+      - name: sal_2_2
+        description: "SAL 2.2: Infraestructura de salud."
+      - name: sal_2_3
+        description: "SAL 2.3: Infraestructura de salud."
+      - name: sal_3_1
+        description: "SAL 3.1: Indicadores de salud pública."
+      - name: sal_3_2
+        description: "SAL 3.2: Indicadores de salud pública."
+      - name: sal_3_3
+        description: "SAL 3.3: Indicadores de salud pública."
+      - name: sal_3_4
+        description: "SAL 3.4: Indicadores de salud pública."
+
+      # --- DIMENSIÓN: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "EDU 1.1: Calidad educativa."
+      - name: edu_1_2
+        description: "EDU 1.2: Calidad educativa."
+      - name: edu_1_3
+        description: "EDU 1.3: Calidad educativa."
+      - name: edu_1_4
+        description: "EDU 1.4: Calidad educativa."
+      - name: edu_1_5
+        description: "EDU 1.5: Calidad educativa."
+      - name: edu_2_1
+        description: "EDU 2.1: Acceso y permanencia."
+      - name: edu_2_2
+        description: "EDU 2.2: Acceso y permanencia."
+      - name: edu_2_3
+        description: "EDU 2.3: Acceso y permanencia."
+      - name: edu_2_4
+        description: "EDU 2.4: Acceso y permanencia."
+
+      # --- DIMENSIÓN: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "EDS 1.1: Infraestructura física."
+      - name: eds_1_2
+        description: "EDS 1.2: Infraestructura física."
+      - name: eds_1_3
+        description: "EDS 1.3: Infraestructura física."
+      - name: eds_2_1
+        description: "EDS 2.1: Servicios básicos."
+      - name: eds_2_2
+        description: "EDS 2.2: Servicios básicos."
+      - name: eds_2_3
+        description: "EDS 2.3: Servicios básicos."
+      - name: eds_2_4
+        description: "EDS 2.4: Servicios básicos."
+      - name: eds_3_1
+        description: "EDS 3.1: Otros servicios."
+      - name: eds_3_2
+        description: "EDS 3.2: Otros servicios."
+
+      # --- DIMENSIÓN: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "NEG 1.1: Actividad empresarial."
+      - name: neg_1_2
+        description: "NEG 1.2: Actividad empresarial."
+      - name: neg_1_3
+        description: "NEG 1.3: Actividad empresarial."
+      - name: neg_2_1
+        description: "NEG 2.1: Dinámica económica."
+      - name: neg_2_2
+        description: "NEG 2.1: Dinámica económica."
+      - name: neg_2_3
+        description: "NEG 2.1: Dinámica económica."
+
+      # --- DIMENSIÓN: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "LAB 1.1: Mercado de trabajo."
+      - name: lab_1_2
+        description: "LAB 1.2: Mercado de trabajo."
+      - name: lab_1_3
+        description: "LAB 1.3: Mercado de trabajo."
+      - name: lab_1_4
+        description: "LAB 1.4: Mercado de trabajo."
+      - name: lab_1_5
+        description: "LAB 1.5: Mercado de trabajo."
+
+      # --- DIMENSIÓN: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "FIN 1.1: Capacidad financiera."
+      - name: fin_1_2
+        description: "FIN 1.2: Capacidad financiera."
+      - name: fin_1_3
+        description: "FIN 1.3: Capacidad financiera."
+      - name: fin_1_4
+        description: "FIN 1.4: Capacidad financiera."
+
+      # --- DIMENSIÓN: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "TAM 1.1: Tamaño poblacional/territorial."
+      - name: tam_2_1
+        description: "TAM 2.1: Densidad/Otros."
+      - name: tam_2_2
+        description: "TAM 2.2: Densidad/Otros."
+
+      # --- DIMENSIÓN: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "SOF 1.1: Uso de software especializado."
+      - name: sof_1_2
+        description: "SOF 1.2: Uso de software especializado."
+
+      # --- DIMENSIÓN: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "INN 1.1: Actividades de innovación."
+      - name: inn_1_2
+        description: "INN 1.2: Actividades de innovación."
+      - name: inn_1_3
+        description: "INN 1.3: Actividades de innovación."
+      - name: inn_1_4
+        description: "INN 1.4: Actividades de innovación."
+      - name: inn_2_1
+        description: "INN 2.1: Resultados de innovación."
+      - name: inn_2_2
+        description: "INN 2.2: Resultados de innovación."
+      - name: inn_2_3
+        description: "INN 2.3: Resultados de innovación."
+      - name: inn_2_4
+        description: "INN 2.4: Resultados de innovación."
+
+  - name: idc_fill_nulls_valor_normalizado
+    description: |
+      Modelo de la capa Silver que procesa valores normalizados.
+      Aplica limpieza de datos convirtiendo valores NULL y NaN en 0.0 mediante SAFE_CAST.
+      Este paso es crítico para asegurar que los cálculos de índices agregados no fallen por valores nulos.
+    columns:
+      # --- IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento normalizado."
+        tests:
+          - not_null
+      - name: ano_idc
+        description: "Año de vigencia del IDC."
+        tests:
+          - not_null
+      - name: fecha_lectura
+        description: "Timestamp de procesamiento del registro."
+
+      # --- INS: INSUFICIENCIA DE CONDICIONES DE VIDA ---
+      - name: ins_1_1
+        description: "INS 1.1 Limpio (0 si era NULL/NaN)."
+      - name: ins_1_2
+        description: "INS 1.2 Limpio (0 si era NULL/NaN)."
+      - name: ins_1_3
+        description: "INS 1.3 Limpio (0 si era NULL/NaN)."
+      - name: ins_2_1
+        description: "INS 2.1 Limpio (0 si era NULL/NaN)."
+      - name: ins_2_2
+        description: "INS 2.2 Limpio (0 si era NULL/NaN)."
+      - name: ins_2_3
+        description: "INS 2.3 Limpio (0 si era NULL/NaN)."
+      - name: ins_3_1
+        description: "INS 3.1 Limpio (0 si era NULL/NaN)."
+      - name: ins_3_2
+        description: "INS 3.2 Limpio (0 si era NULL/NaN)."
+      - name: ins_3_3
+        description: "INS 3.3 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_1
+        description: "INS 4.1 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_2
+        description: "INS 4.2 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_3
+        description: "INS 4.3 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_4
+        description: "INS 4.4 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_5
+        description: "INS 4.5 Limpio (0 si era NULL/NaN)."
+      - name: ins_4_6
+        description: "INS 4.6 Limpio (0 si era NULL/NaN)."
+
+      # --- INF: INSUFICIENCIA DE FUNCIONAMIENTO ---
+      - name: inf_1_1
+        description: "INF 1.1 Limpio."
+      - name: inf_1_2
+        description: "INF 1.2 Limpio."
+      - name: inf_1_3
+        description: "INF 1.3 Limpio."
+      - name: inf_1_4
+        description: "INF 1.4 Limpio."
+      - name: inf_1_5
+        description: "INF 1.5 Limpio."
+      - name: inf_2_1
+        description: "INF 2.1 Limpio."
+      - name: inf_2_2
+        description: "INF 2.2 Limpio."
+      - name: inf_2_3
+        description: "INF 2.3 Limpio."
+      - name: inf_2_4
+        description: "INF 2.4 Limpio."
+      - name: inf_2_5
+        description: "INF 2.5 Limpio."
+      - name: inf_2_6
+        description: "INF 2.6 Limpio."
+      - name: inf_3_1
+        description: "INF 3.1 Limpio."
+      - name: inf_3_2
+        description: "INF 3.2 Limpio."
+      - name: inf_3_3
+        description: "INF 3.3 Limpio."
+      - name: inf_3_4
+        description: "INF 3.4 Limpio."
+
+      # --- TIC: TECNOLOGÍAS ---
+      - name: tic_1_1
+        description: "TIC 1.1 Limpio."
+      - name: tic_1_2
+        description: "TIC 1.2 Limpio."
+      - name: tic_1_3
+        description: "TIC 1.3 Limpio."
+      - name: tic_1_4
+        description: "TIC 1.4 Limpio."
+      - name: tic_2_1
+        description: "TIC 2.1 Limpio."
+      - name: tic_2_2
+        description: "TIC 2.2 Limpio."
+      - name: tic_2_3
+        description: "TIC 2.3 Limpio."
+
+      # --- AMB: AMBIENTE ---
+      - name: amb_1_1
+        description: "AMB 1.1 Limpio."
+      - name: amb_1_2
+        description: "AMB 1.2 Limpio."
+      - name: amb_1_3
+        description: "AMB 1.3 Limpio."
+      - name: amb_2_1
+        description: "AMB 2.1 Limpio."
+      - name: amb_2_2
+        description: "AMB 2.2 Limpio."
+
+      # --- SAL: SALUD ---
+      - name: sal_1_1
+        description: "SAL 1.1 Limpio."
+      - name: sal_1_2
+        description: "SAL 1.2 Limpio."
+      - name: sal_1_3
+        description: "SAL 1.3 Limpio."
+      - name: sal_2_1
+        description: "SAL 2.1 Limpio."
+      - name: sal_2_2
+        description: "SAL 2.2 Limpio."
+      - name: sal_2_3
+        description: "SAL 2.3 Limpio."
+      - name: sal_3_1
+        description: "SAL 3.1 Limpio."
+      - name: sal_3_2
+        description: "SAL 3.2 Limpio."
+      - name: sal_3_3
+        description: "SAL 3.3 Limpio."
+      - name: sal_3_4
+        description: "SAL 3.4 Limpio."
+
+      # --- EDU: EDUCACIÓN ---
+      - name: edu_1_1
+        description: "EDU 1.1 Limpio."
+      - name: edu_1_2
+        description: "EDU 1.2 Limpio."
+      - name: edu_1_3
+        description: "EDU 1.3 Limpio."
+      - name: edu_1_4
+        description: "EDU 1.4 Limpio."
+      - name: edu_1_5
+        description: "EDU 1.5 Limpio."
+      - name: edu_2_1
+        description: "EDU 2.1 Limpio."
+      - name: edu_2_2
+        description: "EDU 2.2 Limpio."
+      - name: edu_2_3
+        description: "EDU 2.3 Limpio."
+      - name: edu_2_4
+        description: "EDU 2.4 Limpio."
+
+      # --- EDS: EDIFICACIONES ---
+      - name: eds_1_1
+        description: "EDS 1.1 Limpio."
+      - name: eds_1_2
+        description: "EDS 1.2 Limpio."
+      - name: eds_1_3
+        description: "EDS 1.3 Limpio."
+      - name: eds_2_1
+        description: "EDS 2.1 Limpio."
+      - name: eds_2_2
+        description: "EDS 2.2 Limpio."
+      - name: eds_2_3
+        description: "EDS 2.3 Limpio."
+      - name: eds_2_4
+        description: "EDS 2.4 Limpio."
+      - name: eds_3_1
+        description: "EDS 3.1 Limpio."
+      - name: eds_3_2
+        description: "EDS 3.2 Limpio."
+
+      # --- NEG: NEGOCIOS ---
+      - name: neg_1_1
+        description: "NEG 1.1 Limpio."
+      - name: neg_1_2
+        description: "NEG 1.2 Limpio."
+      - name: neg_1_3
+        description: "NEG 1.3 Limpio."
+      - name: neg_2_1
+        description: "NEG 2.1 Limpio."
+      - name: neg_2_2
+        description: "NEG 2.2 Limpio."
+      - name: neg_2_3
+        description: "NEG 2.3 Limpio."
+
+      # --- LAB: LABORAL ---
+      - name: lab_1_1
+        description: "LAB 1.1 Limpio."
+      - name: lab_1_2
+        description: "LAB 1.2 Limpio."
+      - name: lab_1_3
+        description: "LAB 1.3 Limpio."
+      - name: lab_1_4
+        description: "LAB 1.4 Limpio."
+      - name: lab_1_5
+        description: "LAB 1.5 Limpio."
+
+      # --- FIN: FINANCIERO ---
+      - name: fin_1_1
+        description: "FIN 1.1 Limpio."
+      - name: fin_1_2
+        description: "FIN 1.2 Limpio."
+      - name: fin_1_3
+        description: "FIN 1.3 Limpio."
+      - name: fin_1_4
+        description: "FIN 1.4 Limpio."
+
+      # --- TAM: TAMAÑO ---
+      - name: tam_1_1
+        description: "TAM 1.1 Limpio."
+      - name: tam_2_1
+        description: "TAM 2.1 Limpio."
+      - name: tam_2_2
+        description: "TAM 2.2 Limpio."
+
+      # --- SOF: SOFTWARE ---
+      - name: sof_1_1
+        description: "SOF 1.1 Limpio."
+      - name: sof_1_2
+        description: "SOF 1.2 Limpio."
+
+      # --- INN: INNOVACIÓN ---
+      - name: inn_1_1
+        description: "INN 1.1 Limpio."
+      - name: inn_1_2
+        description: "INN 1.2 Limpio."
+      - name: inn_1_3
+        description: "INN 1.3 Limpio."
+      - name: inn_1_4
+        description: "INN 1.4 Limpio."
+      - name: inn_2_1
+        description: "INN 2.1 Limpio."
+      - name: inn_2_2
+        description: "INN 2.2 Limpio."
+      - name: inn_2_3
+        description: "INN 2.3 Limpio."
+      - name: inn_2_4
+        description: "INN 2.4 Limpio."
+
+  - name: idc_fill_nulls_valor_ranking
+    description: |
+      Modelo de la capa Silver que procesa los valores de ranking. 
+      Realiza un SAFE_CAST a FLOAT64 y reemplaza cualquier valor NULL o NaN por 0.0. 
+      Este paso garantiza que el ranking sea tratable numéricamente en las capas de visualización.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento procesado en mayúsculas."
+        tests:
+          - not_null
+      - name: ano_idc
+        description: "Año de la medición del IDC."
+        tests:
+          - not_null
+      - name: fecha_lectura
+        description: "Fecha técnica de procesamiento."
+
+      # --- RANKING: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "Ranking INS 1.1 (Limpio)."
+      - name: ins_1_2
+        description: "Ranking INS 1.2 (Limpio)."
+      - name: ins_1_3
+        description: "Ranking INS 1.3 (Limpio)."
+      - name: ins_2_1
+        description: "Ranking INS 2.1 (Limpio)."
+      - name: ins_2_2
+        description: "Ranking INS 2.2 (Limpio)."
+      - name: ins_2_3
+        description: "Ranking INS 2.3 (Limpio)."
+      - name: ins_3_1
+        description: "Ranking INS 3.1 (Limpio)."
+      - name: ins_3_2
+        description: "Ranking INS 3.2 (Limpio)."
+      - name: ins_3_3
+        description: "Ranking INS 3.3 (Limpio)."
+      - name: ins_4_1
+        description: "Ranking INS 4.1 (Limpio)."
+      - name: ins_4_2
+        description: "Ranking INS 4.2 (Limpio)."
+      - name: ins_4_3
+        description: "Ranking INS 4.3 (Limpio)."
+      - name: ins_4_4
+        description: "Ranking INS 4.4 (Limpio)."
+      - name: ins_4_5
+        description: "Ranking INS 4.5 (Limpio)."
+      - name: ins_4_6
+        description: "Ranking INS 4.6 (Limpio)."
+
+      # --- RANKING: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "Ranking INF 1.1."
+      - name: inf_1_2
+        description: "Ranking INF 1.2."
+      - name: inf_1_3
+        description: "Ranking INF 1.3."
+      - name: inf_1_4
+        description: "Ranking INF 1.4."
+      - name: inf_1_5
+        description: "Ranking INF 1.5."
+      - name: inf_2_1
+        description: "Ranking INF 2.1."
+      - name: inf_2_2
+        description: "Ranking INF 2.2."
+      - name: inf_2_3
+        description: "Ranking INF 2.3."
+      - name: inf_2_4
+        description: "Ranking INF 2.4."
+      - name: inf_2_5
+        description: "Ranking INF 2.5."
+      - name: inf_2_6
+        description: "Ranking INF 2.6."
+      - name: inf_3_1
+        description: "Ranking INF 3.1."
+      - name: inf_3_2
+        description: "Ranking INF 3.2."
+      - name: inf_3_3
+        description: "Ranking INF 3.3."
+      - name: inf_3_4
+        description: "Ranking INF 3.4."
+
+      # --- RANKING: TIC ---
+      - name: tic_1_1
+        description: "Ranking TIC 1.1."
+      - name: tic_1_2
+        description: "Ranking TIC 1.2."
+      - name: tic_1_3
+        description: "Ranking TIC 1.3."
+      - name: tic_1_4
+        description: "Ranking TIC 1.4."
+      - name: tic_2_1
+        description: "Ranking TIC 2.1."
+      - name: tic_2_2
+        description: "Ranking TIC 2.2."
+      - name: tic_2_3
+        description: "Ranking TIC 2.3."
+
+      # --- RANKING: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "Ranking AMB 1.1."
+      - name: amb_1_2
+        description: "Ranking AMB 1.2."
+      - name: amb_1_3
+        description: "Ranking AMB 1.3."
+      - name: amb_2_1
+        description: "Ranking AMB 2.1."
+      - name: amb_2_2
+        description: "Ranking AMB 2.2."
+
+      # --- RANKING: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "Ranking SAL 1.1."
+      - name: sal_1_2
+        description: "Ranking SAL 1.2."
+      - name: sal_1_3
+        description: "Ranking SAL 1.3."
+      - name: sal_2_1
+        description: "Ranking SAL 2.1."
+      - name: sal_2_2
+        description: "Ranking SAL 2.2."
+      - name: sal_2_3
+        description: "Ranking SAL 2.3."
+      - name: sal_3_1
+        description: "Ranking SAL 3.1."
+      - name: sal_3_2
+        description: "Ranking SAL 3.2."
+      - name: sal_3_3
+        description: "Ranking SAL 3.3."
+      - name: sal_3_4
+        description: "Ranking SAL 3.4."
+
+      # --- RANKING: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "Ranking EDU 1.1."
+      - name: edu_1_2
+        description: "Ranking EDU 1.2."
+      - name: edu_1_3
+        description: "Ranking EDU 1.3."
+      - name: edu_1_4
+        description: "Ranking EDU 1.4."
+      - name: edu_1_5
+        description: "Ranking EDU 1.5."
+      - name: edu_2_1
+        description: "Ranking EDU 2.1."
+      - name: edu_2_2
+        description: "Ranking EDU 2.2."
+      - name: edu_2_3
+        description: "Ranking EDU 2.3."
+      - name: edu_2_4
+        description: "Ranking EDU 2.4."
+
+      # --- RANKING: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "Ranking EDS 1.1."
+      - name: eds_1_2
+        description: "Ranking EDS 1.2."
+      - name: eds_1_3
+        description: "Ranking EDS 1.3."
+      - name: eds_2_1
+        description: "Ranking EDS 2.1."
+      - name: eds_2_2
+        description: "Ranking EDS 2.2."
+      - name: eds_2_3
+        description: "Ranking EDS 2.3."
+      - name: eds_2_4
+        description: "Ranking EDS 2.4."
+      - name: eds_3_1
+        description: "Ranking EDS 3.1."
+      - name: eds_3_2
+        description: "Ranking EDS 3.2."
+
+      # --- RANKING: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "Ranking NEG 1.1."
+      - name: neg_1_2
+        description: "Ranking NEG 1.2."
+      - name: neg_1_3
+        description: "Ranking NEG 1.3."
+      - name: neg_2_1
+        description: "Ranking NEG 2.1."
+      - name: neg_2_2
+        description: "Ranking NEG 2.2."
+      - name: neg_2_3
+        description: "Ranking NEG 2.3."
+
+      # --- RANKING: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "Ranking LAB 1.1."
+      - name: lab_1_2
+        description: "Ranking LAB 1.2."
+      - name: lab_1_3
+        description: "Ranking LAB 1.3."
+      - name: lab_1_4
+        description: "Ranking LAB 1.4."
+      - name: lab_1_5
+        description: "Ranking LAB 1.5."
+
+      # --- RANKING: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "Ranking FIN 1.1."
+      - name: fin_1_2
+        description: "Ranking FIN 1.2."
+      - name: fin_1_3
+        description: "Ranking FIN 1.3."
+      - name: fin_1_4
+        description: "Ranking FIN 1.4."
+
+      # --- RANKING: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "Ranking TAM 1.1."
+      - name: tam_2_1
+        description: "Ranking TAM 2.1."
+      - name: tam_2_2
+        description: "Ranking TAM 2.2."
+
+      # --- RANKING: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "Ranking SOF 1.1."
+      - name: sof_1_2
+        description: "Ranking SOF 1.2."
+
+      # --- RANKING: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "Ranking INN 1.1."
+      - name: inn_1_2
+        description: "Ranking INN 1.2."
+      - name: inn_1_3
+        description: "Ranking INN 1.3."
+      - name: inn_1_4
+        description: "Ranking INN 1.4."
+      - name: inn_2_1
+        description: "Ranking INN 2.1."
+      - name: inn_2_2
+        description: "Ranking INN 2.2."
+      - name: inn_2_3
+        description: "Ranking INN 2.3."
+      - name: inn_2_4
+        description: "Ranking INN 2.4."
+
+  - name: idc_lowercase_columns_dato_original
+    description: |
+      Modelo de la capa Silver encargado de la estandarización de nombres de columnas. 
+      Transforma los encabezados de UPPER_CASE a lowercase_snake_case. 
+      Esto asegura la compatibilidad con los estándares de desarrollo y facilita la escritura de 
+      consultas posteriores sin necesidad de usar comillas dobles para llamar a las columnas.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento."
+      - name: ano_idc
+        description: "Año de vigencia del reporte."
+      - name: fecha_lectura
+        description: "Timestamp de auditoría de carga."
+
+      # --- DIMENSIÓN: INS ---
+      - name: ins_1_1
+        description: "Columna INS 1.1 convertida a minúsculas."
+      - name: ins_1_2
+        description: "Columna INS 1.2 convertida a minúsculas."
+      - name: ins_1_3
+        description: "Columna INS 1.3 convertida a minúsculas."
+      - name: ins_2_1
+        description: "Columna INS 2.1 convertida a minúsculas."
+      - name: ins_2_2
+        description: "Columna INS 2.2 convertida a minúsculas."
+      - name: ins_2_3
+        description: "Columna INS 2.3 convertida a minúsculas."
+      - name: ins_3_1
+        description: "Columna INS 3.1 convertida a minúsculas."
+      - name: ins_3_2
+        description: "Columna INS 3.2 convertida a minúsculas."
+      - name: ins_3_3
+        description: "Columna INS 3.3 convertida a minúsculas."
+      - name: ins_4_1
+        description: "Columna INS 4.1 convertida a minúsculas."
+      - name: ins_4_2
+        description: "Columna INS 4.2 convertida a minúsculas."
+      - name: ins_4_3
+        description: "Columna INS 4.3 convertida a minúsculas."
+      - name: ins_4_4
+        description: "Columna INS 4.4 convertida a minúsculas."
+      - name: ins_4_5
+        description: "Columna INS 4.5 convertida a minúsculas."
+      - name: ins_4_6
+        description: "Columna INS 4.6 convertida a minúsculas."
+
+      # --- DIMENSIÓN: INF ---
+      - name: inf_1_1
+        description: "Columna INF 1.1 convertida a minúsculas."
+      - name: inf_1_2
+        description: "Columna INF 1.2 convertida a minúsculas."
+      - name: inf_1_3
+        description: "Columna INF 1.3 convertida a minúsculas."
+      - name: inf_1_4
+        description: "Columna INF 1.4 convertida a minúsculas."
+      - name: inf_1_5
+        description: "Columna INF 1.5 convertida a minúsculas."
+      - name: inf_2_1
+        description: "Columna INF 2.1 convertida a minúsculas."
+      - name: inf_2_2
+        description: "Columna INF 2.2 convertida a minúsculas."
+      - name: inf_2_3
+        description: "Columna INF 2.3 convertida a minúsculas."
+      - name: inf_2_4
+        description: "Columna INF 2.4 convertida a minúsculas."
+      - name: inf_2_5
+        description: "Columna INF 2.5 convertida a minúsculas."
+      - name: inf_2_6
+        description: "Columna INF 2.6 convertida a minúsculas."
+      - name: inf_3_1
+        description: "Columna INF 3.1 convertida a minúsculas."
+      - name: inf_3_2
+        description: "Columna INF 3.2 convertida a minúsculas."
+      - name: inf_3_3
+        description: "Columna INF 3.3 convertida a minúsculas."
+      - name: inf_3_4
+        description: "Columna INF 3.4 convertida a minúsculas."
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "Columna TIC 1.1 convertida a minúsculas."
+      - name: tic_1_2
+        description: "Columna TIC 1.2 convertida a minúsculas."
+      - name: tic_1_3
+        description: "Columna TIC 1.3 convertida a minúsculas."
+      - name: tic_1_4
+        description: "Columna TIC 1.4 convertida a minúsculas."
+      - name: tic_2_1
+        description: "Columna TIC 2.1 convertida a minúsculas."
+      - name: tic_2_2
+        description: "Columna TIC 2.2 convertida a minúsculas."
+      - name: tic_2_3
+        description: "Columna TIC 2.3 convertida a minúsculas."
+
+      # --- DIMENSIÓN: AMB ---
+      - name: amb_1_1
+        description: "Columna AMB 1.1 convertida a minúsculas."
+      - name: amb_1_2
+        description: "Columna AMB 1.2 convertida a minúsculas."
+      - name: amb_1_3
+        description: "Columna AMB 1.3 convertida a minúsculas."
+      - name: amb_2_1
+        description: "Columna AMB 2.1 convertida a minúsculas."
+      - name: amb_2_2
+        description: "Columna AMB 2.2 convertida a minúsculas."
+
+      # --- DIMENSIÓN: SALUD ---
+      - name: sal_1_1
+        description: "Columna SAL 1.1 convertida a minúsculas."
+      - name: sal_1_2
+        description: "Columna SAL 1.2 convertida a minúsculas."
+      - name: sal_1_3
+        description: "Columna SAL 1.3 convertida a minúsculas."
+      - name: sal_2_1
+        description: "Columna SAL 2.1 convertida a minúsculas."
+      - name: sal_2_2
+        description: "Columna SAL 2.2 convertida a minúsculas."
+      - name: sal_2_3
+        description: "Columna SAL 2.3 convertida a minúsculas."
+      - name: sal_3_1
+        description: "Columna SAL 3.1 convertida a minúsculas."
+      - name: sal_3_2
+        description: "Columna SAL 3.2 convertida a minúsculas."
+      - name: sal_3_3
+        description: "Columna SAL 3.3 convertida a minúsculas."
+      - name: sal_3_4
+        description: "Columna SAL 3.4 convertida a minúsculas."
+
+      # --- DIMENSIÓN: EDU ---
+      - name: edu_1_1
+        description: "Columna EDU 1.1 convertida a minúsculas."
+      - name: edu_1_2
+        description: "Columna EDU 1.2 convertida a minúsculas."
+      - name: edu_1_3
+        description: "Columna EDU 1.3 convertida a minúsculas."
+      - name: edu_1_4
+        description: "Columna EDU 1.4 convertida a minúsculas."
+      - name: edu_1_5
+        description: "Columna EDU 1.5 convertida a minúsculas."
+      - name: edu_2_1
+        description: "Columna EDU 2.1 convertida a minúsculas."
+      - name: edu_2_2
+        description: "Columna EDU 2.2 convertida a minúsculas."
+      - name: edu_2_3
+        description: "Columna EDU 2.3 convertida a minúsculas."
+      - name: edu_2_4
+        description: "Columna EDU 2.4 convertida a minúsculas."
+
+      # --- DIMENSIÓN: EDS ---
+      - name: eds_1_1
+        description: "Columna EDS 1.1 convertida a minúsculas."
+      - name: eds_1_2
+        description: "Columna EDS 1.2 convertida a minúsculas."
+      - name: eds_1_3
+        description: "Columna EDS 1.3 convertida a minúsculas."
+      - name: eds_2_1
+        description: "Columna EDS 2.1 convertida a minúsculas."
+      - name: eds_2_2
+        description: "Columna EDS 2.2 convertida a minúsculas."
+      - name: eds_2_3
+        description: "Columna EDS 2.3 convertida a minúsculas."
+      - name: eds_2_4
+        description: "Columna EDS 2.4 convertida a minúsculas."
+      - name: eds_3_1
+        description: "Columna EDS 3.1 convertida a minúsculas."
+      - name: eds_3_2
+        description: "Columna EDS 3.2 convertida a minúsculas."
+
+      # --- DIMENSIÓN: NEG ---
+      - name: neg_1_1
+        description: "Columna NEG 1.1 convertida a minúsculas."
+      - name: neg_1_2
+        description: "Columna NEG 1.2 convertida a minúsculas."
+      - name: neg_1_3
+        description: "Columna NEG 1.3 convertida a minúsculas."
+      - name: neg_2_1
+        description: "Columna NEG 2.1 convertida a minúsculas."
+      - name: neg_2_2
+        description: "Columna NEG 2.2 convertida a minúsculas."
+      - name: neg_2_3
+        description: "Columna NEG 2.3 convertida a minúsculas."
+
+      # --- DIMENSIÓN: LAB ---
+      - name: lab_1_1
+        description: "Columna LAB 1.1 convertida a minúsculas."
+      - name: lab_1_2
+        description: "Columna LAB 1.2 convertida a minúsculas."
+      - name: lab_1_3
+        description: "Columna LAB 1.3 convertida a minúsculas."
+      - name: lab_1_4
+        description: "Columna LAB 1.4 convertida a minúsculas."
+      - name: lab_1_5
+        description: "Columna LAB 1.5 convertida a minúsculas."
+
+      # --- DIMENSIÓN: FIN ---
+      - name: fin_1_1
+        description: "Columna FIN 1.1 convertida a minúsculas."
+      - name: fin_1_2
+        description: "Columna FIN 1.2 convertida a minúsculas."
+      - name: fin_1_3
+        description: "Columna FIN 1.3 convertida a minúsculas."
+      - name: fin_1_4
+        description: "Columna FIN 1.4 convertida a minúsculas."
+
+      # --- DIMENSIÓN: TAM ---
+      - name: tam_1_1
+        description: "Columna TAM 1.1 convertida a minúsculas."
+      - name: tam_2_1
+        description: "Columna TAM 2.1 convertida a minúsculas."
+      - name: tam_2_2
+        description: "Columna TAM 2.2 convertida a minúsculas."
+
+      # --- DIMENSIÓN: SOF ---
+      - name: sof_1_1
+        description: "Columna SOF 1.1 convertida a minúsculas."
+      - name: sof_1_2
+        description: "Columna SOF 1.2 convertida a minúsculas."
+
+      # --- DIMENSIÓN: INN ---
+      - name: inn_1_1
+        description: "Columna INN 1.1 convertida a minúsculas."
+      - name: inn_1_2
+        description: "Columna INN 1.2 convertida a minúsculas."
+      - name: inn_1_3
+        description: "Columna INN 1.3 convertida a minúsculas."
+      - name: inn_1_4
+        description: "Columna INN 1.4 convertida a minúsculas."
+      - name: inn_2_1
+        description: "Columna INN 2.1 convertida a minúsculas."
+      - name: inn_2_2
+        description: "Columna INN 2.2 convertida a minúsculas."
+      - name: inn_2_3
+        description: "Columna INN 2.3 convertida a minúsculas."
+      - name: inn_2_4
+        description: "Columna INN 2.4 convertida a minúsculas."
+
+  - name: idc_lowercase_columns_valor_normalizado
+    description: |
+      Modelo de la capa Silver que estandariza los nombres de las columnas a minúsculas (snake_case) 
+      para los datos de valor normalizado. Facilita la consistencia entre todos los modelos 
+      de la capa Silver y asegura que las dimensiones (INS, INF, TIC, etc.) sigan el mismo estándar.
+    columns:
+      # --- IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento."
+      - name: ano_idc
+        description: "Año de la medición."
+      - name: fecha_lectura
+        description: "Timestamp de procesamiento."
+
+      # --- DIMENSIÓN: INS (Normalizado) ---
+      - name: ins_1_1
+        description: "Valor normalizado INS 1.1 en minúsculas."
+      - name: ins_1_2
+        description: "Valor normalizado INS 1.2 en minúsculas."
+      - name: ins_1_3
+        description: "Valor normalizado INS 1.3 en minúsculas."
+      - name: ins_2_1
+        description: "Valor normalizado INS 2.1 en minúsculas."
+      - name: ins_2_2
+        description: "Valor normalizado INS 2.2 en minúsculas."
+      - name: ins_2_3
+        description: "Valor normalizado INS 2.3 en minúsculas."
+      - name: ins_3_1
+        description: "Valor normalizado INS 3.1 en minúsculas."
+      - name: ins_3_2
+        description: "Valor normalizado INS 3.2 en minúsculas."
+      - name: ins_3_3
+        description: "Valor normalizado INS 3.3 en minúsculas."
+      - name: ins_4_1
+        description: "Valor normalizado INS 4.1 en minúsculas."
+      - name: ins_4_2
+        description: "Valor normalizado INS 4.2 en minúsculas."
+      - name: ins_4_3
+        description: "Valor normalizado INS 4.3 en minúsculas."
+      - name: ins_4_4
+        description: "Valor normalizado INS 4.4 en minúsculas."
+      - name: ins_4_5
+        description: "Valor normalizado INS 4.5 en minúsculas."
+      - name: ins_4_6
+        description: "Valor normalizado INS 4.6 en minúsculas."
+
+      # --- DIMENSIÓN: INF (Normalizado) ---
+      - name: inf_1_1
+        description: "Valor normalizado INF 1.1 en minúsculas."
+      - name: inf_1_2
+        description: "Valor normalizado INF 1.2 en minúsculas."
+      - name: inf_1_3
+        description: "Valor normalizado INF 1.3 en minúsculas."
+      - name: inf_1_4
+        description: "Valor normalizado INF 1.4 en minúsculas."
+      - name: inf_1_5
+        description: "Valor normalizado INF 1.5 en minúsculas."
+      - name: inf_2_1
+        description: "Valor normalizado INF 2.1 en minúsculas."
+      - name: inf_2_2
+        description: "Valor normalizado INF 2.2 en minúsculas."
+      - name: inf_2_3
+        description: "Valor normalizado INF 2.3 en minúsculas."
+      - name: inf_2_4
+        description: "Valor normalizado INF 2.4 en minúsculas."
+      - name: inf_2_5
+        description: "Valor normalizado INF 2.5 en minúsculas."
+      - name: inf_2_6
+        description: "Valor normalizado INF 2.6 en minúsculas."
+      - name: inf_3_1
+        description: "Valor normalizado INF 3.1 en minúsculas."
+      - name: inf_3_2
+        description: "Valor normalizado INF 3.2 en minúsculas."
+      - name: inf_3_3
+        description: "Valor normalizado INF 3.3 en minúsculas."
+      - name: inf_3_4
+        description: "Valor normalizado INF 3.4 en minúsculas."
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "Valor normalizado TIC 1.1 en minúsculas."
+      - name: tic_1_2
+        description: "Valor normalizado TIC 1.2 en minúsculas."
+      - name: tic_1_3
+        description: "Valor normalizado TIC 1.3 en minúsculas."
+      - name: tic_1_4
+        description: "Valor normalizado TIC 1.4 en minúsculas."
+      - name: tic_2_1
+        description: "Valor normalizado TIC 2.1 en minúsculas."
+      - name: tic_2_2
+        description: "Valor normalizado TIC 2.2 en minúsculas."
+      - name: tic_2_3
+        description: "Valor normalizado TIC 2.3 en minúsculas."
+
+      # --- DIMENSIÓN: AMB ---
+      - name: amb_1_1
+        description: "Valor normalizado AMB 1.1 en minúsculas."
+      - name: amb_1_2
+        description: "Valor normalizado AMB 1.2 en minúsculas."
+      - name: amb_1_3
+        description: "Valor normalizado AMB 1.3 en minúsculas."
+      - name: amb_2_1
+        description: "Valor normalizado AMB 2.1 en minúsculas."
+      - name: amb_2_2
+        description: "Valor normalizado AMB 2.2 en minúsculas."
+
+      # --- DIMENSIÓN: SALUD ---
+      - name: sal_1_1
+        description: "Valor normalizado SAL 1.1 en minúsculas."
+      - name: sal_1_2
+        description: "Valor normalizado SAL 1.2 en minúsculas."
+      - name: sal_1_3
+        description: "Valor normalizado SAL 1.3 en minúsculas."
+      - name: sal_2_1
+        description: "Valor normalizado SAL 2.1 en minúsculas."
+      - name: sal_2_2
+        description: "Valor normalizado SAL 2.2 en minúsculas."
+      - name: sal_2_3
+        description: "Valor normalizado SAL 2.3 en minúsculas."
+      - name: sal_3_1
+        description: "Valor normalizado SAL 3.1 en minúsculas."
+      - name: sal_3_2
+        description: "Valor normalizado SAL 3.2 en minúsculas."
+      - name: sal_3_3
+        description: "Valor normalizado SAL 3.3 en minúsculas."
+      - name: sal_3_4
+        description: "Valor normalizado SAL 3.4 en minúsculas."
+
+      # --- DIMENSIÓN: EDU ---
+      - name: edu_1_1
+        description: "Valor normalizado EDU 1.1 en minúsculas."
+      - name: edu_1_2
+        description: "Valor normalizado EDU 1.2 en minúsculas."
+      - name: edu_1_3
+        description: "Valor normalizado EDU 1.3 en minúsculas."
+      - name: edu_1_4
+        description: "Valor normalizado EDU 1.4 en minúsculas."
+      - name: edu_1_5
+        description: "Valor normalizado EDU 1.5 en minúsculas."
+      - name: edu_2_1
+        description: "Valor normalizado EDU 2.1 en minúsculas."
+      - name: edu_2_2
+        description: "Valor normalizado EDU 2.2 en minúsculas."
+      - name: edu_2_3
+        description: "Valor normalizado EDU 2.3 en minúsculas."
+      - name: edu_2_4
+        description: "Valor normalizado EDU 2.4 en minúsculas."
+
+      # --- DIMENSIÓN: EDS ---
+      - name: eds_1_1
+        description: "Valor normalizado EDS 1.1 en minúsculas."
+      - name: eds_1_2
+        description: "Valor normalizado EDS 1.2 en minúsculas."
+      - name: eds_1_3
+        description: "Valor normalizado EDS 1.3 en minúsculas."
+      - name: eds_2_1
+        description: "Valor normalizado EDS 2.1 en minúsculas."
+      - name: eds_2_2
+        description: "Valor normalizado EDS 2.2 en minúsculas."
+      - name: eds_2_3
+        description: "Valor normalizado EDS 2.3 en minúsculas."
+      - name: eds_2_4
+        description: "Valor normalizado EDS 2.4 en minúsculas."
+      - name: eds_3_1
+        description: "Valor normalizado EDS 3.1 en minúsculas."
+      - name: eds_3_2
+        description: "Valor normalizado EDS 3.2 en minúsculas."
+
+      # --- DIMENSIÓN: NEG ---
+      - name: neg_1_1
+        description: "Valor normalizado NEG 1.1 en minúsculas."
+      - name: neg_1_2
+        description: "Valor normalizado NEG 1.2 en minúsculas."
+      - name: neg_1_3
+        description: "Valor normalizado NEG 1.3 en minúsculas."
+      - name: neg_2_1
+        description: "Valor normalizado NEG 2.1 en minúsculas."
+      - name: neg_2_2
+        description: "Valor normalizado NEG 2.2 en minúsculas."
+      - name: neg_2_3
+        description: "Valor normalizado NEG 2.3 en minúsculas."
+
+      # --- DIMENSIÓN: LAB ---
+      - name: lab_1_1
+        description: "Valor normalizado LAB 1.1 en minúsculas."
+      - name: lab_1_2
+        description: "Valor normalizado LAB 1.2 en minúsculas."
+      - name: lab_1_3
+        description: "Valor normalizado LAB 1.3 en minúsculas."
+      - name: lab_1_4
+        description: "Valor normalizado LAB 1.4 en minúsculas."
+      - name: lab_1_5
+        description: "Valor normalizado LAB 1.5 en minúsculas."
+
+      # --- DIMENSIÓN: FIN ---
+      - name: fin_1_1
+        description: "Valor normalizado FIN 1.1 en minúsculas."
+      - name: fin_1_2
+        description: "Valor normalizado FIN 1.2 en minúsculas."
+      - name: fin_1_3
+        description: "Valor normalizado FIN 1.3 en minúsculas."
+      - name: fin_1_4
+        description: "Valor normalizado FIN 1.4 en minúsculas."
+
+      # --- DIMENSIÓN: TAM ---
+      - name: tam_1_1
+        description: "Valor normalizado TAM 1.1 en minúsculas."
+      - name: tam_2_1
+        description: "Valor normalizado TAM 2.1 en minúsculas."
+      - name: tam_2_2
+        description: "Valor normalizado TAM 2.2 en minúsculas."
+
+      # --- DIMENSIÓN: SOF ---
+      - name: sof_1_1
+        description: "Valor normalizado SOF 1.1 en minúsculas."
+      - name: sof_1_2
+        description: "Valor normalizado SOF 1.2 en minúsculas."
+
+      # --- DIMENSIÓN: INN ---
+      - name: inn_1_1
+        description: "Valor normalizado INN 1.1 en minúsculas."
+      - name: inn_1_2
+        description: "Valor normalizado INN 1.2 en minúsculas."
+      - name: inn_1_3
+        description: "Valor normalizado INN 1.3 en minúsculas."
+      - name: inn_1_4
+        description: "Valor normalizado INN 1.4 en minúsculas."
+      - name: inn_2_1
+        description: "Valor normalizado INN 2.1 en minúsculas."
+      - name: inn_2_2
+        description: "Valor normalizado INN 2.2 en minúsculas."
+      - name: inn_2_3
+        description: "Valor normalizado INN 2.3 en minúsculas."
+      - name: inn_2_4
+        description: "Valor normalizado INN 2.4 en minúsculas."
+
+  - name: idc_lowercase_columns_valor_ranking
+    description: |
+      Modelo de la capa Silver que transforma los nombres de las columnas de UPPER_CASE a lowercase 
+      específicamente para los datos de Ranking. Este paso es previo a la limpieza de nulos y 
+      garantiza que todas las dimensiones del IDC sean consistentes y fáciles de consultar.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento."
+      - name: ano_idc
+        description: "Año del ranking."
+      - name: fecha_lectura
+        description: "Fecha de procesamiento técnico."
+
+      # --- RANKING: INS ---
+      - name: ins_1_1
+        description: "Ranking INS 1.1 en minúsculas."
+      - name: ins_1_2
+        description: "Ranking INS 1.2 en minúsculas."
+      - name: ins_1_3
+        description: "Ranking INS 1.3 en minúsculas."
+      - name: ins_2_1
+        description: "Ranking INS 2.1 en minúsculas."
+      - name: ins_2_2
+        description: "Ranking INS 2.2 en minúsculas."
+      - name: ins_2_3
+        description: "Ranking INS 2.3 en minúsculas."
+      - name: ins_3_1
+        description: "Ranking INS 3.1 en minúsculas."
+      - name: ins_3_2
+        description: "Ranking INS 3.2 en minúsculas."
+      - name: ins_3_3
+        description: "Ranking INS 3.3 en minúsculas."
+      - name: ins_4_1
+        description: "Ranking INS 4.1 en minúsculas."
+      - name: ins_4_2
+        description: "Ranking INS 4.2 en minúsculas."
+      - name: ins_4_3
+        description: "Ranking INS 4.3 en minúsculas."
+      - name: ins_4_4
+        description: "Ranking INS 4.4 en minúsculas."
+      - name: ins_4_5
+        description: "Ranking INS 4.5 en minúsculas."
+      - name: ins_4_6
+        description: "Ranking INS 4.6 en minúsculas."
+
+      # --- RANKING: INF ---
+      - name: inf_1_1
+        description: "Ranking INF 1.1 en minúsculas."
+      - name: inf_1_2
+        description: "Ranking INF 1.2 en minúsculas."
+      - name: inf_1_3
+        description: "Ranking INF 1.3 en minúsculas."
+      - name: inf_1_4
+        description: "Ranking INF 1.4 en minúsculas."
+      - name: inf_1_5
+        description: "Ranking INF 1.5 en minúsculas."
+      - name: inf_2_1
+        description: "Ranking INF 2.1 en minúsculas."
+      - name: inf_2_2
+        description: "Ranking INF 2.2 en minúsculas."
+      - name: inf_2_3
+        description: "Ranking INF 2.3 en minúsculas."
+      - name: inf_2_4
+        description: "Ranking INF 2.4 en minúsculas."
+      - name: inf_2_5
+        description: "Ranking INF 2.5 en minúsculas."
+      - name: inf_2_6
+        description: "Ranking INF 2.6 en minúsculas."
+      - name: inf_3_1
+        description: "Ranking INF 3.1 en minúsculas."
+      - name: inf_3_2
+        description: "Ranking INF 3.2 en minúsculas."
+      - name: inf_3_3
+        description: "Ranking INF 3.3 en minúsculas."
+      - name: inf_3_4
+        description: "Ranking INF 3.4 en minúsculas."
+
+      # --- RANKING: TIC ---
+      - name: tic_1_1
+        description: "Ranking TIC 1.1."
+      - name: tic_1_2
+        description: "Ranking TIC 1.2."
+      - name: tic_1_3
+        description: "Ranking TIC 1.3."
+      - name: tic_1_4
+        description: "Ranking TIC 1.4."
+      - name: tic_2_1
+        description: "Ranking TIC 2.1."
+      - name: tic_2_2
+        description: "Ranking TIC 2.2."
+      - name: tic_2_3
+        description: "Ranking TIC 2.3."
+
+      # --- RANKING: AMB ---
+      - name: amb_1_1
+        description: "Ranking AMB 1.1."
+      - name: amb_1_2
+        description: "Ranking AMB 1.2."
+      - name: amb_1_3
+        description: "Ranking AMB 1.3."
+      - name: amb_2_1
+        description: "Ranking AMB 2.1."
+      - name: amb_2_2
+        description: "Ranking AMB 2.2."
+
+      # --- RANKING: SALUD ---
+      - name: sal_1_1
+        description: "Ranking SAL 1.1."
+      - name: sal_1_2
+        description: "Ranking SAL 1.2."
+      - name: sal_1_3
+        description: "Ranking SAL 1.3."
+      - name: sal_2_1
+        description: "Ranking SAL 2.1."
+      - name: sal_2_2
+        description: "Ranking SAL 2.2."
+      - name: sal_2_3
+        description: "Ranking SAL 2.3."
+      - name: sal_3_1
+        description: "Ranking SAL 3.1."
+      - name: sal_3_2
+        description: "Ranking SAL 3.2."
+      - name: sal_3_3
+        description: "Ranking SAL 3.3."
+      - name: sal_3_4
+        description: "Ranking SAL 3.4."
+
+      # --- RANKING: EDU ---
+      - name: edu_1_1
+        description: "Ranking EDU 1.1."
+      - name: edu_1_2
+        description: "Ranking EDU 1.2."
+      - name: edu_1_3
+        description: "Ranking EDU 1.3."
+      - name: edu_1_4
+        description: "Ranking EDU 1.4."
+      - name: edu_1_5
+        description: "Ranking EDU 1.5."
+      - name: edu_2_1
+        description: "Ranking EDU 2.1."
+      - name: edu_2_2
+        description: "Ranking EDU 2.2."
+      - name: edu_2_3
+        description: "Ranking EDU 2.3."
+      - name: edu_2_4
+        description: "Ranking EDU 2.4."
+
+      # --- RANKING: EDS ---
+      - name: eds_1_1
+        description: "Ranking EDS 1.1."
+      - name: eds_1_2
+        description: "Ranking EDS 1.2."
+      - name: eds_1_3
+        description: "Ranking EDS 1.3."
+      - name: eds_2_1
+        description: "Ranking EDS 2.1."
+      - name: eds_2_2
+        description: "Ranking EDS 2.2."
+      - name: eds_2_3
+        description: "Ranking EDS 2.3."
+      - name: eds_2_4
+        description: "Ranking EDS 2.4."
+      - name: eds_3_1
+        description: "Ranking EDS 3.1."
+      - name: eds_3_2
+        description: "Ranking EDS 3.2."
+
+      # --- RANKING: NEG ---
+      - name: neg_1_1
+        description: "Ranking NEG 1.1."
+      - name: neg_1_2
+        description: "Ranking NEG 1.2."
+      - name: neg_1_3
+        description: "Ranking NEG 1.3."
+      - name: neg_2_1
+        description: "Ranking NEG 2.1."
+      - name: neg_2_2
+        description: "Ranking NEG 2.2."
+      - name: neg_2_3
+        description: "Ranking NEG 2.3."
+
+      # --- RANKING: LAB ---
+      - name: lab_1_1
+        description: "Ranking LAB 1.1."
+      - name: lab_1_2
+        description: "Ranking LAB 1.2."
+      - name: lab_1_3
+        description: "Ranking LAB 1.3."
+      - name: lab_1_4
+        description: "Ranking LAB 1.4."
+      - name: lab_1_5
+        description: "Ranking LAB 1.5."
+
+      # --- RANKING: FIN ---
+      - name: fin_1_1
+        description: "Ranking FIN 1.1."
+      - name: fin_1_2
+        description: "Ranking FIN 1.2."
+      - name: fin_1_3
+        description: "Ranking FIN 1.3."
+      - name: fin_1_4
+        description: "Ranking FIN 1.4."
+
+      # --- RANKING: TAM ---
+      - name: tam_1_1
+        description: "Ranking TAM 1.1."
+      - name: tam_2_1
+        description: "Ranking TAM 2.1."
+      - name: tam_2_2
+        description: "Ranking TAM 2.2."
+
+      # --- RANKING: SOF ---
+      - name: sof_1_1
+        description: "Ranking SOF 1.1."
+      - name: sof_1_2
+        description: "Ranking SOF 1.2."
+
+      # --- RANKING: INN ---
+      - name: inn_1_1
+        description: "Ranking INN 1.1."
+      - name: inn_1_2
+        description: "Ranking INN 1.2."
+      - name: inn_1_3
+        description: "Ranking INN 1.3."
+      - name: inn_1_4
+        description: "Ranking INN 1.4."
+      - name: inn_2_1
+        description: "Ranking INN 2.1."
+      - name: inn_2_2
+        description: "Ranking INN 2.2."
+      - name: inn_2_3
+        description: "Ranking INN 2.3."
+      - name: inn_2_4
+        description: "Ranking INN 2.4."
+
+  - name: idc_normalize_columns_dato_original
+    description: |
+      Modelo de entrada a la capa Silver (Estructural). 
+      Su función principal es normalizar los nombres de las columnas que vienen de la fuente Bronze, 
+      reemplazando guiones '-' por guiones bajos '_' para cumplir con el formato snake_case. 
+      También estandariza nombres de columnas base como 'Año_IDC' a 'ano_idc'.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento (Normalizado)."
+      - name: ano_idc
+        description: "Año de la medición (Normalizado desde Año_IDC)."
+      - name: fecha_lectura
+        description: "Timestamp de carga."
+
+      # --- DIMENSIÓN: INS (Estructura) ---
+      - name: INS_1_1
+        description: "Columna INS-1-1 normalizada a INS_1_1."
+      - name: INS_1_2
+        description: "Columna INS-1-2 normalizada a INS_1_2."
+      - name: INS_1_3
+        description: "Columna INS-1-3 normalizada a INS_1_3."
+      - name: INS_2_1
+        description: "Columna INS-2-1 normalizada a INS_2_1."
+      - name: INS_2_2
+        description: "Columna INS-2-2 normalizada a INS_2_2."
+      - name: INS_2_3
+        description: "Columna INS-2-3 normalizada a INS_2_3."
+      - name: INS_3_1
+        description: "Columna INS-3-1 normalizada a INS_3_1."
+      - name: INS_3_2
+        description: "Columna INS-3-2 normalizada a INS_3_2."
+      - name: INS_3_3
+        description: "Columna INS-3-3 normalizada a INS_3_3."
+      - name: INS_4_1
+        description: "Columna INS-4-1 normalizada a INS_4_1."
+      - name: INS_4_2
+        description: "Columna INS-4-2 normalizada a INS_4_2."
+      - name: INS_4_3
+        description: "Columna INS-4-3 normalizada a INS_4_3."
+      - name: INS_4_4
+        description: "Columna INS-4-4 normalizada a INS_4_4."
+      - name: INS_4_5
+        description: "Columna INS-4-5 normalizada a INS_4_5."
+      - name: INS_4_6
+        description: "Columna INS-4-6 normalizada a INS_4_6."
+
+      # --- DIMENSIÓN: INF (Estructura) ---
+      - name: INF_1_1
+        description: "Columna INF-1-1 normalizada a INF_1_1."
+      - name: INF_1_2
+        description: "Columna INF-1-2 normalizada a INF_1_2."
+      - name: INF_1_3
+        description: "Columna INF-1-3 normalizada a INF_1_3."
+      - name: INF_1_4
+        description: "Columna INF-1-4 normalizada a INF_1_4."
+      - name: INF_1_5
+        description: "Columna INF-1-5 normalizada a INF_1_5."
+      - name: INF_2_1
+        description: "Columna INF-2-1 normalizada a INF_2_1."
+      - name: INF_2_2
+        description: "Columna INF-2-2 normalizada a INF_2_2."
+      - name: INF_2_3
+        description: "Columna INF-2-3 normalizada a INF_2_3."
+      - name: INF_2_4
+        description: "Columna INF-2-4 normalizada a INF_2_4."
+      - name: INF_2_5
+        description: "Columna INF-2-5 normalizada a INF_2_5."
+      - name: INF_2_6
+        description: "Columna INF-2-6 normalizada a INF_2_6."
+      - name: INF_3_1
+        description: "Columna INF-3-1 normalizada a INF_3_1."
+      - name: INF_3_2
+        description: "Columna INF-3-2 normalizada a INF_3_2."
+      - name: INF_3_3
+        description: "Columna INF-3-3 normalizada a INF_3_3."
+      - name: INF_3_4
+        description: "Columna INF-3-4 normalizada a INF_3_4."
+
+      # --- DIMENSIÓN: TIC ---
+      - name: TIC_1_1
+      - name: TIC_1_2
+      - name: TIC_1_3
+      - name: TIC_1_4
+      - name: TIC_2_1
+      - name: TIC_2_2
+      - name: TIC_2_3
+
+      # --- DIMENSIÓN: AMB ---
+      - name: AMB_1_1
+      - name: AMB_1_2
+      - name: AMB_1_3
+      - name: AMB_2_1
+      - name: AMB_2_2
+
+      # --- DIMENSIÓN: SALUD ---
+      - name: SAL_1_1
+      - name: SAL_1_2
+      - name: SAL_1_3
+      - name: SAL_2_1
+      - name: SAL_2_2
+      - name: SAL_2_3
+      - name: SAL_3_1
+      - name: SAL_3_2
+      - name: SAL_3_3
+      - name: SAL_3_4
+
+      # --- DIMENSIÓN: EDU ---
+      - name: EDU_1_1
+      - name: EDU_1_2
+      - name: EDU_1_3
+      - name: EDU_1_4
+      - name: EDU_1_5
+      - name: EDU_2_1
+      - name: EDU_2_2
+      - name: EDU_2_3
+      - name: EDU_2_4
+
+      # --- DIMENSIÓN: EDS ---
+      - name: EDS_1_1
+      - name: EDS_1_2
+      - name: EDS_1_3
+      - name: EDS_2_1
+      - name: EDS_2_2
+      - name: EDS_2_3
+      - name: EDS_2_4
+      - name: EDS_3_1
+      - name: EDS_3_2
+
+      # --- DIMENSIÓN: NEG ---
+      - name: NEG_1_1
+      - name: NEG_1_2
+      - name: NEG_1_3
+      - name: NEG_2_1
+      - name: NEG_2_2
+      - name: NEG_2_3
+
+      # --- DIMENSIÓN: LAB ---
+      - name: LAB_1_1
+      - name: LAB_1_2
+      - name: LAB_1_3
+      - name: LAB_1_4
+      - name: LAB_1_5
+
+      # --- DIMENSIÓN: FIN ---
+      - name: FIN_1_1
+      - name: FIN_1_2
+      - name: FIN_1_3
+      - name: FIN_1_4
+
+      # --- DIMENSIÓN: TAM ---
+      - name: TAM_1_1
+      - name: TAM_2_1
+      - name: TAM_2_2
+
+      # --- DIMENSIÓN: SOF ---
+      - name: SOF_1_1
+      - name: SOF_1_2
+
+      # --- DIMENSIÓN: INN ---
+      - name: INN_1_1
+      - name: INN_1_2
+      - name: INN_1_3
+      - name: INN_1_4
+      - name: INN_2_1
+      - name: INN_2_2
+      - name: INN_2_3
+      - name: INN_2_4
+
+  - name: idc_normalize_columns_valor_normalizado
+    description: |
+      Modelo estructural de la capa Silver. Se encarga de la normalización técnica de los nombres 
+      de columnas para los datos de Valor Normalizado. Transforma identificadores con guiones 
+      (ej. INF-1-1) a un formato compatible con SQL (INF_1_1) y estandariza las columnas base.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento normalizado."
+      - name: ano_idc
+        description: "Año de la medición (normalizado desde Año_IDC)."
+      - name: fecha_lectura
+        description: "Timestamp de auditoría de carga."
+
+      # --- DIMENSIÓN: INS (Estructura Normalizada) ---
+      - name: INS_1_1
+        description: "Valor normalizado INS_1_1 (proviene de INS-1-1)."
+      - name: INS_1_2
+      - name: INS_1_3
+      - name: INS_2_1
+      - name: INS_2_2
+      - name: INS_2_3
+      - name: INS_3_1
+      - name: INS_3_2
+      - name: INS_3_3
+      - name: INS_4_1
+      - name: INS_4_2
+      - name: INS_4_3
+      - name: INS_4_4
+      - name: INS_4_5
+      - name: INS_4_6
+
+      # --- DIMENSIÓN: INF ---
+      - name: INF_1_1
+      - name: INF_1_2
+      - name: INF_1_3
+      - name: INF_1_4
+      - name: INF_1_5
+      - name: INF_2_1
+      - name: INF_2_2
+      - name: INF_2_3
+      - name: INF_2_4
+      - name: INF_2_5
+      - name: INF_2_6
+      - name: INF_3_1
+      - name: INF_3_2
+      - name: INF_3_3
+      - name: INF_3_4
+
+      # --- DIMENSIÓN: TIC ---
+      - name: TIC_1_1
+      - name: TIC_1_2
+      - name: TIC_1_3
+      - name: TIC_1_4
+      - name: TIC_2_1
+      - name: TIC_2_2
+      - name: TIC_2_3
+
+      # --- DIMENSIÓN: AMB ---
+      - name: AMB_1_1
+      - name: AMB_1_2
+      - name: AMB_1_3
+      - name: AMB_2_1
+      - name: AMB_2_2
+
+      # --- DIMENSIÓN: SALUD ---
+      - name: SAL_1_1
+      - name: SAL_1_2
+      - name: SAL_1_3
+      - name: SAL_2_1
+      - name: SAL_2_2
+      - name: SAL_2_3
+      - name: SAL_3_1
+      - name: SAL_3_2
+      - name: SAL_3_3
+      - name: SAL_3_4
+
+      # --- DIMENSIÓN: EDU ---
+      - name: EDU_1_1
+      - name: EDU_1_2
+      - name: EDU_1_3
+      - name: EDU_1_4
+      - name: EDU_1_5
+      - name: EDU_2_1
+      - name: EDU_2_2
+      - name: EDU_2_3
+      - name: EDU_2_4
+
+      # --- DIMENSIÓN: EDS ---
+      - name: EDS_1_1
+      - name: EDS_1_2
+      - name: EDS_1_3
+      - name: EDS_2_1
+      - name: EDS_2_2
+      - name: EDS_2_3
+      - name: EDS_2_4
+      - name: EDS_3_1
+      - name: EDS_3_2
+
+      # --- DIMENSIÓN: NEG ---
+      - name: NEG_1_1
+      - name: NEG_1_2
+      - name: NEG_1_3
+      - name: NEG_2_1
+      - name: NEG_2_2
+      - name: NEG_2_3
+
+      # --- DIMENSIÓN: LAB ---
+      - name: LAB_1_1
+      - name: LAB_1_2
+      - name: LAB_1_3
+      - name: LAB_1_4
+      - name: LAB_1_5
+
+      # --- DIMENSIÓN: FIN ---
+      - name: FIN_1_1
+      - name: FIN_1_2
+      - name: FIN_1_3
+      - name: FIN_1_4
+
+      # --- DIMENSIÓN: TAM ---
+      - name: TAM_1_1
+      - name: TAM_2_1
+      - name: TAM_2_2
+
+      # --- DIMENSIÓN: SOF ---
+      - name: SOF_1_1
+      - name: SOF_1_2
+
+      # --- DIMENSIÓN: INN ---
+      - name: INN_1_1
+      - name: INN_1_2
+      - name: INN_1_3
+      - name: INN_1_4
+      - name: INN_2_1
+      - name: INN_2_2
+      - name: INN_2_3
+      - name: INN_2_4
+
+  - name: idc_normalize_columns_valor_ranking
+    description: |
+      Modelo estructural de la capa Silver para los datos de Ranking. 
+      Su función es normalizar técnicamente los nombres de las columnas que vienen de Bronze, 
+      asegurando que los identificadores de dimensiones (INS, INF, etc.) utilicen guiones bajos 
+      en lugar de guiones medios, cumpliendo con los requisitos de nomenclatura de la base de datos.
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+        description: "Nombre del departamento normalizado."
+      - name: ano_idc
+        description: "Año del ranking (normalizado desde Año_IDC)."
+      - name: fecha_lectura
+        description: "Timestamp de auditoría de carga."
+
+      # --- DIMENSIÓN: INS (Ranking) ---
+      - name: INS_1_1
+        description: "Ranking normalizado INS_1_1."
+      - name: INS_1_2
+      - name: INS_1_3
+      - name: INS_2_1
+      - name: INS_2_2
+      - name: INS_2_3
+      - name: INS_3_1
+      - name: INS_3_2
+      - name: INS_3_3
+      - name: INS_4_1
+      - name: INS_4_2
+      - name: INS_4_3
+      - name: INS_4_4
+      - name: INS_4_5
+      - name: INS_4_6
+
+      # --- DIMENSIÓN: INF ---
+      - name: INF_1_1
+      - name: INF_1_2
+      - name: INF_1_3
+      - name: INF_1_4
+      - name: INF_1_5
+      - name: INF_2_1
+      - name: INF_2_2
+      - name: INF_2_3
+      - name: INF_2_4
+      - name: INF_2_5
+      - name: INF_2_6
+      - name: INF_3_1
+      - name: INF_3_2
+      - name: INF_3_3
+      - name: INF_3_4
+
+      # --- DIMENSIÓN: TIC ---
+      - name: TIC_1_1
+      - name: TIC_1_2
+      - name: TIC_1_3
+      - name: TIC_1_4
+      - name: TIC_2_1
+      - name: TIC_2_2
+      - name: TIC_2_3
+
+      # --- DIMENSIÓN: AMB ---
+      - name: AMB_1_1
+      - name: AMB_1_2
+      - name: AMB_1_3
+      - name: AMB_2_1
+      - name: AMB_2_2
+
+      # --- DIMENSIÓN: SALUD ---
+      - name: SAL_1_1
+      - name: SAL_1_2
+      - name: SAL_1_3
+      - name: SAL_2_1
+      - name: SAL_2_2
+      - name: SAL_2_3
+      - name: SAL_3_1
+      - name: SAL_3_2
+      - name: SAL_3_3
+      - name: SAL_3_4
+
+      # --- DIMENSIÓN: EDU ---
+      - name: EDU_1_1
+      - name: EDU_1_2
+      - name: EDU_1_3
+      - name: EDU_1_4
+      - name: EDU_1_5
+      - name: EDU_2_1
+      - name: EDU_2_2
+      - name: EDU_2_3
+      - name: EDU_2_4
+
+      # --- DIMENSIÓN: EDS ---
+      - name: EDS_1_1
+      - name: EDS_1_2
+      - name: EDS_1_3
+      - name: EDS_2_1
+      - name: EDS_2_2
+      - name: EDS_2_3
+      - name: EDS_2_4
+      - name: EDS_3_1
+      - name: EDS_3_2
+
+      # --- DIMENSIÓN: NEG ---
+      - name: NEG_1_1
+      - name: NEG_1_2
+      - name: NEG_1_3
+      - name: NEG_2_1
+      - name: NEG_2_2
+      - name: NEG_2_3
+
+      # --- DIMENSIÓN: LAB ---
+      - name: LAB_1_1
+      - name: LAB_1_2
+      - name: LAB_1_3
+      - name: LAB_1_4
+      - name: LAB_1_5
+
+      # --- DIMENSIÓN: FIN ---
+      - name: FIN_1_1
+      - name: FIN_1_2
+      - name: FIN_1_3
+      - name: FIN_1_4
+
+      # --- DIMENSIÓN: TAM ---
+      - name: TAM_1_1
+      - name: TAM_2_1
+      - name: TAM_2_2
+
+      # --- DIMENSIÓN: SOF ---
+      - name: SOF_1_1
+      - name: SOF_1_2
+
+      # --- DIMENSIÓN: INN ---
+      - name: INN_1_1
+      - name: INN_1_2
+      - name: INN_1_3
+      - name: INN_1_4
+      - name: INN_2_1
+      - name: INN_2_2
+      - name: INN_2_3
+      - name: INN_2_4
+
+  - name: idc_uppercase_dato_original
+    description: |
+      "Modelo final de transformación para datos originales del Índice de Desarrollo y Competitividad (IDC). Normaliza la columna departamento a mayúsculas sin acentos ni caracteres especiales mediante REGEXP_REPLACE y múltiples REPLACE. Ejemplo: 'Archipiélago de San Andrés' se convierte en 'ARCHIPIELAGO DE SAN ANDRES'. Este modelo es la última etapa del pipeline de transformación para datos originales y es utilizado como fuente para el modelo gold idc_processed_data. Contiene todos los indicadores IDC organizados por categorías."
+    columns:
+      # --- COLUMNAS BASE ---
+      - name: departamento
+      - name: ano_idc
+      - name: fecha_lectura
+
+      # --- INS (Insuficiencia de Condiciones de Vida) ---
+      - name: ins_1_1
+      - name: ins_1_2
+      - name: ins_1_3
+      - name: ins_2_1
+      - name: ins_2_2
+      - name: ins_2_3
+      - name: ins_3_1
+      - name: ins_3_2
+      - name: ins_3_3
+      - name: ins_4_1
+      - name: ins_4_2
+      - name: ins_4_3
+      - name: ins_4_4
+      - name: ins_4_5
+      - name: ins_4_6
+
+      # --- INF (Insuficiencia de Funcionamiento) ---
+      - name: inf_1_1
+      - name: inf_1_2
+      - name: inf_1_3
+      - name: inf_1_4
+      - name: inf_1_5
+      - name: inf_2_1
+      - name: inf_2_2
+      - name: inf_2_3
+      - name: inf_2_4
+      - name: inf_2_5
+      - name: inf_2_6
+      - name: inf_3_1
+      - name: inf_3_2
+      - name: inf_3_3
+      - name: inf_3_4
+
+      # --- TIC (Tecnologías de la Información) ---
+      - name: tic_1_1
+      - name: tic_1_2
+      - name: tic_1_3
+      - name: tic_1_4
+      - name: tic_2_1
+      - name: tic_2_2
+      - name: tic_2_3
+
+      # --- AMB (Ambiente) ---
+      - name: amb_1_1
+      - name: amb_1_2
+      - name: amb_1_3
+      - name: amb_2_1
+      - name: amb_2_2
+
+      # --- SAL (Salud) ---
+      - name: sal_1_1
+      - name: sal_1_2
+      - name: sal_1_3
+      - name: sal_2_1
+      - name: sal_2_2
+      - name: sal_2_3
+      - name: sal_3_1
+      - name: sal_3_2
+      - name: sal_3_3
+      - name: sal_3_4
+
+      # --- EDU (Educación) ---
+      - name: edu_1_1
+      - name: edu_1_2
+      - name: edu_1_3
+      - name: edu_1_4
+      - name: edu_1_5
+      - name: edu_2_1
+      - name: edu_2_2
+      - name: edu_2_3
+      - name: edu_2_4
+
+      # --- EDS (Edificaciones y Servicios) ---
+      - name: eds_1_1
+      - name: eds_1_2
+      - name: eds_1_3
+      - name: eds_2_1
+      - name: eds_2_2
+      - name: eds_2_3
+      - name: eds_2_4
+      - name: eds_3_1
+      - name: eds_3_2
+
+      # --- NEG (Negocios) ---
+      - name: neg_1_1
+      - name: neg_1_2
+      - name: neg_1_3
+      - name: neg_2_1
+      - name: neg_2_2
+      - name: neg_2_3
+
+      # --- LAB (Laboral) ---
+      - name: lab_1_1
+      - name: lab_1_2
+      - name: lab_1_3
+      - name: lab_1_4
+      - name: lab_1_5
+
+      # --- FIN (Financiero) ---
+      - name: fin_1_1
+      - name: fin_1_2
+      - name: fin_1_3
+      - name: fin_1_4
+
+      # --- TAM (Tamaño) ---
+      - name: tam_1_1
+      - name: tam_2_1
+      - name: tam_2_2
+
+      # --- SOF (Software) ---
+      - name: sof_1_1
+      - name: sof_1_2
+
+      # --- INN (Innovación) ---
+      - name: inn_1_1
+      - name: inn_1_2
+      - name: inn_1_3
+      - name: inn_1_4
+      - name: inn_2_1
+      - name: inn_2_2
+      - name: inn_2_3
+      - name: inn_2_4
+
+  - name: idc_uppercase_valor_normalizado
+    description: |
+      "Modelo final de transformación para valores normalizados del Índice de Desarrollo y Competitividad (IDC). 
+      Normaliza la columna departamento a mayúsculas sin acentos ni caracteres especiales mediante REGEXP_REPLACE y múltiples REPLACE. 
+      Ejemplo: 'Archipiélago de San Andrés' se convierte en 'ARCHIPIELAGO DE SAN ANDRES'. 
+      Este modelo es la última etapa del pipeline de transformación para valores normalizados y contiene todos los indicadores IDC 
+      organizados por categorías: Insuficiencia de Condiciones de Vida (INS), Insuficiencia de Funcionamiento (INF), 
+      Tecnologías de la Información y Comunicación (TIC), Ambiente (AMB), Salud (SAL), Educación (EDU), Edificaciones y Servicios (EDS), 
+      Negocios (NEG), Laboral (LAB), Financiero (FIN), Tamaño (TAM), Software (SOF) e Innovación (INN)."
+    columns:
+      # --- COLUMNAS DE IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento normalizado en mayúsculas sin acentos ni caracteres especiales, listo para análisis geoespacial."
+        data_type: STRING
+      - name: ano_idc
+        description: "Año del indicador IDC correspondiente al período de medición."
+        data_type: INT64
+      - name: fecha_lectura
+        description: "Fecha y hora en que se realizó la lectura de los datos desde la fuente original."
+        data_type: TIMESTAMP
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "INS 1.1: Componente de condiciones de vida (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_1_2
+        description: "INS 1.2: Componente de condiciones de vida (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_1_3
+        description: "INS 1.3: Componente de condiciones de vida (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_2_1
+        description: "INS 2.1: Servicios públicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_2_2
+        description: "INS 2.2: Servicios públicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_2_3
+        description: "INS 2.3: Servicios públicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_3_1
+        description: "INS 3.1: Vivienda y entorno (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_3_2
+        description: "INS 3.2: Vivienda y entorno (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_3_3
+        description: "INS 3.3: Vivienda y entorno (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_1
+        description: "INS 4.1: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_2
+        description: "INS 4.2: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_3
+        description: "INS 4.3: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_4
+        description: "INS 4.4: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_5
+        description: "INS 4.5: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: ins_4_6
+        description: "INS 4.6: Otros factores de insuficiencia (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "INF 1.1: Funcionamiento institucional (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_1_2
+        description: "INF 1.2: Funcionamiento institucional (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_1_3
+        description: "INF 1.3: Funcionamiento institucional (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_1_4
+        description: "INF 1.4: Funcionamiento institucional (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_1_5
+        description: "INF 1.5: Funcionamiento institucional (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_1
+        description: "INF 2.1: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_2
+        description: "INF 2.2: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_3
+        description: "INF 2.3: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_4
+        description: "INF 2.4: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_5
+        description: "INF 2.5: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_2_6
+        description: "INF 2.6: Gestión interna (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_3_1
+        description: "INF 3.1: Recursos y procesos (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_3_2
+        description: "INF 3.2: Recursos y procesos (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_3_3
+        description: "INF 3.3: Recursos y procesos (valor normalizado)."
+        data_type: FLOAT64
+      - name: inf_3_4
+        description: "INF 3.4: Recursos y procesos (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "TIC 1.1: Acceso a tecnologías (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_1_2
+        description: "TIC 1.2: Acceso a tecnologías (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_1_3
+        description: "TIC 1.3: Acceso a tecnologías (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_1_4
+        description: "TIC 1.4: Acceso a tecnologías (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_2_1
+        description: "TIC 2.1: Uso de herramientas digitales (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_2_2
+        description: "TIC 2.2: Uso de herramientas digitales (valor normalizado)."
+        data_type: FLOAT64
+      - name: tic_2_3
+        description: "TIC 2.3: Uso de herramientas digitales (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "AMB 1.1: Gestión ambiental (valor normalizado)."
+        data_type: FLOAT64
+      - name: amb_1_2
+        description: "AMB 1.2: Gestión ambiental (valor normalizado)."
+        data_type: FLOAT64
+      - name: amb_1_3
+        description: "AMB 1.3: Gestión ambiental (valor normalizado)."
+        data_type: FLOAT64
+      - name: amb_2_1
+        description: "AMB 2.1: Sostenibilidad (valor normalizado)."
+        data_type: FLOAT64
+      - name: amb_2_2
+        description: "AMB 2.2: Sostenibilidad (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "SAL 1.1: Cobertura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_1_2
+        description: "SAL 1.2: Cobertura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_1_3
+        description: "SAL 1.3: Cobertura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_2_1
+        description: "SAL 2.1: Infraestructura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_2_2
+        description: "SAL 2.2: Infraestructura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_2_3
+        description: "SAL 2.3: Infraestructura de salud (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_3_1
+        description: "SAL 3.1: Indicadores de salud pública (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_3_2
+        description: "SAL 3.2: Indicadores de salud pública (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_3_3
+        description: "SAL 3.3: Indicadores de salud pública (valor normalizado)."
+        data_type: FLOAT64
+      - name: sal_3_4
+        description: "SAL 3.4: Indicadores de salud pública (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "EDU 1.1: Calidad educativa (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_1_2
+        description: "EDU 1.2: Calidad educativa (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_1_3
+        description: "EDU 1.3: Calidad educativa (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_1_4
+        description: "EDU 1.4: Calidad educativa (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_1_5
+        description: "EDU 1.5: Calidad educativa (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_2_1
+        description: "EDU 2.1: Acceso y permanencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_2_2
+        description: "EDU 2.2: Acceso y permanencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_2_3
+        description: "EDU 2.3: Acceso y permanencia (valor normalizado)."
+        data_type: FLOAT64
+      - name: edu_2_4
+        description: "EDU 2.4: Acceso y permanencia (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "EDS 1.1: Infraestructura física (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_1_2
+        description: "EDS 1.2: Infraestructura física (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_1_3
+        description: "EDS 1.3: Infraestructura física (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_2_1
+        description: "EDS 2.1: Servicios básicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_2_2
+        description: "EDS 2.2: Servicios básicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_2_3
+        description: "EDS 2.3: Servicios básicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_2_4
+        description: "EDS 2.4: Servicios básicos (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_3_1
+        description: "EDS 3.1: Otros servicios (valor normalizado)."
+        data_type: FLOAT64
+      - name: eds_3_2
+        description: "EDS 3.2: Otros servicios (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "NEG 1.1: Actividad empresarial (valor normalizado)."
+        data_type: FLOAT64
+      - name: neg_1_2
+        description: "NEG 1.2: Actividad empresarial (valor normalizado)."
+        data_type: FLOAT64
+      - name: neg_1_3
+        description: "NEG 1.3: Actividad empresarial (valor normalizado)."
+        data_type: FLOAT64
+      - name: neg_2_1
+        description: "NEG 2.1: Dinámica económica (valor normalizado)."
+        data_type: FLOAT64
+      - name: neg_2_2
+        description: "NEG 2.2: Dinámica económica (valor normalizado)."
+        data_type: FLOAT64
+      - name: neg_2_3
+        description: "NEG 2.3: Dinámica económica (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "LAB 1.1: Mercado de trabajo (valor normalizado)."
+        data_type: FLOAT64
+      - name: lab_1_2
+        description: "LAB 1.2: Mercado de trabajo (valor normalizado)."
+        data_type: FLOAT64
+      - name: lab_1_3
+        description: "LAB 1.3: Mercado de trabajo (valor normalizado)."
+        data_type: FLOAT64
+      - name: lab_1_4
+        description: "LAB 1.4: Mercado de trabajo (valor normalizado)."
+        data_type: FLOAT64
+      - name: lab_1_5
+        description: "LAB 1.5: Mercado de trabajo (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "FIN 1.1: Capacidad financiera (valor normalizado)."
+        data_type: FLOAT64
+      - name: fin_1_2
+        description: "FIN 1.2: Capacidad financiera (valor normalizado)."
+        data_type: FLOAT64
+      - name: fin_1_3
+        description: "FIN 1.3: Capacidad financiera (valor normalizado)."
+        data_type: FLOAT64
+      - name: fin_1_4
+        description: "FIN 1.4: Capacidad financiera (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "TAM 1.1: Tamaño poblacional/territorial (valor normalizado)."
+        data_type: FLOAT64
+      - name: tam_2_1
+        description: "TAM 2.1: Densidad/Otros (valor normalizado)."
+        data_type: FLOAT64
+      - name: tam_2_2
+        description: "TAM 2.2: Densidad/Otros (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "SOF 1.1: Uso de software especializado (valor normalizado)."
+        data_type: FLOAT64
+      - name: sof_1_2
+        description: "SOF 1.2: Uso de software especializado (valor normalizado)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "INN 1.1: Actividades de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_1_2
+        description: "INN 1.2: Actividades de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_1_3
+        description: "INN 1.3: Actividades de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_1_4
+        description: "INN 1.4: Actividades de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_2_1
+        description: "INN 2.1: Resultados de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_2_2
+        description: "INN 2.2: Resultados de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_2_3
+        description: "INN 2.3: Resultados de innovación (valor normalizado)."
+        data_type: FLOAT64
+      - name: inn_2_4
+        description: "INN 2.4: Resultados de innovación (valor normalizado)."
+        data_type: FLOAT64
+
+  - name: idc_uppercase_valor_ranking
+    description: |
+      "Modelo final de transformación para valores de ranking del Índice de Desarrollo y Competitividad (IDC). 
+      Normaliza la columna departamento a mayúsculas sin acentos ni caracteres especiales mediante REGEXP_REPLACE y múltiples REPLACE. 
+      Ejemplo: 'Archipiélago de San Andrés' se convierte en 'ARCHIPIELAGO DE SAN ANDRES'. 
+      Este modelo es la última etapa del pipeline de transformación para valores de ranking y contiene todos los indicadores IDC 
+      organizados por categorías: Insuficiencia de Condiciones de Vida (INS), Insuficiencia de Funcionamiento (INF), 
+      Tecnologías de la Información y Comunicación (TIC), Ambiente (AMB), Salud (SAL), Educación (EDU), Edificaciones y Servicios (EDS), 
+      Negocios (NEG), Laboral (LAB), Financiero (FIN), Tamaño (TAM), Software (SOF) e Innovación (INN)."
+    columns:
+      # --- COLUMNAS DE IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento normalizado en mayúsculas sin acentos ni caracteres especiales, listo para análisis geoespacial."
+        data_type: STRING
+      - name: ano_idc
+        description: "Año del indicador IDC correspondiente al período de medición."
+        data_type: INT64
+      - name: fecha_lectura
+        description: "Fecha y hora en que se realizó la lectura de los datos desde la fuente original."
+        data_type: TIMESTAMP
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "INS 1.1: Componente de condiciones de vida (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_1_2
+        description: "INS 1.2: Componente de condiciones de vida (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_1_3
+        description: "INS 1.3: Componente de condiciones de vida (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_2_1
+        description: "INS 2.1: Servicios públicos (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_2_2
+        description: "INS 2.2: Servicios públicos (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_2_3
+        description: "INS 2.3: Servicios públicos (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_3_1
+        description: "INS 3.1: Vivienda y entorno (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_3_2
+        description: "INS 3.2: Vivienda y entorno (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_3_3
+        description: "INS 3.3: Vivienda y entorno (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_1
+        description: "INS 4.1: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_2
+        description: "INS 4.2: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_3
+        description: "INS 4.3: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_4
+        description: "INS 4.4: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_5
+        description: "INS 4.5: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+      - name: ins_4_6
+        description: "INS 4.6: Otros factores de insuficiencia (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "INF 1.1: Funcionamiento institucional (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_1_2
+        description: "INF 1.2: Funcionamiento institucional (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_1_3
+        description: "INF 1.3: Funcionamiento institucional (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_1_4
+        description: "INF 1.4: Funcionamiento institucional (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_1_5
+        description: "INF 1.5: Funcionamiento institucional (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_1
+        description: "INF 2.1: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_2
+        description: "INF 2.2: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_3
+        description: "INF 2.3: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_4
+        description: "INF 2.4: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_5
+        description: "INF 2.5: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_2_6
+        description: "INF 2.6: Gestión interna (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_3_1
+        description: "INF 3.1: Recursos y procesos (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_3_2
+        description: "INF 3.2: Recursos y procesos (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_3_3
+        description: "INF 3.3: Recursos y procesos (valor ranking)."
+        data_type: FLOAT64
+      - name: inf_3_4
+        description: "INF 3.4: Recursos y procesos (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "TIC 1.1: Acceso a tecnologías (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_1_2
+        description: "TIC 1.2: Acceso a tecnologías (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_1_3
+        description: "TIC 1.3: Acceso a tecnologías (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_1_4
+        description: "TIC 1.4: Acceso a tecnologías (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_2_1
+        description: "TIC 2.1: Uso de herramientas digitales (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_2_2
+        description: "TIC 2.2: Uso de herramientas digitales (valor ranking)."
+        data_type: FLOAT64
+      - name: tic_2_3
+        description: "TIC 2.3: Uso de herramientas digitales (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "AMB 1.1: Gestión ambiental (valor ranking)."
+        data_type: FLOAT64
+      - name: amb_1_2
+        description: "AMB 1.2: Gestión ambiental (valor ranking)."
+        data_type: FLOAT64
+      - name: amb_1_3
+        description: "AMB 1.3: Gestión ambiental (valor ranking)."
+        data_type: FLOAT64
+      - name: amb_2_1
+        description: "AMB 2.1: Sostenibilidad (valor ranking)."
+        data_type: FLOAT64
+      - name: amb_2_2
+        description: "AMB 2.2: Sostenibilidad (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "SAL 1.1: Cobertura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_1_2
+        description: "SAL 1.2: Cobertura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_1_3
+        description: "SAL 1.3: Cobertura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_2_1
+        description: "SAL 2.1: Infraestructura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_2_2
+        description: "SAL 2.2: Infraestructura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_2_3
+        description: "SAL 2.3: Infraestructura de salud (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_3_1
+        description: "SAL 3.1: Indicadores de salud pública (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_3_2
+        description: "SAL 3.2: Indicadores de salud pública (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_3_3
+        description: "SAL 3.3: Indicadores de salud pública (valor ranking)."
+        data_type: FLOAT64
+      - name: sal_3_4
+        description: "SAL 3.4: Indicadores de salud pública (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "EDU 1.1: Calidad educativa (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_1_2
+        description: "EDU 1.2: Calidad educativa (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_1_3
+        description: "EDU 1.3: Calidad educativa (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_1_4
+        description: "EDU 1.4: Calidad educativa (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_1_5
+        description: "EDU 1.5: Calidad educativa (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_2_1
+        description: "EDU 2.1: Acceso y permanencia (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_2_2
+        description: "EDU 2.2: Acceso y permanencia (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_2_3
+        description: "EDU 2.3: Acceso y permanencia (valor ranking)."
+        data_type: FLOAT64
+      - name: edu_2_4
+        description: "EDU 2.4: Acceso y permanencia (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "EDS 1.1: Infraestructura física (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_1_2
+        description: "EDS 1.2: Infraestructura física (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_1_3
+        description: "EDS 1.3: Infraestructura física (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_2_1
+        description: "EDS 2.1: Servicios básicos (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_2_2
+        description: "EDS 2.2: Servicios básicos (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_2_3
+        description: "EDS 2.3: Servicios básicos (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_2_4
+        description: "EDS 2.4: Servicios básicos (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_3_1
+        description: "EDS 3.1: Otros servicios (valor ranking)."
+        data_type: FLOAT64
+      - name: eds_3_2
+        description: "EDS 3.2: Otros servicios (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "NEG 1.1: Actividad empresarial (valor ranking)."
+        data_type: FLOAT64
+      - name: neg_1_2
+        description: "NEG 1.2: Actividad empresarial (valor ranking)."
+        data_type: FLOAT64
+      - name: neg_1_3
+        description: "NEG 1.3: Actividad empresarial (valor ranking)."
+        data_type: FLOAT64
+      - name: neg_2_1
+        description: "NEG 2.1: Dinámica económica (valor ranking)."
+        data_type: FLOAT64
+      - name: neg_2_2
+        description: "NEG 2.2: Dinámica económica (valor ranking)."
+        data_type: FLOAT64
+      - name: neg_2_3
+        description: "NEG 2.3: Dinámica económica (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "LAB 1.1: Mercado de trabajo (valor ranking)."
+        data_type: FLOAT64
+      - name: lab_1_2
+        description: "LAB 1.2: Mercado de trabajo (valor ranking)."
+        data_type: FLOAT64
+      - name: lab_1_3
+        description: "LAB 1.3: Mercado de trabajo (valor ranking)."
+        data_type: FLOAT64
+      - name: lab_1_4
+        description: "LAB 1.4: Mercado de trabajo (valor ranking)."
+        data_type: FLOAT64
+      - name: lab_1_5
+        description: "LAB 1.5: Mercado de trabajo (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "FIN 1.1: Capacidad financiera (valor ranking)."
+        data_type: FLOAT64
+      - name: fin_1_2
+        description: "FIN 1.2: Capacidad financiera (valor ranking)."
+        data_type: FLOAT64
+      - name: fin_1_3
+        description: "FIN 1.3: Capacidad financiera (valor ranking)."
+        data_type: FLOAT64
+      - name: fin_1_4
+        description: "FIN 1.4: Capacidad financiera (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "TAM 1.1: Tamaño poblacional/territorial (valor ranking)."
+        data_type: FLOAT64
+      - name: tam_2_1
+        description: "TAM 2.1: Densidad/Otros (valor ranking)."
+        data_type: FLOAT64
+      - name: tam_2_2
+        description: "TAM 2.2: Densidad/Otros (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "SOF 1.1: Uso de software especializado (valor ranking)."
+        data_type: FLOAT64
+      - name: sof_1_2
+        description: "SOF 1.2: Uso de software especializado (valor ranking)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "INN 1.1: Actividades de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_1_2
+        description: "INN 1.2: Actividades de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_1_3
+        description: "INN 1.3: Actividades de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_1_4
+        description: "INN 1.4: Actividades de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_2_1
+        description: "INN 2.1: Resultados de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_2_2
+        description: "INN 2.2: Resultados de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_2_3
+        description: "INN 2.3: Resultados de innovación (valor ranking)."
+        data_type: FLOAT64
+      - name: inn_2_4
+        description: "INN 2.4: Resultados de innovación (valor ranking)."
+        data_type: FLOAT64
+
+  - name: idc_round_decimals_dato_original
+    description: |
+      "Modelo de la capa Silver que aplica redondeo a 2 decimales a todas las columnas numéricas de datos originales del IDC. 
+      Utiliza la función ROUND para asegurar consistencia en la precisión de los valores numéricos. 
+      Este modelo procesa todos los indicadores IDC organizados por categorías: Insuficiencia de Condiciones de Vida (INS), 
+      Insuficiencia de Funcionamiento (INF), Tecnologías de la Información y Comunicación (TIC), Ambiente (AMB), Salud (SAL), 
+      Educación (EDU), Edificaciones y Servicios (EDS), Negocios (NEG), Laboral (LAB), Financiero (FIN), Tamaño (TAM), 
+      Software (SOF) e Innovación (INN)."
+    columns:
+      # --- COLUMNAS DE IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento (sin cambios, no se redondea)."
+        data_type: STRING
+      - name: ano_idc
+        description: "Año del indicador IDC correspondiente al período de medición."
+        data_type: INT64
+      - name: fecha_lectura
+        description: "Fecha y hora en que se realizó la lectura de los datos desde la fuente original."
+        data_type: TIMESTAMP
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "INS 1.1: Componente de condiciones de vida (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_1_2
+        description: "INS 1.2: Componente de condiciones de vida (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_1_3
+        description: "INS 1.3: Componente de condiciones de vida (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_1
+        description: "INS 2.1: Servicios públicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_2
+        description: "INS 2.2: Servicios públicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_3
+        description: "INS 2.3: Servicios públicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_1
+        description: "INS 3.1: Vivienda y entorno (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_2
+        description: "INS 3.2: Vivienda y entorno (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_3
+        description: "INS 3.3: Vivienda y entorno (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_1
+        description: "INS 4.1: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_2
+        description: "INS 4.2: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_3
+        description: "INS 4.3: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_4
+        description: "INS 4.4: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_5
+        description: "INS 4.5: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_6
+        description: "INS 4.6: Otros factores de insuficiencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "INF 1.1: Funcionamiento institucional (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_2
+        description: "INF 1.2: Funcionamiento institucional (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_3
+        description: "INF 1.3: Funcionamiento institucional (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_4
+        description: "INF 1.4: Funcionamiento institucional (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_5
+        description: "INF 1.5: Funcionamiento institucional (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_1
+        description: "INF 2.1: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_2
+        description: "INF 2.2: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_3
+        description: "INF 2.3: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_4
+        description: "INF 2.4: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_5
+        description: "INF 2.5: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_6
+        description: "INF 2.6: Gestión interna (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_1
+        description: "INF 3.1: Recursos y procesos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_2
+        description: "INF 3.2: Recursos y procesos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_3
+        description: "INF 3.3: Recursos y procesos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_4
+        description: "INF 3.4: Recursos y procesos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "TIC 1.1: Acceso a tecnologías (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_2
+        description: "TIC 1.2: Acceso a tecnologías (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_3
+        description: "TIC 1.3: Acceso a tecnologías (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_4
+        description: "TIC 1.4: Acceso a tecnologías (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_1
+        description: "TIC 2.1: Uso de herramientas digitales (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_2
+        description: "TIC 2.2: Uso de herramientas digitales (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_3
+        description: "TIC 2.3: Uso de herramientas digitales (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "AMB 1.1: Gestión ambiental (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_1_2
+        description: "AMB 1.2: Gestión ambiental (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_1_3
+        description: "AMB 1.3: Gestión ambiental (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_2_1
+        description: "AMB 2.1: Sostenibilidad (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_2_2
+        description: "AMB 2.2: Sostenibilidad (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "SAL 1.1: Cobertura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_1_2
+        description: "SAL 1.2: Cobertura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_1_3
+        description: "SAL 1.3: Cobertura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_1
+        description: "SAL 2.1: Infraestructura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_2
+        description: "SAL 2.2: Infraestructura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_3
+        description: "SAL 2.3: Infraestructura de salud (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_1
+        description: "SAL 3.1: Indicadores de salud pública (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_2
+        description: "SAL 3.2: Indicadores de salud pública (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_3
+        description: "SAL 3.3: Indicadores de salud pública (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_4
+        description: "SAL 3.4: Indicadores de salud pública (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "EDU 1.1: Calidad educativa (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_2
+        description: "EDU 1.2: Calidad educativa (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_3
+        description: "EDU 1.3: Calidad educativa (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_4
+        description: "EDU 1.4: Calidad educativa (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_5
+        description: "EDU 1.5: Calidad educativa (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_1
+        description: "EDU 2.1: Acceso y permanencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_2
+        description: "EDU 2.2: Acceso y permanencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_3
+        description: "EDU 2.3: Acceso y permanencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_4
+        description: "EDU 2.4: Acceso y permanencia (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "EDS 1.1: Infraestructura física (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_1_2
+        description: "EDS 1.2: Infraestructura física (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_1_3
+        description: "EDS 1.3: Infraestructura física (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_1
+        description: "EDS 2.1: Servicios básicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_2
+        description: "EDS 2.2: Servicios básicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_3
+        description: "EDS 2.3: Servicios básicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_4
+        description: "EDS 2.4: Servicios básicos (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_3_1
+        description: "EDS 3.1: Otros servicios (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_3_2
+        description: "EDS 3.2: Otros servicios (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "NEG 1.1: Actividad empresarial (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_1_2
+        description: "NEG 1.2: Actividad empresarial (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_1_3
+        description: "NEG 1.3: Actividad empresarial (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_1
+        description: "NEG 2.1: Dinámica económica (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_2
+        description: "NEG 2.2: Dinámica económica (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_3
+        description: "NEG 2.3: Dinámica económica (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "LAB 1.1: Mercado de trabajo (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_2
+        description: "LAB 1.2: Mercado de trabajo (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_3
+        description: "LAB 1.3: Mercado de trabajo (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_4
+        description: "LAB 1.4: Mercado de trabajo (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_5
+        description: "LAB 1.5: Mercado de trabajo (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "FIN 1.1: Capacidad financiera (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_2
+        description: "FIN 1.2: Capacidad financiera (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_3
+        description: "FIN 1.3: Capacidad financiera (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_4
+        description: "FIN 1.4: Capacidad financiera (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "TAM 1.1: Tamaño poblacional/territorial (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tam_2_1
+        description: "TAM 2.1: Densidad/Otros (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tam_2_2
+        description: "TAM 2.2: Densidad/Otros (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "SOF 1.1: Uso de software especializado (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sof_1_2
+        description: "SOF 1.2: Uso de software especializado (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "INN 1.1: Actividades de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_2
+        description: "INN 1.2: Actividades de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_3
+        description: "INN 1.3: Actividades de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_4
+        description: "INN 1.4: Actividades de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_1
+        description: "INN 2.1: Resultados de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_2
+        description: "INN 2.2: Resultados de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_3
+        description: "INN 2.3: Resultados de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_4
+        description: "INN 2.4: Resultados de innovación (redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+  - name: idc_round_decimals_valor_normalizado
+    description: |
+      "Modelo de la capa Silver que aplica redondeo a 2 decimales a todas las columnas numéricas de valores normalizados del IDC. 
+      Utiliza la función ROUND para asegurar consistencia en la precisión de los valores numéricos normalizados. 
+      Este modelo procesa todos los indicadores IDC organizados por categorías: Insuficiencia de Condiciones de Vida (INS), 
+      Insuficiencia de Funcionamiento (INF), Tecnologías de la Información y Comunicación (TIC), Ambiente (AMB), Salud (SAL), 
+      Educación (EDU), Edificaciones y Servicios (EDS), Negocios (NEG), Laboral (LAB), Financiero (FIN), Tamaño (TAM), 
+      Software (SOF) e Innovación (INN)."
+    columns:
+      # --- COLUMNAS DE IDENTIFICACIÓN ---
+      - name: departamento
+        description: "Nombre del departamento (sin cambios, no se redondea)."
+        data_type: STRING
+      - name: ano_idc
+        description: "Año del indicador IDC correspondiente al período de medición."
+        data_type: INT64
+      - name: fecha_lectura
+        description: "Fecha y hora en que se realizó la lectura de los datos desde la fuente original."
+        data_type: TIMESTAMP
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE CONDICIONES DE VIDA (INS) ---
+      - name: ins_1_1
+        description: "INS 1.1: Componente de condiciones de vida (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_1_2
+        description: "INS 1.2: Componente de condiciones de vida (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_1_3
+        description: "INS 1.3: Componente de condiciones de vida (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_1
+        description: "INS 2.1: Servicios públicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_2
+        description: "INS 2.2: Servicios públicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_2_3
+        description: "INS 2.3: Servicios públicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_1
+        description: "INS 3.1: Vivienda y entorno (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_2
+        description: "INS 3.2: Vivienda y entorno (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_3_3
+        description: "INS 3.3: Vivienda y entorno (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_1
+        description: "INS 4.1: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_2
+        description: "INS 4.2: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_3
+        description: "INS 4.3: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_4
+        description: "INS 4.4: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_5
+        description: "INS 4.5: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: ins_4_6
+        description: "INS 4.6: Otros factores de insuficiencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INSUFICIENCIA DE FUNCIONAMIENTO (INF) ---
+      - name: inf_1_1
+        description: "INF 1.1: Funcionamiento institucional (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_2
+        description: "INF 1.2: Funcionamiento institucional (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_3
+        description: "INF 1.3: Funcionamiento institucional (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_4
+        description: "INF 1.4: Funcionamiento institucional (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_1_5
+        description: "INF 1.5: Funcionamiento institucional (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_1
+        description: "INF 2.1: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_2
+        description: "INF 2.2: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_3
+        description: "INF 2.3: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_4
+        description: "INF 2.4: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_5
+        description: "INF 2.5: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_2_6
+        description: "INF 2.6: Gestión interna (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_1
+        description: "INF 3.1: Recursos y procesos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_2
+        description: "INF 3.2: Recursos y procesos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_3
+        description: "INF 3.3: Recursos y procesos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inf_3_4
+        description: "INF 3.4: Recursos y procesos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TIC ---
+      - name: tic_1_1
+        description: "TIC 1.1: Acceso a tecnologías (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_2
+        description: "TIC 1.2: Acceso a tecnologías (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_3
+        description: "TIC 1.3: Acceso a tecnologías (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_1_4
+        description: "TIC 1.4: Acceso a tecnologías (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_1
+        description: "TIC 2.1: Uso de herramientas digitales (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_2
+        description: "TIC 2.2: Uso de herramientas digitales (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tic_2_3
+        description: "TIC 2.3: Uso de herramientas digitales (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: AMBIENTE (AMB) ---
+      - name: amb_1_1
+        description: "AMB 1.1: Gestión ambiental (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_1_2
+        description: "AMB 1.2: Gestión ambiental (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_1_3
+        description: "AMB 1.3: Gestión ambiental (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_2_1
+        description: "AMB 2.1: Sostenibilidad (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: amb_2_2
+        description: "AMB 2.2: Sostenibilidad (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SALUD (SAL) ---
+      - name: sal_1_1
+        description: "SAL 1.1: Cobertura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_1_2
+        description: "SAL 1.2: Cobertura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_1_3
+        description: "SAL 1.3: Cobertura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_1
+        description: "SAL 2.1: Infraestructura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_2
+        description: "SAL 2.2: Infraestructura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_2_3
+        description: "SAL 2.3: Infraestructura de salud (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_1
+        description: "SAL 3.1: Indicadores de salud pública (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_2
+        description: "SAL 3.2: Indicadores de salud pública (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_3
+        description: "SAL 3.3: Indicadores de salud pública (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sal_3_4
+        description: "SAL 3.4: Indicadores de salud pública (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDUCACIÓN (EDU) ---
+      - name: edu_1_1
+        description: "EDU 1.1: Calidad educativa (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_2
+        description: "EDU 1.2: Calidad educativa (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_3
+        description: "EDU 1.3: Calidad educativa (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_4
+        description: "EDU 1.4: Calidad educativa (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_1_5
+        description: "EDU 1.5: Calidad educativa (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_1
+        description: "EDU 2.1: Acceso y permanencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_2
+        description: "EDU 2.2: Acceso y permanencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_3
+        description: "EDU 2.3: Acceso y permanencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: edu_2_4
+        description: "EDU 2.4: Acceso y permanencia (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: EDIFICACIONES Y SERVICIOS (EDS) ---
+      - name: eds_1_1
+        description: "EDS 1.1: Infraestructura física (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_1_2
+        description: "EDS 1.2: Infraestructura física (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_1_3
+        description: "EDS 1.3: Infraestructura física (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_1
+        description: "EDS 2.1: Servicios básicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_2
+        description: "EDS 2.2: Servicios básicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_3
+        description: "EDS 2.3: Servicios básicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_2_4
+        description: "EDS 2.4: Servicios básicos (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_3_1
+        description: "EDS 3.1: Otros servicios (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: eds_3_2
+        description: "EDS 3.2: Otros servicios (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: NEGOCIOS (NEG) ---
+      - name: neg_1_1
+        description: "NEG 1.1: Actividad empresarial (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_1_2
+        description: "NEG 1.2: Actividad empresarial (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_1_3
+        description: "NEG 1.3: Actividad empresarial (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_1
+        description: "NEG 2.1: Dinámica económica (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_2
+        description: "NEG 2.2: Dinámica económica (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: neg_2_3
+        description: "NEG 2.3: Dinámica económica (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: LABORAL (LAB) ---
+      - name: lab_1_1
+        description: "LAB 1.1: Mercado de trabajo (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_2
+        description: "LAB 1.2: Mercado de trabajo (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_3
+        description: "LAB 1.3: Mercado de trabajo (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_4
+        description: "LAB 1.4: Mercado de trabajo (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: lab_1_5
+        description: "LAB 1.5: Mercado de trabajo (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: FINANCIERO (FIN) ---
+      - name: fin_1_1
+        description: "FIN 1.1: Capacidad financiera (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_2
+        description: "FIN 1.2: Capacidad financiera (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_3
+        description: "FIN 1.3: Capacidad financiera (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: fin_1_4
+        description: "FIN 1.4: Capacidad financiera (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: TAMAÑO (TAM) ---
+      - name: tam_1_1
+        description: "TAM 1.1: Tamaño poblacional/territorial (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tam_2_1
+        description: "TAM 2.1: Densidad/Otros (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: tam_2_2
+        description: "TAM 2.2: Densidad/Otros (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: SOFTWARE (SOF) ---
+      - name: sof_1_1
+        description: "SOF 1.1: Uso de software especializado (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: sof_1_2
+        description: "SOF 1.2: Uso de software especializado (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+      # --- DIMENSIÓN: INNOVACIÓN (INN) ---
+      - name: inn_1_1
+        description: "INN 1.1: Actividades de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_2
+        description: "INN 1.2: Actividades de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_3
+        description: "INN 1.3: Actividades de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_1_4
+        description: "INN 1.4: Actividades de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_1
+        description: "INN 2.1: Resultados de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_2
+        description: "INN 2.2: Resultados de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_3
+        description: "INN 2.3: Resultados de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+      - name: inn_2_4
+        description: "INN 2.4: Resultados de innovación (valor normalizado, redondeado a 2 decimales)."
+        data_type: FLOAT64
+
+  - name: idc_round_integers_valor_ranking
+    description: |
+      "Modelo de la capa Silver que aplica redondeo a enteros (0 decimales) a todas las columnas numéricas de valores de ranking del IDC. 
+      Utiliza la función ROUND para convertir los valores de ranking a números enteros, lo cual es apropiado para este tipo de métricas. 
+      Este modelo procesa todos los indicadores IDC organizados por categorías: Insuficiencia de Condiciones de Vida (INS), 
+      Insuficiencia de Funcionamiento (INF), Tecnologías de la Información y Comunicación (TIC), Ambiente (AMB), Salud (SAL), 
+      Educación (EDU), Edificaciones y Servicios (EDS), Negocios (NEG), Laboral (LAB), Financiero (FIN), Tamaño (TAM), 
+      Software (SOF) e Innovación (INN)."

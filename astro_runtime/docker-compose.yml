@@ -1,0 +1,105 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      # dbt usará este directorio para el profiles.yml
+      DBT_PROFILES_DIR: /opt/airflow/include/dbt
+      # ADC con Service Account dentro del contenedor
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/include/sa.json
+      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_WORKER_TIMEOUT: 300
+      
+      # Credenciales UI
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+    ports:
+      - "8081:8080"
+    volumes:
+      # Tu único DAG con proyecto dbt adentro
+      - ../gdv_general_dbt_dag:/opt/airflow/dags/gdv_general_dbt_dag
+      # Directorio include (contiene include/dbt/profiles.yml)
+      - ./include:/opt/airflow/include
+      # Monta la SA del host como sa.json (de solo lectura)
+      - ${SA_GCP_PATH}:/opt/airflow/include/sa.json:ro
+      # (opcionales) logs y plugins
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    command: >
+      bash -lc "
+      airflow db upgrade &&
+      airflow users create
+        --username $_AIRFLOW_WWW_USER_USERNAME
+        --firstname Admin --lastname User
+        --role Admin
+        --email admin@example.com
+        --password $_AIRFLOW_WWW_USER_PASSWORD || true &&
+      exec airflow webserver
+      "
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      DBT_PROFILES_DIR: /opt/airflow/include/dbt
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/include/sa.json
+    volumes:
+      - ../gdv_general_dbt_dag:/opt/airflow/dags/gdv_general_dbt_dag
+      - ./include:/opt/airflow/include
+      - ${SA_GCP_PATH}:/opt/airflow/include/sa.json:ro
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    command: >
+      bash -lc "airflow db upgrade && exec airflow scheduler"
+
+  triggerer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      DBT_PROFILES_DIR: /opt/airflow/include/dbt
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/include/sa.json
+    volumes:
+      - ../gdv_general_dbt_dag:/opt/airflow/dags/gdv_general_dbt_dag
+      - ./include:/opt/airflow/include
+      - ${SA_GCP_PATH}:/opt/airflow/include/sa.json:ro
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    command: airflow triggerer
+
+volumes:
+  postgres_data:

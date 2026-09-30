@@ -1,0 +1,28 @@
+gdv_general_dbt_dag:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+      dataset: "{{ env_var('DBT_DATASET_SILVER', 'silver_dpt_planeacion_municipal_dev') }}"
+      threads: 4
+      timeout_seconds: 300
+      location: "{{ env_var('DBT_LOCATION', 'us-central1') }}"
+    local:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+      dataset: "{{ env_var('DBT_DATASET_SILVER', 'silver_dpt_planeacion_municipal_dev') }}"
+      threads: 4
+      keyfile: "{{ env_var('DBT_GOOGLE_KEYFILE', env_var('SA_GCP_PATH', '../../astro_runtime/include/sa.json')) }}"
+      timeout_seconds: 300
+      location: "{{ env_var('DBT_LOCATION', 'us-central1') }}"
+    prod:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('DBT_PROJECT_ID', 'datagov-473122') }}"
+      dataset: "{{ env_var('DBT_DATASET_SILVER', 'silver_dpt_planeacion_municipal_prod') }}"
+      threads: 4
+      timeout_seconds: 300
+      location: "{{ env_var('DBT_LOCATION', 'us-central1') }}"

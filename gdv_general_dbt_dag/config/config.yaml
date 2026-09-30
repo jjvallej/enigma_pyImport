@@ -1,0 +1,266 @@
+global_config:
+  debug: true
+
+environments:
+  dev:
+    project_id: "datagov-473122"
+    location: "us-central1"
+    bucket_name: "datalake_gdv_dev"
+    dbt_docs_bucket_name: "bucket_dbt_docs_dev"  # Bucket específico para documentación de dbt
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal"
+  prod:
+    project_id: "datagov-477214"
+    location: "us-east1"
+    bucket_name: "datalake_gdv_pdn"
+    dbt_docs_bucket_name: "bucket_dbt_docs_prod"  # Bucket específico para documentación de dbt
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal"
+  local:
+    project_id: "datagov-473122"  # Por defecto usa dev para desarrollo local
+    location: "us-central1"
+    bucket_name: "datalake_gdv_dev"
+    dbt_docs_bucket_name: "bucket_dbt_docs_dev"  # Bucket específico para documentación de dbt
+    dataset_bronze: "bronze_dpt_planeacion_municipal"
+    dataset_silver: "silver_dpt_planeacion_municipal"
+    dataset_gold: "gold_dpt_planeacion_municipal"
+
+evaplan:
+  auth_endpoint: "http://207.246.89.62/ApiEvaplan/auth/login"
+  api_base_url: "http://207.246.89.62/ApiEvaplan"
+  endpoints:
+    periodos: "/datos/periodos"
+    avance_mr: "/datos/AvanceMR"
+    avance_mp: "/datos/AvanceMP"
+    avance_x_subprograma: "/datos/AvanceXSubprograma"
+    avance_general: "/datos/AvanceGeneral"
+    avance_subprogramas: "/datos/AvanceSubprogramas"
+    avance_programas: "/datos/AvanceProgramas"
+    sector_mp: "/datos/SectorMP"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/api_evaplan"
+  gcs_folders:
+    periodos: "periodos"
+    avance_mr: "avance_mr"
+    avance_mp: "avance_mp"
+    avance_x_subprograma: "avance_x_subprograma"
+    avance_general: "avance_general"
+    avance_subprogramas: "avance_subprogramas"
+    avance_programas: "avance_programas"
+    sector_mp: "sector_mp"
+  fuentes:
+    - "periodos"
+    - "avance_mr"
+    - "avance_mp"
+    - "avance_x_subprograma"
+    - "avance_general"
+    - "avance_subprogramas"
+    - "avance_programas"
+    - "sector_mp"
+  tables:
+    bronze:
+      periodos: "evaplan_api_periodos_raw_data"
+      avance_mr: "evaplan_api_avance_mr_raw_data"
+      avance_mp: "evaplan_api_avance_mp_raw_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_raw_data"
+      avance_general: "evaplan_api_avance_general_raw_data"
+      avance_subprogramas: "evaplan_api_avance_subprogramas_raw_data"
+      avance_programas: "evaplan_api_avance_programas_raw_data"
+      sector_mp: "evaplan_api_sector_mp_raw_data"
+    silver:
+      periodos: "evaplan_api_periodos_transformed_data"
+      avance_mr: "evaplan_api_avance_mr_transformed_data"
+      avance_mp: "evaplan_api_avance_mp_transformed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_transformed_data"
+      avance_general: "evaplan_api_avance_general_transformed_data"
+      avance_subprogramas: "evaplan_api_avance_subprogramas_transformed_data"
+      avance_programas: "evaplan_api_avance_programas_transformed_data"
+      sector_mp: "evaplan_api_sector_mp_transformed_data"
+    gold:
+      avance_mr: "evaplan_api_avance_mr_processed_data"
+      avance_mp: "evaplan_api_avance_mp_processed_data"
+      avance_x_subprograma: "evaplan_api_avance_x_subprograma_processed_data"
+      avance_general: "evaplan_api_avance_general_processed_data"
+      avance_subprogramas: "evaplan_api_avance_subprogramas_processed_data"
+      avance_programas: "evaplan_api_avance_programas_processed_data"
+      sector_mp: "evaplan_api_sector_mp_processed_data"
+    gold_facts:
+      fact_entidad: "FACT_ENTIDAD"
+      fact_programa: "FACT_PROGRAMA"
+      fact_resumen: "FACT_RESUMEN"
+      fact_sector: "FACT_SECTOR"
+  # Credenciales de autenticación
+  # NOTA: Configurar las credenciales aquí para que el código funcione
+  credentials:
+    usuario: "usuario_api"  # Configurar el usuario de la API
+    password: "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f"  # Configurar el password de la API
+
+sap_api_evaplan:
+  # url: "http://sapqa-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
+  url: "http://sappro-ci.valledelcauca.gov.co:8000/sap/bc/gui/sap/its/zimportdata/zimportdata"
+  # auto: periodo desde SCRIPT_OVERRIDE_* o config (scheduler sin formulario obligatorio).
+  # manual: si disparas el DAG a mano, Airflow debe recibir fecha_inicio y fecha_fin; el scheduler sigue usando script/config.
+  modo_ejecucion: "auto"
+  # Periodo por defecto cuando no hay conf ni overrides en el DAG (ini/fin siguen siendo alias compatibles)
+  fecha_inicio: ""
+  fecha_fin: ""
+  params:
+    sap_client: "710"
+    p1: "X"
+    p2: ""
+    p3: ""
+    p4: ""
+  credentials:
+    # usuario: "PRUEBASAP"
+    # password: "Inicio26"
+    usuario: "DATAWEBSER"
+    password: "Datagov26"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/sap_api_evaplan"
+  response_list_key: "infoz080"
+  export_filename: "sap_api_evaplan_{{ ds_nodash }}.json"
+  timeout_seconds: 900
+  target_dataset: null
+  target_table: "sap_api_evaplan_raw_data"
+  source_format: "NEWLINE_DELIMITED_JSON"
+  write_disposition: "WRITE_APPEND"
+  autodetect: true
+  # Programación solo del DAG de ingesta (cron Airflow de 5 campos). Ej. cada 10 min: "*/10 * * * *".
+  # Los DAGs load y transform no llevan schedule aquí: se disparan en cadena desde ingest / load.
+  # 2:00 y 12:00 hora Colombia (UTC-5) => 07:00 y 17:00 UTC
+  ingest_schedule_interval: "0 7,17 * * *"
+  #ingest_schedule_interval: "*/25 * * * *"
+  schedule_interval: null
+  gold_dataset: null
+  gold_table: "sap_api_evaplan_final_data"
+
+idc:
+  drive_url: "https://docs.google.com/spreadsheets/d/1ABWswq3dHMP74u-cKW9OaCTI3X3bfegF/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
+  dictionary_drive_url: "https://drive.google.com/file/d/1Np3t7wFletxcMxqoeDrNhlvxqzaOQpLr/view?usp=sharing"  # URL del archivo CSV del diccionario
+  gcs_folder: "data_staging/dpt_planeacion_municipal/idc"
+  tables:
+    dictionary: "DIM_IDC"
+    raw_data_mapping:
+      Dato_original: "idc_raw_data_dato_original"
+      Valor_normalizado: "idc_raw_data_valor_normalizado"
+      Valor_ranking: "idc_raw_data_valor_ranking"
+    silver:
+      dato_original: "idc_transformed_data_dato_original"
+      valor_normalizado: "idc_transformed_data_valor_normalizado"
+      valor_ranking: "idc_transformed_data_valor_ranking"
+    gold: "FACT_IDC"
+
+ipm:
+  drive_url: "https://docs.google.com/spreadsheets/d/1qrwNEM4NWgVwLPiVKTA_rGNcp9y5PMou/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
+  gcs_folder: "data_staging/dpt_planeacion_municipal/ipm"
+  tables:
+    bronze: "ipm_raw_data"
+    silver: "ipm_transformed_data"
+    gold: "FACT_DANE"
+
+ipm_sisben:
+  drive_url: "https://docs.google.com/spreadsheets/d/1tUZvT4fC2PmeQrvTUHdUvjN8j3fdD53k/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
+  gcs_folder: "data_staging/dpt_planeacion_municipal/ipm/sisben"
+  gcs_temp_folder: "data_staging/dpt_planeacion_municipal/tmp_sisben"
+  table_name: "ipm_sisben_raw"
+  excel_file_path: "data_staging/dpt_planeacion_municipal/ipm/sisben"  # Ruta del archivo Excel en el bucket (sin el nombre del archivo, se buscará el más reciente)
+  csv_files:
+    - "hoja1_ipm_sisben.csv"
+    - "hoja2_ipm_sisben.csv"
+    - "hoja3_ipm_sisben.csv"
+  external_table:
+    gcs_path: "data_staging/dpt_planeacion_municipal/ipm/sisben/*.csv"  # Ruta en GCS con wildcard para todos los CSVs
+    skip_leading_rows: 1
+    field_delimiter: ","
+    allow_quoted_newlines: true
+  tables:
+    bronze: "ipm_sisben_raw"
+    silver: "ipm_sisben_transformed_data"
+    gold: "FACT_SISBEN"
+
+idi:
+  config_drive_url: "https://docs.google.com/spreadsheets/d/1_mMOzghd048cmvasxStauXFXpImlaPod/edit?usp=sharing&ouid=114741032353429683392&rtpof=true&sd=true"
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/idi"
+  link_name_keywords:
+    - "Resultados Territorio"
+    - "Resultados consolidados"
+  tables:
+    bronze_prefix: "idi_raw_data_territorio"  # Genera: idi_raw_data_territorio_2024, idi_raw_data_territorio_2023, etc.
+    silver:
+      - "idi_transformed_data_2023"
+      - "idi_transformed_data_2024"
+      - "idi_transformed_data_consolidated"
+    gold: "IDI_PROCESSED_DATA"
+  transform_config:
+    skip_rows: 2
+    sheet_name: null  # null = primera hoja
+    columns_to_drop: null  # null o lista de columnas
+
+database_sc_stackdb:
+  # Datos de conexión (placeholders, reemplazar con credenciales reales en Airflow)
+  connection_id: "con_database_sc_stackdb"
+  database: "DataStackDB"    # usar la base sc_stackdb (DynamicBD)
+  schema: "sc_stackdb"   # search_path/schema donde está encuesta_hogares
+  table: "encuesta_hogares"
+  host: "172.16.19.3"
+  port: 5432
+  user: "app_owner"
+  password: "Ecf5#a87gd5A17bC_9BCB9"
+
+  # Configuración GCS para la exportación
+  gcs_base_folder: "data_staging/dpt_planeacion_municipal/database_sc_stackdb"
+  export_filename: "encuesta_hogares/{{ ds_nodash }}/encuesta_hogares.csv"
+  export_format: "csv"            # csv o json
+  field_delimiter: ","
+  gzip: false
+  use_server_side_cursor: true
+
+  # Configuración de carga a BigQuery (bronze)
+  target_dataset: "bronze_dpt_planeacion_municipal"
+  target_table: "database_test_raw_data"
+  write_disposition: "WRITE_TRUNCATE"
+  source_format: "CSV"
+  skip_leading_rows: 1
+  autodetect: true
+
+  # Scheduling sugerido (puede sobrescribirse en el DAG)
+  schedule_interval: null  # usar null para ejecución manual; puede ser "@daily"
+  start_days_ago: 1
+
+delitos_historicos:
+  # Conexión en Airflow con Keyfile JSON del SA del otro proyecto (datos-delitos-historico-2016-2@observatorio-de-seguridad.iam.gserviceaccount.com)
+  connection_id: "con_bigquery_observatorio_seguridad"
+  # Proyecto donde está la tabla origen
+  source_project_id: "observatorio-de-seguridad"
+  source_dataset: "stg"
+  source_table: "historico_2016_2025"
+  # Ruta en nuestro GCS (bucket según environment: datalake_gdv_dev / datalake_gdv_pdn)
+  gcs_base_folder: "data_staging/dpt_seguridad/delitos_historicos_2016_2025"
+  # Nombre del archivo; {{ ds_nodash }} se reemplaza por la fecha de ejecución (YYYYMMDD)
+  export_filename: "historico_2016_2025_{{ ds_nodash }}.csv"
+  export_format: "csv"
+  field_delimiter: ","
+  # Carga a nuestro BigQuery (bronze) en el dataset bronze_dpt_seguridad
+  target_dataset: "bronze_dpt_seguridad"
+  target_table: "delitos_historicos_raw_data"
+  source_format: "CSV"
+  skip_leading_rows: 1
+  write_disposition: "WRITE_TRUNCATE"
+  autodetect: true
+  schedule_interval: null
+  start_days_ago: 1
+
+dbt_docs:
+  # Target de dbt a usar (dev, prod, local)
+  # NOTA: El bucket se selecciona automáticamente según el ambiente configurado en ENVIRONMENT
+  # Los buckets están definidos en la sección environments (dbt_docs_bucket_name)
+  target: "prod"  # Cambiar a "prod" para producción
+  # Prefijo en GCS donde se guardará la documentación
+  destination_prefix: "dbt_docs"
+  # Frecuencia de actualización (null = manual, "@daily" = diario, "@weekly" = semanal)
+  schedule_interval: "@daily"
+  # Configuración del bucket para hosting estático
+  bucket_config:
+    index_page: "index.html"
+    error_page: "index.html"  # Opcional, usar index.html como fallback
+

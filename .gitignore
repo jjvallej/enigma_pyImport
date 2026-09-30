@@ -2,6 +2,9 @@
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
 # Python
 __pycache__/
@@ -12,6 +15,11 @@ __pycache__/
 dist/
 build/
 *.egg
+*.so
+.Python
+wheels/
+pip-wheel-metadata/
+*.ipynb_checkpoints
 
 # Testing / tooling
 .pytest_cache/
@@ -24,17 +32,28 @@ htmlcov/
 .idea/
 .vscode/
 *.swp
+*.swo
+*~
 .DS_Store
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # Env / secrets
 .env
 .env.*
 !.env.example
+astro_runtime/include/sa.json
 
-# Downloaded / generated data
+# Downloaded / generated data & logs
 data/raw/
 data/*.csv
 !.gitkeep
+astro_runtime/logs/
+gdv_general_dbt_dag/dbt/logs/
+*.log
 
 # Archives & Large files
 *.tar.gz
@@ -42,4 +61,10 @@ data/*.csv
 *.pdf
 *.docx
 *.doc
+
+# Airflow / Docker local files
+airflow.cfg
+unittests.cfg
+webserver_config.py
+.dockerignore
 

@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: stg_delitos_historicos
+    description: |
+      Vista de staging que expone la tabla bronze de delitos históricos (2016-2025).
+      Permite el lineage en dbt docs desde la fuente (cargada por Airflow desde observatorio-de-seguridad)
+      hacia capas superiores cuando se añadan transformaciones o modelos gold.
