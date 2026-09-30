@@ -9,18 +9,49 @@ logger = logging.getLogger(__name__)
 CONN_SIPSA_DANE = "sipsa_dane"
 CONN_NOAA_ONI = "noaa_oni"
 CONN_GOBERNACION_VALLE = "gobernacion_valle"
-
-DEFAULT_HOSTS = {
-    CONN_SIPSA_DANE: "https://www.dane.gov.co",
-    CONN_NOAA_ONI: "https://www.cpc.ncep.noaa.gov",
-    CONN_GOBERNACION_VALLE: "https://datosabiertos.valledelcauca.gov.co",
-}
+CONN_DATOS_GOV_CO = "datos_gov_co"
 
 DESCRIPTIONS = {
     CONN_SIPSA_DANE: "Conexión HTTP al portal DANE SIPSA para descarga de anexos de precios",
     CONN_NOAA_ONI: "Conexión HTTP al portal NOAA CPC para consulta del índice ONI",
     CONN_GOBERNACION_VALLE: "Conexión HTTP al portal de Datos Abiertos de la Gobernación del Valle del Cauca",
+    CONN_DATOS_GOV_CO: "Conexión HTTP al portal de Datos Abiertos de Colombia para municipios",
 }
+
+
+def _hosts_from_config() -> dict[str, str]:
+    """Lee hosts HTTP desde config.yaml (sin hardcodear URLs en el módulo)."""
+    try:
+        from pyimport.config_loader import load_config, require_config_value
+
+        cfg = load_config()
+        return {
+            CONN_SIPSA_DANE: str(require_config_value(cfg, "sipsa", "base_url")).rstrip("/"),
+            CONN_NOAA_ONI: str(require_config_value(cfg, "oni", "base_url")).rstrip("/"),
+            CONN_GOBERNACION_VALLE: str(require_config_value(cfg, "cultivos", "base_url")).rstrip("/"),
+            CONN_DATOS_GOV_CO: str(require_config_value(cfg, "municipios", "base_url")).rstrip("/"),
+        }
+    except Exception:
+        return {}
+
+
+# Compatibilidad con tests/importadores que esperan DEFAULT_HOSTS.
+DEFAULT_HOSTS = _hosts_from_config()
+
+
+def _connection_ids_from_config() -> dict[str, str]:
+    """Lee los Connection Id parametrizados en config.yaml (sección connections)."""
+    try:
+        from pyimport.config_loader import get_connection_params, load_config
+
+        return get_connection_params(load_config())
+    except Exception:
+        return {
+            "sipsa_dane": CONN_SIPSA_DANE,
+            "noaa_oni": CONN_NOAA_ONI,
+            "gobernacion_valle": CONN_GOBERNACION_VALLE,
+            "datos_gov_co": CONN_DATOS_GOV_CO,
+        }
 
 
 def register_connections_in_airflow() -> dict[str, str]:
@@ -30,14 +61,33 @@ def register_connections_in_airflow() -> dict[str, str]:
         from airflow.models import Connection
         from airflow.utils.session import create_session
 
+        conn_ids = _connection_ids_from_config()
+        hosts = _hosts_from_config() or DEFAULT_HOSTS
         connections_data = [
             {
-                "conn_id": conn_id,
+                "conn_id": conn_ids.get("sipsa_dane", CONN_SIPSA_DANE),
                 "conn_type": "http",
-                "host": DEFAULT_HOSTS[conn_id],
-                "description": DESCRIPTIONS[conn_id],
-            }
-            for conn_id in (CONN_SIPSA_DANE, CONN_NOAA_ONI, CONN_GOBERNACION_VALLE)
+                "host": hosts.get(CONN_SIPSA_DANE, ""),
+                "description": DESCRIPTIONS[CONN_SIPSA_DANE],
+            },
+            {
+                "conn_id": conn_ids.get("noaa_oni", CONN_NOAA_ONI),
+                "conn_type": "http",
+                "host": hosts.get(CONN_NOAA_ONI, ""),
+                "description": DESCRIPTIONS[CONN_NOAA_ONI],
+            },
+            {
+                "conn_id": conn_ids.get("gobernacion_valle", CONN_GOBERNACION_VALLE),
+                "conn_type": "http",
+                "host": hosts.get(CONN_GOBERNACION_VALLE, ""),
+                "description": DESCRIPTIONS[CONN_GOBERNACION_VALLE],
+            },
+            {
+                "conn_id": conn_ids.get("datos_gov_co", CONN_DATOS_GOV_CO),
+                "conn_type": "http",
+                "host": hosts.get(CONN_DATOS_GOV_CO, ""),
+                "description": DESCRIPTIONS[CONN_DATOS_GOV_CO],
+            },
         ]
 
         with create_session() as session:
@@ -77,7 +127,7 @@ def get_connection_base_url(conn_id: str, default_host: str | None = None) -> st
         La URL base normalizada (ej. 'https://www.dane.gov.co') sin barra final.
     """
     if default_host is None:
-        default_host = DEFAULT_HOSTS.get(conn_id, "")
+        default_host = (_hosts_from_config() or DEFAULT_HOSTS).get(conn_id, "")
 
     try:
         try:

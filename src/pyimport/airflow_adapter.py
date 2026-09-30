@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from pyimport.config_loader import load_config, require_config_value
 from pyimport.sipsa import (
     FoodRow,
     extract_food_rows,
@@ -15,9 +16,6 @@ from pyimport.sipsa import (
     resolve_and_download,
     write_csv,
 )
-
-DEFAULT_START = "2015-02"
-DEFAULT_END = "2026-06"
 
 
 def _resolve_path(value: str | Path | None, *, default: Path, repo_root: Path) -> Path:
@@ -34,21 +32,32 @@ def resolve_import_config(
     *,
     env: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Resuelve la configuración de la importación desde overrides, variables de entorno o defaults."""
+    """Resuelve la configuración desde overrides, env o config.yaml."""
     repo_root = Path(__file__).resolve().parents[2]
     env_map = os.environ if env is None else env
+    cfg = load_config()
+    sipsa_cfg = require_config_value(cfg, "sipsa")
+    paths_cfg = require_config_value(cfg, "paths")
 
     overrides = {} if overrides is None else overrides
-    start = str(overrides.get("start") or env_map.get("SIPSA_START", DEFAULT_START))
-    end = str(overrides.get("end") or env_map.get("SIPSA_END", DEFAULT_END))
+    start = str(
+        overrides.get("start")
+        or env_map.get("SIPSA_START")
+        or require_config_value(sipsa_cfg, "start_period")
+    )
+    end = str(
+        overrides.get("end")
+        or env_map.get("SIPSA_END")
+        or require_config_value(sipsa_cfg, "end_period")
+    )
     download_dir = _resolve_path(
         overrides.get("download_dir") or env_map.get("SIPSA_DOWNLOAD_DIR"),
-        default=repo_root / "data" / "raw",
+        default=repo_root / require_config_value(paths_cfg, "raw_dir"),
         repo_root=repo_root,
     )
     output = _resolve_path(
         overrides.get("output") or env_map.get("SIPSA_OUTPUT"),
-        default=repo_root / "data" / "sipsa_precios.csv",
+        default=repo_root / require_config_value(paths_cfg, "sipsa_csv"),
         repo_root=repo_root,
     )
 

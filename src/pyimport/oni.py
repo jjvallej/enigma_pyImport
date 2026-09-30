@@ -1,29 +1,17 @@
-"""Módulo para descargar, procesar y promediar anualmente el Índice Oceánico del Niño (ONI - NOAA)."""
+"""Módulo para la descarga y procesamiento del Índice Climático ONI (NOAA)."""
 
 from __future__ import annotations
 
-import csv
 from dataclasses import asdict, dataclass
-import re
+import csv
+
 from pathlib import Path
-import urllib.request
+import re
 from typing import Iterable
-
-from pyimport.connections import CONN_NOAA_ONI, get_connection_base_url
-
-ONI_PATH = "/products/analysis_monitoring/ensostuff/ONI_v5.php"
+import urllib.request
 
 
-def get_oni_url(conn_id: str = CONN_NOAA_ONI) -> str:
-    """Retorna la URL del índice ONI usando la Conexión de Airflow dada o por defecto."""
-    base_url = get_connection_base_url(conn_id)
-    return f"{base_url}{ONI_PATH}"
-
-
-NOAA_ONI_URL = get_oni_url()
-
-
-@dataclass
+@dataclass(frozen=True)
 class AnnualONIRecord:
     anio: str
     promedio_oni: str
@@ -31,17 +19,31 @@ class AnnualONIRecord:
     fenomeno_predominante: str
 
 
+def get_oni_url(connection_id: str | None = None, cfg: dict | None = None) -> str:
+    """Resuelve la URL ONI desde config (oni.url / oni.path) y connections.noaa_oni."""
+    from pyimport.config_loader import build_url, get_connection_id, load_config, require_config_value
+    from pyimport.connections import get_connection_base_url
+
+    config = cfg or load_config()
+    if not connection_id:
+        connection_id = get_connection_id(config, "noaa_oni")
+    base_url = get_connection_base_url(
+        connection_id,
+        default_host=require_config_value(config, "oni", "base_url"),
+    )
+    path = require_config_value(config, "oni", "path")
+    return build_url(base_url, path)
+
+
 def download_oni_html(url: str | None = None, dest_path: Path | None = None) -> Path:
-    """Descarga la página HTML con la tabla del índice ONI de NOAA."""
-    if dest_path is None and isinstance(url, Path):
-        dest_path = url
-        url = get_oni_url()
-    elif url is None:
+    """Descarga el archivo HTML desde la URL de la NOAA CPC hacia la ruta especificada."""
+    if url is None:
         url = get_oni_url()
     if dest_path is None:
         raise ValueError("dest_path es requerido")
 
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    if dest_path.exists():
+        dest_path.unlink()
     req = urllib.request.Request(
         url,
         headers={
@@ -60,8 +62,9 @@ def download_oni_html(url: str | None = None, dest_path: Path | None = None) -> 
 def parse_oni_html(html_path: Path) -> list[AnnualONIRecord]:
     """Parsea el HTML de ONI v5 y calcula el promedio de temperatura anual para cada año."""
     html_content = html_path.read_text(encoding="utf-8", errors="ignore")
+
     year_rows = re.findall(
-        r"<tr>\s*<td[^>]*><font[^>]*><strong>(\d{4})</strong></font></td>(.*?)</tr>",
+        r"<tr>\s*<td[^>]*>(?:<[^>]+>)*(\d{4})(?:<[^>]+>)*</td>(.*?)</tr>",
         html_content,
         re.DOTALL,
     )

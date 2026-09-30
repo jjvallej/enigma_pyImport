@@ -28,23 +28,28 @@ MONTH_ABBR = {
 MONTH_NUM_TO_ABBR = {v: k for k, v in MONTH_ABBR.items()}
 MONTH_TOKEN = "|".join(MONTH_ABBR)
 
-from pyimport.connections import CONN_SIPSA_DANE, get_connection_base_url
-
-PATH_TEMPLATES: tuple[str, ...] = (
-    "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls",
-    "/files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx",
-    "/files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx",
-    "/files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx",
-)
+from pyimport.connections import get_connection_base_url
+from pyimport.config_loader import get_connection_id, load_config, require_config_value
 
 
-def get_sipsa_url_templates(conn_id: str = CONN_SIPSA_DANE) -> tuple[str, ...]:
-    """Retorna las plantillas de URL de SIPSA utilizando la Conexión de Airflow dada o por defecto."""
-    base_url = get_connection_base_url(conn_id)
-    return tuple(f"{base_url}{tmpl}" for tmpl in PATH_TEMPLATES)
+def get_sipsa_path_templates(cfg: dict | None = None) -> tuple[str, ...]:
+    """Lee sipsa.path_templates desde config.yaml."""
+    config = cfg or load_config()
+    templates = require_config_value(config, "sipsa", "path_templates")
+    return tuple(str(t) for t in templates)
 
 
-URL_TEMPLATES: tuple[str, ...] = get_sipsa_url_templates()
+def get_sipsa_url_templates(conn_id: str | None = None, cfg: dict | None = None) -> tuple[str, ...]:
+    """Retorna plantillas de URL SIPSA (base de conexión + paths de config)."""
+    config = cfg or load_config()
+    if not conn_id:
+        conn_id = get_connection_id(config, "sipsa_dane")
+    base_url = get_connection_base_url(
+        conn_id,
+        default_host=require_config_value(config, "sipsa", "base_url"),
+    )
+    return tuple(f"{base_url.rstrip('/')}{tmpl}" for tmpl in get_sipsa_path_templates(config))
+
 
 FILENAME_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
@@ -127,7 +132,7 @@ def parse_period_from_filename(filename: str) -> Period:
     raise ValueError(f"Nombre de archivo no reconocido: {filename}")
 
 
-def candidate_urls(period: Period, conn_id: str = CONN_SIPSA_DANE) -> list[str]:
+def candidate_urls(period: Period, conn_id: str | None = None) -> list[str]:
     templates = get_sipsa_url_templates(conn_id)
     return [
         template.format(mes=period.month_abbr, anio=period.year)
@@ -195,7 +200,8 @@ def url_exists(url: str, timeout: float = 20.0) -> bool:
 
 
 def download_file(url: str, dest: Path, timeout: float = 60.0) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    if dest.exists():
+        dest.unlink()
     with _request(url, method="GET", timeout=timeout) as response, dest.open("wb") as out:
         out.write(response.read())
 
@@ -209,11 +215,7 @@ def find_local_file(period: Period, download_dir: Path) -> Path | None:
 
 
 def resolve_and_download(period: Period, download_dir: Path) -> Path:
-    """Prueba los esquemas de URL conocidos. Reutiliza archivo local si existe."""
-    existing = find_local_file(period, download_dir)
-    if existing is not None:
-        return existing
-
+    """Prueba los esquemas de URL conocidos y recrea el archivo destino."""
     last_error: Exception | None = None
     for url in candidate_urls(period):
         if not url_exists(url):
@@ -239,11 +241,14 @@ def resolve_and_download(period: Period, download_dir: Path) -> Path:
 
 
 def _normalize_cell(value: object) -> str:
+    import re
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
-        return str(int(value))
-    return str(value).strip()
+        val_str = str(int(value))
+    else:
+        val_str = str(value)
+    return re.sub(r"[*]+", "", val_str).strip()
 
 
 def _is_food_name(name: str) -> bool:
