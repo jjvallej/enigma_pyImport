@@ -15,7 +15,9 @@ if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 from src_common import (  # noqa: E402
+    build_url,
     get_composer_params,
+    get_connection_base_url,
     get_connection_id,
     get_raw_root,
     load_config,
@@ -46,10 +48,14 @@ def run_ingest_oni(config: Dict[str, Any] | None = None) -> str:
 
     raw_root = get_raw_root(cfg)
     html_dest = storage_join(raw_root, require_config_value(oni_cfg, "raw_filename"))
-    url = require_config_value(oni_cfg, "url")
+    
+    config_base = require_config_value(oni_cfg, "base_url")
+    path = require_config_value(oni_cfg, "path")
+    base_url = get_connection_base_url(noaa_oni, default_host=config_base) or config_base
+    url = build_url(base_url, path)
 
     print(
-        f"🌐 [SRC_INGEST_ONI] Target: {gcs_bucket} | raw_root={raw_root} | "
+        f"🌐 [SRC_INGEST_ONI] Target: {gcs_bucket} | raw_root={raw_root} | Base URL: {base_url} | "
         f"Composer={composer['environment']} ({composer['location']}) | conn={noaa_oni}"
     )
     print(f"📥 Descargando tabla ONI desde {url} hacia {html_dest}...")

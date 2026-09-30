@@ -339,6 +339,70 @@ valledata:
     dataset: valledata
     bronze_table: bronze_secop_ii_contratos
     gold_table: gold_secop_ii_contratos
+  sipsa:
+    connection_id: sipsa_dane
+    base_url: sipsa_dane
+    earliest_period: 2012-01
+    output_filename: sipsa_precios.csv
+    path_templates:
+    - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls
+    - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx
+    - /files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx
+    - /files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx
+  oni:
+    connection_id: noaa_oni
+    base_url: noaa_oni
+    path: /products/analysis_monitoring/enso/oni/v5/
+    raw_filename: oni_v5.html
+    output_filename: oni_promedio_anual.csv
+  cultivos:
+    connection_id: gobernacion_valle
+    base_url: gobernacion_valle
+    permanentes_path: /dataset/55a3d384-fec1-4267-8541-7d62a3fc9223/resource/7c578f9f-094d-4e6e-b1db-2f5e3bde32c9/download/cultivos_permanentes.csv
+    transitorios_path: /dataset/16a0cede-1b2f-4db8-8a42-ca10d0223cee/resource/f0ed7211-5ab5-4fa0-885d-e343cc906f2c/download/cultivos_transitorios.csv
+    permanentes_filename: cultivos_permanentes.csv
+    transitorios_filename: cultivos_transitorios.csv
+    output_filename: cultivos_valle.csv
+    consolidado_filename: dataset_consolidado_valle.csv
+  municipios:
+    connection_id: datos_gov_co
+    base_url: datos_gov_co
+    download_path: /api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD
+    raw_filename: municipios_valle.csv
+    output_filename: municipios_valle_clean.csv
+  ckan_comentarios:
+    table: comment
+    schema: public
+    raw_subdir: ckan_comentarios
+    raw_filename_template: comment_{conn_id}.csv
+    output_filename: ckan_comentarios.csv
+    silver_filename: silver_comentarios.csv
+    gold_filename: gold_comentarios_sentimiento.csv
+    max_connections: 14
+    sentiment_lang: es
+    use_test_data: true
+    test_data_records: 1000
+    test_data_seed: 42
+  airflow_alerts:
+    enabled: true
+    email_on_failure: true
+    emails:
+    - jhon.jairo.vallejo@gmail.com
+    retries: 1
+    retry_delay_minutes: 5
+    fail_statuses:
+    - ERROR
+    - PARTIAL
+    - FAILED
+  paths:
+    raw_dir: data/raw
+    output_dir: data
+    sipsa_csv: data/sipsa_precios.csv
+    oni_csv: data/oni_promedio_anual.csv
+    cultivos_csv: data/cultivos_valle.csv
+    municipios_csv: data/municipios_valle_clean.csv
+    consolidado_csv: data/dataset_consolidado_valle.csv
+    gold_spatial_csv: data/gold_cultivos_valle_geo.csv
 dbt_docs:
   target: prod
   destination_prefix: dbt_docs
@@ -347,65 +411,4 @@ dbt_docs:
     index_page: index.html
     error_page: index.html
 active_environment: dev
-sipsa:
-  base_url: https://www.dane.gov.co
-  earliest_period: 2012-01
-  output_filename: sipsa_precios.csv
-  path_templates:
-  - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xls
-  - /files/investigaciones/agropecuario/sipsa/anex_mensual_{mes}_{anio}.xlsx
-  - /files/investigaciones/agropecuario/sipsa/anexo_mensual_SIPSA_mayoristas_{mes}_{anio}.xlsx
-  - /files/operaciones/SIPSA/anex-SIPSAMensual-{mes}{anio}.xlsx
-oni:
-  base_url: https://www.cpc.ncep.noaa.gov
-  path: /products/analysis_monitoring/enso/oni/v5/
-  url: https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/oni/v5/
-  raw_filename: oni_v5.html
-  output_filename: oni_promedio_anual.csv
-cultivos:
-  base_url: https://datosabiertos.valledelcauca.gov.co
-  permanentes_path: /dataset/55a3d384-fec1-4267-8541-7d62a3fc9223/resource/7c578f9f-094d-4e6e-b1db-2f5e3bde32c9/download/cultivos_permanentes.csv
-  transitorios_path: /dataset/16a0cede-1b2f-4db8-8a42-ca10d0223cee/resource/f0ed7211-5ab5-4fa0-885d-e343cc906f2c/download/cultivos_transitorios.csv
-  permanentes_filename: cultivos_permanentes.csv
-  transitorios_filename: cultivos_transitorios.csv
-  output_filename: cultivos_valle.csv
-  consolidado_filename: dataset_consolidado_valle.csv
-municipios:
-  base_url: https://www.datos.gov.co
-  download_path: /api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD
-  url: https://www.datos.gov.co/api/views/iryd-wvq5/rows.csv?accessType=DOWNLOAD
-  raw_filename: municipios_valle.csv
-  output_filename: municipios_valle_clean.csv
-ckan_comentarios:
-  table: comment
-  schema: public
-  raw_subdir: ckan_comentarios
-  raw_filename_template: comment_{conn_id}.csv
-  output_filename: ckan_comentarios.csv
-  silver_filename: silver_comentarios.csv
-  gold_filename: gold_comentarios_sentimiento.csv
-  max_connections: 14
-  sentiment_lang: es
-  use_test_data: true
-  test_data_records: 1000
-  test_data_seed: 42
-airflow_alerts:
-  enabled: true
-  email_on_failure: true
-  emails:
-  - jhon.jairo.vallejo@gmail.com
-  retries: 1
-  retry_delay_minutes: 5
-  fail_statuses:
-  - ERROR
-  - PARTIAL
-  - FAILED
-paths:
-  raw_dir: data/raw
-  output_dir: data
-  sipsa_csv: data/sipsa_precios.csv
-  oni_csv: data/oni_promedio_anual.csv
-  cultivos_csv: data/cultivos_valle.csv
-  municipios_csv: data/municipios_valle_clean.csv
-  consolidado_csv: data/dataset_consolidado_valle.csv
-  gold_spatial_csv: data/gold_cultivos_valle_geo.csv
+

@@ -239,11 +239,19 @@ def get_connection_params(cfg: Dict[str, Any] | None = None) -> Dict[str, Any]:
 def get_connection_id(cfg: Dict[str, Any] | None, name: str) -> str:
     """Consulta el parámetro de conexión escalar `name` del entorno activo.
 
-    Ejemplo: get_connection_id(cfg, "sipsa_dane") lee
-    environments.<env>.connections.sipsa_dane.
-
-    Para arreglos (ckan_comentarios) use get_connection_list().
+    Si `name` corresponde a un bloque de dominio (p. ej. "oni", "sipsa", "cultivos", "municipios")
+    y este define `connection_id`, retorna dicha referencia. De lo contrario, consulta
+    environments.<env>.connections.<name>.
     """
+    if isinstance(cfg, dict):
+        domain_cfg = cfg.get(name)
+        if not domain_cfg and "valledata" in cfg and isinstance(cfg["valledata"], dict):
+            domain_cfg = cfg["valledata"].get(name)
+        if isinstance(domain_cfg, dict) and domain_cfg.get("connection_id"):
+            ref_name = domain_cfg["connection_id"]
+            if ref_name and ref_name != name:
+                return get_connection_id(cfg, str(ref_name))
+
     value = get_connection_params(cfg).get(name, name)
     if isinstance(value, (list, dict)):
         raise TypeError(
@@ -520,16 +528,31 @@ def build_url(base_url: str, path: str) -> str:
     """Une base_url (conexión) con un path relativo de config."""
     return f"{base_url.rstrip('/')}/{path.lstrip('/')}"
 
+KNOWN_CONNECTION_HOSTS: Dict[str, str] = {
+    "noaa_oni": "https://www.cpc.ncep.noaa.gov",
+    "sipsa_dane": "https://www.dane.gov.co",
+    "gobernacion_valle": "https://datosabiertos.valledelcauca.gov.co",
+    "datos_gov_co": "https://www.datos.gov.co",
+}
+
+
 def get_connection_base_url(conn_id: str, default_host: str | None = None) -> str:
-    """Obtiene la URL base desde una Conexión HTTP de Airflow, o el host por defecto."""
-    host = (default_host or "").strip().rstrip("/")
+    """Obtiene la URL base desde una Conexión HTTP de Airflow por conn_id, o el host por defecto.
+
+    Si conn_id es un nombre de conexión (p. ej. 'noaa_oni', 'sipsa_dane'), consulta Airflow BaseHook.
+    Si Airflow no devuelve host o no está disponible, cae al mapa de conexiones conocidas.
+    """
+    conn_name = (conn_id or "").strip()
+    if conn_name.startswith(("http://", "https://")):
+        return conn_name.rstrip("/")
+
     try:
         try:
             from airflow.sdk.bases.hook import BaseHook
         except ImportError:
             from airflow.hooks.base import BaseHook
 
-        conn = BaseHook.get_connection(conn_id)
+        conn = BaseHook.get_connection(conn_name)
         if conn and conn.host:
             value = conn.host.strip()
             if not value.startswith(("http://", "https://")):
@@ -538,7 +561,16 @@ def get_connection_base_url(conn_id: str, default_host: str | None = None) -> st
             return value.rstrip("/")
     except Exception:
         pass
-    return host
+
+    if default_host and default_host.startswith(("http://", "https://")):
+        return default_host.rstrip("/")
+
+    if conn_name in KNOWN_CONNECTION_HOSTS:
+        return KNOWN_CONNECTION_HOSTS[conn_name]
+    if default_host and default_host in KNOWN_CONNECTION_HOSTS:
+        return KNOWN_CONNECTION_HOSTS[default_host]
+
+    return default_host or ""
 
 def running_in_composer() -> bool:
     """True cuando el código corre en Airflow/Composer (no en CLI local)."""
