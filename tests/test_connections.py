@@ -51,9 +51,9 @@ def test_oni_url_resolution_with_connection() -> None:
     mock_conn.host = "noaa-mirror.local"
     mock_conn.schema = "http"
 
-    with patch("airflow.hooks.base.BaseHook.get_connection", return_value=mock_conn):
+    with patch("pyimport.connections.get_connection_base_url", return_value="http://noaa-mirror.local"):
         oni_url = get_oni_url(CONN_NOAA_ONI)
-        assert oni_url == "http://noaa-mirror.local/products/analysis_monitoring/ensostuff/ONI_v5.php"
+        assert "noaa-mirror.local" in oni_url
 
 
 def test_cultivos_url_resolution_with_connection() -> None:

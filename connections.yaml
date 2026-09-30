@@ -16,3 +16,34 @@ gobernacion_valle:
   conn_type: http
   host: https://datosabiertos.valledelcauca.gov.co
   description: "Conexión HTTP al portal de Datos Abiertos de la Gobernación del Valle del Cauca"
+
+datos_gov_co:
+  conn_type: http
+  host: https://www.datos.gov.co
+  description: "Conexión HTTP al portal de Datos Abiertos de Colombia para datos geográficos de municipios"
+
+
+
+# ---------------------------------------------------------------------------
+# Conexiones Postgres a instancias CKAN (hasta 14). Configure host/ruta real,
+# usuario y password en Airflow UI o complete aquí antes de:
+#   airflow connections import connections.yaml
+# Luego liste los conn_id en environments.<env>.connections.ckan_comentarios
+# ---------------------------------------------------------------------------
+# ckan_pg_01:
+#   conn_type: postgres
+#   host: 10.0.0.1
+#   schema: ckan
+#   login: ckan_ro
+#   password: "CHANGE_ME"
+#   port: 5432
+#   description: "Postgres CKAN municipio 01 — tabla public.comment"
+#
+# ckan_pg_02:
+#   conn_type: postgres
+#   host: 10.0.0.2
+#   schema: ckan
+#   login: ckan_ro
+#   password: "CHANGE_ME"
+#   port: 5432
+#   description: "Postgres CKAN municipio 02 — tabla public.comment"

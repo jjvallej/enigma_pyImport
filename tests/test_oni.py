@@ -77,13 +77,8 @@ def test_oni_dag_loaded_without_errors() -> None:
 
     assert len(dagbag.import_errors) == 0, f"Errores al importar DAGs: {dagbag.import_errors}"
 
-    dag = dagbag.dags.get("oni_fenomeno_nino_import")
-    assert dag is not None, f"No se encontró el DAG 'oni_fenomeno_nino_import'. DAGs: {list(dagbag.dags.keys())}"
-    assert dag.dag_id == "oni_fenomeno_nino_import"
-    expected_tasks = {
-        "preparar_entorno",
-        "descargar_html_oni",
-        "procesar_y_calcular_promedios",
-    }
-    assert set(dag.task_ids) == expected_tasks
-    assert len(dag.tasks) == 3
+    dag = dagbag.dags.get("src_ingest_oni")
+    assert dag is not None, f"No se encontró el DAG 'src_ingest_oni'. DAGs: {list(dagbag.dags.keys())}"
+    assert dag.dag_id == "src_ingest_oni"
+    assert "run_ingest_oni" in dag.task_ids
+

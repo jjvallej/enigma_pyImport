@@ -34,4 +34,12 @@ htmlcov/
 # Downloaded / generated data
 data/raw/
 data/*.csv
-!data/.gitkeep
+!.gitkeep
+
+# Archives & Large files
+*.tar.gz
+*.zip
+*.pdf
+*.docx
+*.doc
+

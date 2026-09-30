@@ -38,21 +38,21 @@ def test_parse_and_consolidate_cultivos(tmp_path: Path) -> None:
         encoding="latin-1",
     )
 
-    # Archivo simulado de transitorios
+    # Archivo simulado de transitorios (incluso con Tipo_cultivo no debe usarse como nombre)
     trans_csv.write_text(
-        "Año;Id_municipio;Municipio;Id_cultivo;Cultivo;Ciclo;Hectareas_sembradas;Hectareas_cosechadas;Produccion_toneladas;Rendimiento_toneladas/hectareas\n"
-        "2020;76100;Bolivar;1052000;Melón;Semestre 1;27;27;1139,4;42,2\n",
+        "Tipo_cultivo;Año;Id_municipio;Municipio;Id_cultivo;Cultivo;Ciclo;Hectareas_sembradas;Hectareas_cosechadas;Produccion_toneladas;Rendimiento_toneladas/hectareas\n"
+        "Cereales;2020;76100;Bolivar;1052000;Melón;Semestre 1;27;27;1139,4;42,2\n",
         encoding="latin-1",
     )
 
     perm_records = parse_cultivos_permanentes(perm_csv)
     assert len(perm_records) == 1
-    assert perm_records[0].tipo_cultivo == "Frutales"
+    assert perm_records[0].tipo_cultivo == "Permanente"
     assert perm_records[0].cultivo == "Aguacate"
 
     trans_records = parse_cultivos_transitorios(trans_csv)
     assert len(trans_records) == 1
-    assert trans_records[0].tipo_cultivo == "Transitorios"
+    assert trans_records[0].tipo_cultivo == "Transitorio"
     assert trans_records[0].cultivo == "Melón"
 
     count = write_consolidated_cultivos_csv(perm_records + trans_records, output_csv)
@@ -71,14 +71,8 @@ def test_cultivos_dag_loaded_without_errors() -> None:
 
     assert len(dagbag.import_errors) == 0, f"Errores al importar DAGs: {dagbag.import_errors}"
 
-    dag = dagbag.dags.get("cultivos_valle_import")
-    assert dag is not None, f"No se encontró el DAG 'cultivos_valle_import'. DAGs: {list(dagbag.dags.keys())}"
-    assert dag.dag_id == "cultivos_valle_import"
-    expected_tasks = {
-        "preparar_entorno",
-        "descargar_cultivos_permanentes",
-        "descargar_cultivos_transitorios",
-        "procesar_y_consolidar_cultivos",
-    }
-    assert set(dag.task_ids) == expected_tasks
-    assert len(dag.tasks) == 4
+    dag = dagbag.dags.get("src_ingest_crops")
+    assert dag is not None, f"No se encontró el DAG 'src_ingest_crops'. DAGs: {list(dagbag.dags.keys())}"
+    assert dag.dag_id == "src_ingest_crops"
+    assert "run_ingest_crops" in dag.task_ids
+
