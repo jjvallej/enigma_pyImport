@@ -92,14 +92,17 @@ if _af_dag is not None:
 
         @_af_task(task_id="task_ingest_ckan_comentarios")
         def task_ingest() -> Dict[str, Any]:
+            from src_ingest_ckan_comentarios import run_ingest_ckan_comentarios
             return run_with_airflow_alarm(run_ingest_ckan_comentarios)
 
         @_af_task(task_id="task_load_ckan_comentarios")
         def task_load() -> Dict[str, Any]:
+            from src_load_ckan_comentarios import run_load_ckan_comentarios
             return run_with_airflow_alarm(run_load_ckan_comentarios)
 
         @_af_task(task_id="task_transform_ckan_comentarios")
         def task_transform() -> Dict[str, Any]:
+            from src_transform_ckan_comentarios import run_transform_ckan_comentarios
             return run_with_airflow_alarm(run_transform_ckan_comentarios)
 
         t_ingest = task_ingest()
