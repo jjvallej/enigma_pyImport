@@ -443,6 +443,11 @@ def load_config(
 
     # Generar configuración resuelta con propiedades planas para fácil consumo
     resolved_cfg = {**raw_cfg}
+    valledata_block = raw_cfg.get("valledata")
+    if isinstance(valledata_block, dict):
+        for k, v in valledata_block.items():
+            if k not in resolved_cfg or not resolved_cfg[k]:
+                resolved_cfg[k] = v
     resolved_cfg["active_env"] = target_env
     resolved_cfg["env_spec"] = env_spec
 
@@ -507,6 +512,8 @@ def load_config(
 def require_config_value(cfg: Dict[str, Any], *keys: str) -> Any:
     """Obtiene un valor anidado de config; falla si falta."""
     node: Any = cfg
+    if keys and isinstance(cfg, dict) and keys[0] not in cfg and "valledata" in cfg and isinstance(cfg["valledata"], dict) and keys[0] in cfg["valledata"]:
+        node = cfg["valledata"]
     trail: list[str] = []
     for key in keys:
         trail.append(key)
